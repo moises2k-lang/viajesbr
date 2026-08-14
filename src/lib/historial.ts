@@ -22,6 +22,7 @@ function huella(p: ParametrosFormulario): string {
     p.menores.join(","),
     p.bebes,
     p.cabina ?? "",
+    (p.tramos ?? []).map((t) => `${t.origen}${t.destino}${t.fecha}`).join(">"),
   ].join("|");
 }
 
@@ -63,7 +64,10 @@ export function historialDelServidor(): BusquedaGuardada[] {
 
 /** Agrega la búsqueda al inicio, sin repetir la misma combinación. */
 export function guardarBusqueda(parametros: ParametrosFormulario): void {
-  const nueva: BusquedaGuardada = { parametros, buscadaEn: new Date().toISOString() };
+  const nueva: BusquedaGuardada = {
+    parametros,
+    buscadaEn: new Date().toISOString(),
+  };
   const restantes = historialDelNavegador().filter(
     (b) => huella(b.parametros) !== huella(parametros),
   );

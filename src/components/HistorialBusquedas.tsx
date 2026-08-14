@@ -32,20 +32,32 @@ function fechaCorta(iso: string): string {
 function textoPasajeros(p: ParametrosFormulario): string {
   const partes = [`${p.adultos} adulto${p.adultos === 1 ? "" : "s"}`];
   if (p.menores.length > 0) {
-    partes.push(`${p.menores.length} menor${p.menores.length === 1 ? "" : "es"} (${p.menores.join(", ")} años)`);
+    partes.push(
+      `${p.menores.length} menor${p.menores.length === 1 ? "" : "es"} (${p.menores.join(", ")} años)`,
+    );
   }
   if (p.bebes > 0) partes.push(`${p.bebes} bebé${p.bebes === 1 ? "" : "s"}`);
   return partes.join(" · ");
 }
 
-export default function HistorialBusquedas({ historial, onRepetir, onBorrar }: Props) {
+export default function HistorialBusquedas({
+  historial,
+  onRepetir,
+  onBorrar,
+}: Props) {
   if (historial.length === 0) return null;
 
   return (
     <section className="mt-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-[#0B2545]">Tus búsquedas recientes</h2>
-        <button className="text-xs text-[#14477E] underline" onClick={onBorrar} type="button">
+        <h2 className="text-sm font-semibold text-[#0B2545]">
+          Tus búsquedas recientes
+        </h2>
+        <button
+          className="text-xs text-[#14477E] underline"
+          onClick={onBorrar}
+          type="button"
+        >
           Borrar historial
         </button>
       </div>
@@ -60,14 +72,25 @@ export default function HistorialBusquedas({ historial, onRepetir, onBorrar }: P
               type="button"
             >
               <p className="text-sm font-semibold text-[#0B2545]">
-                {p.origen} → {p.destino}
+                {p.tramos && p.tramos.length > 1
+                  ? [
+                      p.tramos[0].origen,
+                      ...p.tramos.map((t) => t.destino),
+                    ].join(" → ")
+                  : `${p.origen} → ${p.destino}`}
               </p>
               <p className="text-xs text-[#5A6B80]">
-                {[p.origenNombre, p.destinoNombre].filter(Boolean).join(" → ") || "Vuelo guardado"}
+                {[p.origenNombre, p.destinoNombre]
+                  .filter(Boolean)
+                  .join(" → ") || "Vuelo guardado"}
               </p>
               <p className="mt-1 text-xs text-[#5A6B80]">
                 {fechaCorta(p.fechaSalida)}
-                {p.fechaRegreso ? ` – ${fechaCorta(p.fechaRegreso)}` : " · sólo ida"}
+                {p.tramos && p.tramos.length > 1
+                  ? ` · multiciudad (${p.tramos.length} tramos)`
+                  : p.fechaRegreso
+                    ? ` – ${fechaCorta(p.fechaRegreso)}`
+                    : " · sólo ida"}
               </p>
               <p className="text-xs text-[#5A6B80]">{textoPasajeros(p)}</p>
             </button>

@@ -6,6 +6,8 @@ interface Props {
   desde: string;
   hasta: string | null;
   conRegreso: boolean;
+  /** Una sola fecha (tramos de multiciudad): oculta el campo de regreso. */
+  unica?: boolean;
   etiquetaDesde?: string;
   etiquetaHasta?: string;
   onCambio: (desde: string, hasta: string | null) => void;
@@ -57,12 +59,14 @@ export default function RangoFechas({
   desde,
   hasta,
   conRegreso,
+  unica = false,
   etiquetaDesde = "Desde",
   etiquetaHasta = "Hasta",
   onCambio,
 }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [eligiendo, setEligiendo] = useState<"desde" | "hasta">("desde");
+  const [encima, setEncima] = useState<string | null>(null);
   const inicial = desde || hoyIso();
   const [mesBase, setMesBase] = useState(() => {
     const [anio, mes] = inicial.split("-").map(Number);
@@ -72,7 +76,10 @@ export default function RangoFechas({
 
   useEffect(() => {
     function fuera(evento: MouseEvent) {
-      if (contenedor.current && !contenedor.current.contains(evento.target as Node)) {
+      if (
+        contenedor.current &&
+        !contenedor.current.contains(evento.target as Node)
+      ) {
         setAbierto(false);
       }
     }
@@ -85,10 +92,10 @@ export default function RangoFechas({
     setAbierto(true);
   }
 
+  /** El calendario no se cierra al elegir: se queda abierto hasta que el usuario lo cierra. */
   function elegir(iso: string) {
     if (!conRegreso) {
       onCambio(iso, null);
-      setAbierto(false);
       return;
     }
     if (eligiendo === "desde") {
@@ -102,7 +109,7 @@ export default function RangoFechas({
       return;
     }
     onCambio(desde, iso);
-    setAbierto(false);
+    setEligiendo("desde");
   }
 
   function mover(saltos: number) {
@@ -111,6 +118,12 @@ export default function RangoFechas({
   }
 
   const minimo = hoyIso();
+  const noches =
+    desde !== "" && hasta
+      ? Math.round(
+          (new Date(hasta).getTime() - new Date(desde).getTime()) / 86400000,
+        )
+      : 0;
 
   function mes(desplazamiento: number) {
     const fecha = new Date(mesBase.anio, mesBase.mes + desplazamiento, 1);
@@ -127,29 +140,52 @@ export default function RangoFechas({
             <span key={dia}>{dia}</span>
           ))}
         </div>
-        <div className="mt-1 grid grid-cols-7 gap-1">
+        <div className="mt-1 grid grid-cols-7 place-items-center">
           {casillas(anio, numeroMes).map((dia, indice) => {
             if (dia === null) return <span key={`hueco-${indice}`} />;
             const iso = aIso(anio, numeroMes, dia);
             const pasada = iso < minimo;
+            /** Mientras elige el regreso, el rango se sombrea siguiendo el cursor. */
+            const finVista =
+              hasta ??
+              (conRegreso && eligiendo === "hasta" && encima && encima > desde
+                ? encima
+                : null);
             const esDesde = iso === desde;
-            const esHasta = hasta !== null && iso === hasta;
-            const enRango = hasta !== null && desde !== "" && iso > desde && iso < hasta;
+            const esHasta = finVista !== null && iso === finVista;
+            const enRango =
+              finVista !== null &&
+              desde !== "" &&
+              iso > desde &&
+              iso < finVista;
+            const extremo = esDesde || esHasta;
             return (
               <button
-                className={`h-8 rounded text-sm ${
-                  esDesde || esHasta
-                    ? "bg-[#0B2545] font-semibold text-white"
-                    : enRango
-                      ? "bg-[#E4E8EE] text-[#0B2545]"
-                      : "text-[#0B2545] hover:bg-[#F5F7FA]"
-                } disabled:cursor-not-allowed disabled:text-[#D7DDE5] disabled:hover:bg-transparent`}
+                className={`h-9 text-sm ${
+                  enRango ||
+                  (extremo && finVista !== null && desde !== finVista)
+                    ? "bg-[#DCE6F5]"
+                    : ""
+                } ${esDesde && finVista !== null && desde !== finVista ? "rounded-l-full" : ""} ${
+                  esHasta && desde !== finVista ? "rounded-r-full" : ""
+                } disabled:cursor-not-allowed disabled:bg-transparent disabled:text-[#D7DDE5]`}
                 disabled={pasada}
                 key={iso}
                 onClick={() => elegir(iso)}
+                onMouseEnter={() => setEncima(iso)}
                 type="button"
               >
-                {dia}
+                <span
+                  className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                    extremo
+                      ? "bg-[#0B2545] font-semibold text-white"
+                      : enRango
+                        ? "text-[#0B2545]"
+                        : "text-[#0B2545] hover:bg-[#F5F7FA]"
+                  }`}
+                >
+                  {dia}
+                </span>
               </button>
             );
           })}
@@ -160,10 +196,12 @@ export default function RangoFechas({
 
   return (
     <div className="relative" ref={contenedor}>
-      <div className="grid grid-cols-2 gap-2">
+      <div className={`grid gap-2 ${unica ? "grid-cols-1" : "grid-cols-2"}`}>
         <button
           className={`rounded-lg border bg-white px-3 py-2.5 text-left ${
-            abierto && eligiendo === "desde" ? "border-[#14477E]" : "border-[#E4E8EE]"
+            abierto && eligiendo === "desde"
+              ? "border-[#14477E]"
+              : "border-[#E4E8EE]"
           }`}
           onClick={() => abrir("desde")}
           type="button"
@@ -175,23 +213,31 @@ export default function RangoFechas({
             {desde ? textoLargo(desde) : "Elegir fecha"}
           </span>
         </button>
-        <button
-          className={`rounded-lg border bg-white px-3 py-2.5 text-left disabled:bg-[#F5F7FA] ${
-            abierto && eligiendo === "hasta" ? "border-[#14477E]" : "border-[#E4E8EE]"
-          }`}
-          disabled={!conRegreso}
-          onClick={() => abrir("hasta")}
-          type="button"
-        >
-          <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
-            {etiquetaHasta}
-          </span>
-          <span
-            className={`text-sm font-medium ${conRegreso ? "text-[#0B2545]" : "text-[#9AA7B8]"}`}
+        {!unica && (
+          <button
+            className={`rounded-lg border bg-white px-3 py-2.5 text-left disabled:bg-[#F5F7FA] ${
+              abierto && eligiendo === "hasta"
+                ? "border-[#14477E]"
+                : "border-[#E4E8EE]"
+            }`}
+            disabled={!conRegreso}
+            onClick={() => abrir("hasta")}
+            type="button"
           >
-            {conRegreso ? (hasta ? textoLargo(hasta) : "Elegir fecha") : "Sólo ida"}
-          </span>
-        </button>
+            <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
+              {etiquetaHasta}
+            </span>
+            <span
+              className={`text-sm font-medium ${conRegreso ? "text-[#0B2545]" : "text-[#9AA7B8]"}`}
+            >
+              {conRegreso
+                ? hasta
+                  ? textoLargo(hasta)
+                  : "Elegir fecha"
+                : "Sólo ida"}
+            </span>
+          </button>
+        )}
       </div>
 
       {abierto && (
@@ -219,9 +265,43 @@ export default function RangoFechas({
               ›
             </button>
           </div>
-          <div className="flex flex-col gap-6 sm:flex-row">
+          <div
+            className="flex flex-col gap-6 sm:flex-row"
+            onMouseLeave={() => setEncima(null)}
+          >
             {mes(0)}
             {mes(1)}
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#E4E8EE] pt-3">
+            <p className="text-xs text-[#5A6B80]">
+              {desde === ""
+                ? "Elige la fecha de salida"
+                : conRegreso && hasta
+                  ? `${textoLargo(desde)} → ${textoLargo(hasta)} · ${noches} noche${noches === 1 ? "" : "s"}`
+                  : conRegreso
+                    ? `${textoLargo(desde)} → elige el regreso`
+                    : textoLargo(desde)}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                className="rounded-lg border border-[#E4E8EE] px-3 py-1.5 text-xs text-[#5A6B80]"
+                onClick={() => {
+                  onCambio("", null);
+                  setEligiendo("desde");
+                }}
+                type="button"
+              >
+                Limpiar
+              </button>
+              <button
+                className="rounded-lg bg-[#0B2545] px-4 py-1.5 text-xs font-semibold text-white"
+                onClick={() => setAbierto(false)}
+                type="button"
+              >
+                Listo
+              </button>
+            </div>
           </div>
         </div>
       )}

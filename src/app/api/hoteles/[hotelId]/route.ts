@@ -47,6 +47,8 @@ export interface FichaHotel {
   latitud: number | null;
   longitud: number | null;
   fotos: string[];
+  /** Fotos de habitación de la galería, para las tarifas que no cruzan con el catálogo. */
+  fotosHabitaciones: string[];
   servicios: string[];
   habitaciones: HabitacionCatalogo[];
   puntosFuertes: string[];
@@ -115,6 +117,11 @@ export async function GET(
         .map((foto) => foto.urlHd || foto.url)
         .filter((url): url is string => Boolean(url))
         .slice(0, 30),
+      fotosHabitaciones: (hotel.hotelImages ?? [])
+        .filter((foto) => /room|suite|bed/i.test(foto.caption ?? ""))
+        .map((foto) => foto.urlHd || foto.url)
+        .filter((url): url is string => Boolean(url))
+        .slice(0, 10),
       servicios: (hotel.hotelFacilities ?? []).slice(0, 60),
       habitaciones: (hotel.rooms ?? []).map((habitacion) => ({
         nombre: habitacion.roomName,

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { FichaHotel } from "@/app/api/hoteles/[hotelId]/route";
 import type { HotelConPrecio } from "@/app/api/hoteles/route";
+import { emparejarHabitacion } from "@/lib/habitaciones";
 
 interface Props {
   hotel: HotelConPrecio;
@@ -304,22 +305,23 @@ export default function DetalleHotel({
             </p>
             <ul className="mt-2 space-y-3">
               {hotel.habitaciones.map((habitacion) => {
-                const catalogo = ficha?.habitaciones.find(
-                  (h) =>
-                    h.nombre.toLocaleLowerCase() ===
-                    habitacion.habitacion.toLocaleLowerCase(),
+                const catalogo = emparejarHabitacion(
+                  habitacion.habitacion,
+                  ficha?.habitaciones,
                 );
+                const foto =
+                  catalogo?.fotos[0] ?? ficha?.fotosHabitaciones[0] ?? null;
                 return (
                   <li
                     className="flex flex-col gap-3 rounded-lg border border-[#E4E8EE] p-3 sm:flex-row"
                     key={habitacion.ofertaId}
                   >
-                    {catalogo?.fotos[0] && (
+                    {foto && (
                       <Image
                         alt={habitacion.habitacion}
                         className="h-32 w-full rounded-md object-cover sm:h-24 sm:w-36"
                         height={128}
-                        src={catalogo.fotos[0]}
+                        src={foto}
                         unoptimized
                         width={192}
                       />

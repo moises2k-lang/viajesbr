@@ -20,12 +20,25 @@ const esquema = z.object({
   menores: z.array(z.number().int().min(0).max(17)).max(8).default([]),
   bebes: z.number().int().min(0).max(4).default(0),
   cabina: z.enum(["economy", "premium_economy", "business", "first"]).nullish(),
+  tramos: z
+    .array(
+      z.object({
+        origen: z.string().trim().length(3),
+        destino: z.string().trim().length(3),
+        fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      }),
+    )
+    .min(2)
+    .max(5)
+    .nullish(),
 });
 
 const MAXIMO_OFERTAS = 150;
 
 function minutosEntre(desde: string, hasta: string): number {
-  return Math.round((new Date(hasta).getTime() - new Date(desde).getTime()) / 60000);
+  return Math.round(
+    (new Date(hasta).getTime() - new Date(desde).getTime()) / 60000,
+  );
 }
 
 export interface OfertaConPrecio {
@@ -91,8 +104,10 @@ function normalizarOferta(
     markup: precio.markup,
     precioVenta: precio.precioVenta,
     expiraEn: oferta.expires_at,
-    cambiosPermitidos: oferta.conditions?.change_before_departure?.allowed ?? null,
-    reembolsoPermitido: oferta.conditions?.refund_before_departure?.allowed ?? null,
+    cambiosPermitidos:
+      oferta.conditions?.change_before_departure?.allowed ?? null,
+    reembolsoPermitido:
+      oferta.conditions?.refund_before_departure?.allowed ?? null,
     pasajeros: oferta.passengers.map((p) => ({
       tipo: p.type ?? (typeof p.age === "number" ? "child" : "adult"),
       edad: typeof p.age === "number" ? p.age : null,
@@ -123,10 +138,11 @@ function normalizarOferta(
       ),
       escalas: tramo.segments.length - 1,
       marcaTarifa: tramo.fare_brand_name ?? null,
-      equipaje: tramo.segments[0]?.passengers?.[0]?.baggages?.map((b) => ({
-        tipo: b.type,
-        cantidad: b.quantity,
-      })) ?? [],
+      equipaje:
+        tramo.segments[0]?.passengers?.[0]?.baggages?.map((b) => ({
+          tipo: b.type,
+          cantidad: b.quantity,
+        })) ?? [],
       segmentos: tramo.segments.map((segmento, indice) => ({
         vuelo: `${segmento.marketing_carrier.iata_code}${segmento.marketing_carrier_flight_number}`,
         origen: segmento.origin.iata_code,
@@ -145,7 +161,10 @@ function normalizarOferta(
         esperaMinutos:
           indice === 0
             ? null
-            : minutosEntre(tramo.segments[indice - 1].arriving_at, segmento.departing_at),
+            : minutosEntre(
+                tramo.segments[indice - 1].arriving_at,
+                segmento.departing_at,
+              ),
         cabina: segmento.passengers?.[0]?.cabin_class_marketing_name ?? null,
         aerolinea: segmento.marketing_carrier.name,
         avion: segmento.aircraft?.name ?? null,
@@ -170,6 +189,22 @@ export async function POST(request: Request) {
     );
   }
   const p = validado.data;
+  /** En multiciudad el "origen" y "destino" de la búsqueda son el primero y el último tramo. */
+  const multiciudad =
+    p.tramos && p.tramos.length > 1
+      ? p.tramos.map((tramo) => ({
+          origen: tramo.origen.toUpperCase(),
+          destino: tramo.destino.toUpperCase(),
+          fecha: tramo.fecha,
+        }))
+      : null;
+  const origenBusqueda = multiciudad
+    ? multiciudad[0].origen
+    : p.origen.toUpperCase();
+  const destinoBusqueda = multiciudad
+    ? multiciudad[multiciudad.length - 1].destino
+    : p.destino.toUpperCase();
+  const fechaBusqueda = multiciudad ? multiciudad[0].fecha : p.fechaSalida;
 
   let solicitud;
   try {
@@ -178,24 +213,32 @@ export async function POST(request: Request) {
       destino: p.destino.toUpperCase(),
       fechaSalida: p.fechaSalida,
       fechaRegreso: p.fechaRegreso ?? null,
+      tramos: multiciudad,
       adultos: p.adultos,
       menores: p.menores,
       bebes: p.bebes,
       cabina: p.cabina ?? null,
     });
   } catch (error) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 502 });
+    return NextResponse.json(
+      { error: (error as Error).message },
+      { status: 502 },
+    );
   }
 
   const reglas = await reglasActivas();
   const ofertas = solicitud.offers
     .map((oferta) => {
-      const precio = calcularPrecio(Number(oferta.total_amount), {
-        aerolineaIata: oferta.owner.iata_code,
-        origen: p.origen.toUpperCase(),
-        destino: p.destino.toUpperCase(),
-        moneda: oferta.total_currency,
-      }, reglas);
+      const precio = calcularPrecio(
+        Number(oferta.total_amount),
+        {
+          aerolineaIata: oferta.owner.iata_code,
+          origen: origenBusqueda,
+          destino: destinoBusqueda,
+          moneda: oferta.total_currency,
+        },
+        reglas,
+      );
       return { oferta, precio };
     })
     .sort((a, b) => a.precio.precioVenta - b.precio.precioVenta);
@@ -206,10 +249,10 @@ export async function POST(request: Request) {
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
      RETURNING id::text`,
     [
-      p.origen.toUpperCase(),
-      p.destino.toUpperCase(),
-      p.fechaSalida,
-      p.fechaRegreso ?? null,
+      origenBusqueda,
+      destinoBusqueda,
+      fechaBusqueda,
+      multiciudad ? null : (p.fechaRegreso ?? null),
       p.adultos,
       p.menores.length,
       p.bebes,

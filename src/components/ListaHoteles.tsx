@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { FichaHotel } from "@/app/api/hoteles/[hotelId]/route";
 import type { HotelConPrecio } from "@/app/api/hoteles/route";
+import { emparejarHabitacion } from "@/lib/habitaciones";
 import DetalleHotel from "@/components/DetalleHotel";
 
 type Orden = "precio" | "calificacion" | "estrellas" | "nombre";
@@ -300,22 +301,25 @@ export default function ListaHoteles({ hoteles, mostrarMargen }: Props) {
                 {desplegado && (
                   <ul className="divide-y divide-[#E4E8EE] border-t border-[#E4E8EE] bg-[#F9FAFC]">
                     {hotel.habitaciones.map((habitacion) => {
-                      const catalogo = ficha?.habitaciones.find(
-                        (h) =>
-                          h.nombre.toLocaleLowerCase() ===
-                          habitacion.habitacion.toLocaleLowerCase(),
+                      const catalogo = emparejarHabitacion(
+                        habitacion.habitacion,
+                        ficha?.habitaciones,
                       );
+                      const foto =
+                        catalogo?.fotos[0] ??
+                        ficha?.fotosHabitaciones[0] ??
+                        null;
                       return (
                         <li
                           className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center"
                           key={habitacion.ofertaId}
                         >
-                          {catalogo?.fotos[0] ? (
+                          {foto ? (
                             <Image
                               alt={habitacion.habitacion}
                               className="h-28 w-full rounded-md object-cover sm:h-16 sm:w-24"
                               height={112}
-                              src={catalogo.fotos[0]}
+                              src={foto}
                               unoptimized
                               width={160}
                             />

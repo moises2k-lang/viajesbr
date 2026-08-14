@@ -8,6 +8,14 @@ import SelectorPasajeros, {
   type Pasajeros,
 } from "@/components/SelectorPasajeros";
 
+export interface TramoFormulario {
+  origen: string;
+  destino: string;
+  origenNombre: string | null;
+  destinoNombre: string | null;
+  fecha: string;
+}
+
 export interface ParametrosFormulario {
   origen: string;
   destino: string;
@@ -19,6 +27,8 @@ export interface ParametrosFormulario {
   menores: number[];
   bebes: number;
   cabina: "economy" | "premium_economy" | "business" | "first" | null;
+  /** Sólo en multiciudad: dos a cinco tramos con fecha propia. */
+  tramos?: TramoFormulario[] | null;
 }
 
 const VACIO: ParametrosFormulario = {
@@ -32,7 +42,20 @@ const VACIO: ParametrosFormulario = {
   menores: [],
   bebes: 0,
   cabina: "economy",
+  tramos: null,
 };
+
+const MAXIMO_TRAMOS = 5;
+
+function tramoVacio(fecha = ""): TramoFormulario {
+  return {
+    origen: "",
+    destino: "",
+    origenNombre: null,
+    destinoNombre: null,
+    fecha,
+  };
+}
 
 const CABINAS: {
   valor: NonNullable<ParametrosFormulario["cabina"]>;
@@ -62,9 +85,71 @@ export default function Buscador({
   const [origenDetectado, setOrigenDetectado] = useState<OpcionLugar | null>(
     null,
   );
-  const [redondo, setRedondo] = useState(
-    valoresIniciales ? valoresIniciales.fechaRegreso !== null : true,
+  const [tipo, setTipo] = useState<"redondo" | "ida" | "multiciudad">(
+    valoresIniciales?.tramos && valoresIniciales.tramos.length > 1
+      ? "multiciudad"
+      : valoresIniciales && valoresIniciales.fechaRegreso === null
+        ? "ida"
+        : "redondo",
   );
+  const [tramos, setTramos] = useState<TramoFormulario[]>(
+    valoresIniciales?.tramos && valoresIniciales.tramos.length > 1
+      ? valoresIniciales.tramos
+      : [tramoVacio(), tramoVacio()],
+  );
+  const redondo = tipo === "redondo";
+  const multiciudad = tipo === "multiciudad";
+
+  /** Al abrir multiciudad se arranca con lo que ya escribió en el buscador simple. */
+  function activarMulticiudad() {
+    setTramos((actuales) => {
+      const vacios = actuales.every((t) => t.origen === "" && t.destino === "");
+      if (!vacios) return actuales;
+      return [
+        {
+          origen: datos.origen,
+          destino: datos.destino,
+          origenNombre: datos.origenNombre ?? null,
+          destinoNombre: datos.destinoNombre ?? null,
+          fecha: datos.fechaSalida,
+        },
+        {
+          origen: datos.destino,
+          destino: "",
+          origenNombre: datos.destinoNombre ?? null,
+          destinoNombre: null,
+          fecha: datos.fechaRegreso ?? "",
+        },
+      ];
+    });
+    setTipo("multiciudad");
+  }
+
+  function cambiarTramo(indice: number, cambios: Partial<TramoFormulario>) {
+    setTramos((actuales) =>
+      actuales.map((tramo, i) =>
+        i === indice ? { ...tramo, ...cambios } : tramo,
+      ),
+    );
+  }
+
+  const faltaMulticiudad = ((): string | null => {
+    for (let i = 0; i < tramos.length; i += 1) {
+      const tramo = tramos[i];
+      if (tramo.origen.trim().length !== 3)
+        return `Elige el origen del tramo ${i + 1}`;
+      if (tramo.destino.trim().length !== 3)
+        return `Elige el destino del tramo ${i + 1}`;
+      if (
+        tramo.origen.trim().toUpperCase() === tramo.destino.trim().toUpperCase()
+      )
+        return `El tramo ${i + 1} tiene el mismo origen y destino`;
+      if (tramo.fecha === "") return `Elige la fecha del tramo ${i + 1}`;
+      if (i > 0 && tramo.fecha < tramos[i - 1].fecha)
+        return `La fecha del tramo ${i + 1} no puede ser antes que la del tramo ${i}`;
+    }
+    return null;
+  })();
 
   useEffect(() => {
     if (valoresIniciales) return;
@@ -127,7 +212,7 @@ export default function Buscador({
     bebes: datos.bebes,
   };
 
-  const falta =
+  const faltaSimple =
     datos.origen.trim().length !== 3
       ? "Elige el aeropuerto de origen"
       : datos.destino.trim().length !== 3
@@ -140,16 +225,36 @@ export default function Buscador({
             : redondo && datos.fechaRegreso === null
               ? "Elige la fecha de regreso"
               : null;
+  const falta = multiciudad ? faltaMulticiudad : faltaSimple;
   const completo = falta === null;
 
   function enviar(evento: React.FormEvent) {
     evento.preventDefault();
     if (!completo) return;
+    if (multiciudad) {
+      const limpios = tramos.map((tramo) => ({
+        ...tramo,
+        origen: tramo.origen.trim().toUpperCase(),
+        destino: tramo.destino.trim().toUpperCase(),
+      }));
+      onBuscar({
+        ...datos,
+        origen: limpios[0].origen,
+        destino: limpios[limpios.length - 1].destino,
+        origenNombre: limpios[0].origenNombre,
+        destinoNombre: limpios[limpios.length - 1].destinoNombre,
+        fechaSalida: limpios[0].fecha,
+        fechaRegreso: null,
+        tramos: limpios,
+      });
+      return;
+    }
     onBuscar({
       ...datos,
       origen: datos.origen.trim().toUpperCase(),
       destino: datos.destino.trim().toUpperCase(),
       fechaRegreso: redondo ? datos.fechaRegreso || null : null,
+      tramos: null,
     });
   }
 
@@ -172,18 +277,25 @@ export default function Buscador({
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="flex rounded-full bg-[#E4E8EE] p-1 text-sm">
           <button
-            className={`rounded-full px-4 py-1.5 font-medium ${redondo ? "bg-white text-[#0B2545] shadow" : "text-[#5A6B80]"}`}
-            onClick={() => setRedondo(true)}
+            className={`rounded-full px-4 py-1.5 font-medium ${tipo === "redondo" ? "bg-white text-[#0B2545] shadow" : "text-[#5A6B80]"}`}
+            onClick={() => setTipo("redondo")}
             type="button"
           >
             Redondo
           </button>
           <button
-            className={`rounded-full px-4 py-1.5 font-medium ${redondo ? "text-[#5A6B80]" : "bg-white text-[#0B2545] shadow"}`}
-            onClick={() => setRedondo(false)}
+            className={`rounded-full px-4 py-1.5 font-medium ${tipo === "ida" ? "bg-white text-[#0B2545] shadow" : "text-[#5A6B80]"}`}
+            onClick={() => setTipo("ida")}
             type="button"
           >
             Sólo ida
+          </button>
+          <button
+            className={`rounded-full px-4 py-1.5 font-medium ${tipo === "multiciudad" ? "bg-white text-[#0B2545] shadow" : "text-[#5A6B80]"}`}
+            onClick={activarMulticiudad}
+            type="button"
+          >
+            Multiciudad
           </button>
         </div>
         <div className="flex rounded-full bg-[#E4E8EE] p-1 text-sm">
@@ -204,64 +316,169 @@ export default function Buscador({
         </div>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-12">
-        <div className="relative lg:col-span-3">
-          <CampoAeropuerto
-            descripcion={datos.origenNombre ?? null}
-            etiqueta="Origen"
-            key={`origen-${inversiones}-${origenDetectado?.codigo ?? "manual"}`}
-            onCambio={(codigo, nombre) =>
-              setDatos({ ...datos, origen: codigo, origenNombre: nombre })
-            }
-            valor={datos.origen}
-          />
-          {origenDetectado && datos.origen === origenDetectado.codigo && (
-            <p className="mt-1 text-[11px] text-[#5A6B80]">
-              Detectado por tu ubicación ({origenDetectado.ciudad ?? origenDetectado.codigo}) —
-              cámbialo si no sales de ahí
-            </p>
-          )}
-          <button
-            aria-label="Invertir origen y destino"
-            className="absolute -bottom-4 right-5 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-[#E4E8EE] bg-white text-xs text-[#14477E] shadow lg:-right-3 lg:bottom-auto lg:top-8"
-            title="Invertir origen y destino"
-            onClick={invertir}
-            type="button"
-          >
-            ⇄
-          </button>
-        </div>
+      {multiciudad ? (
+        <div className="space-y-3">
+          {tramos.map((tramo, indice) => (
+            <div
+              className="grid gap-3 rounded-xl border border-[#E4E8EE] p-3 lg:grid-cols-12"
+              key={`tramo-${indice}`}
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#14477E] lg:col-span-12">
+                Tramo {indice + 1}
+              </p>
+              <div className="lg:col-span-4">
+                <CampoAeropuerto
+                  descripcion={tramo.origenNombre}
+                  etiqueta="Origen"
+                  key={`tramo-origen-${indice}-${tramo.origen}`}
+                  onCambio={(codigo, nombre) =>
+                    cambiarTramo(indice, {
+                      origen: codigo,
+                      origenNombre: nombre,
+                    })
+                  }
+                  valor={tramo.origen}
+                />
+              </div>
+              <div className="lg:col-span-4">
+                <CampoAeropuerto
+                  descripcion={tramo.destinoNombre}
+                  etiqueta="Destino"
+                  key={`tramo-destino-${indice}-${tramo.destino}`}
+                  onCambio={(codigo, nombre) => {
+                    cambiarTramo(indice, {
+                      destino: codigo,
+                      destinoNombre: nombre,
+                    });
+                    /** El siguiente tramo casi siempre sale de donde llegó el anterior. */
+                    if (
+                      indice + 1 < tramos.length &&
+                      tramos[indice + 1].origen === ""
+                    ) {
+                      cambiarTramo(indice + 1, {
+                        origen: codigo,
+                        origenNombre: nombre,
+                      });
+                    }
+                  }}
+                  valor={tramo.destino}
+                />
+              </div>
+              <div className="lg:col-span-3">
+                <RangoFechas
+                  conRegreso={false}
+                  desde={tramo.fecha}
+                  etiquetaDesde="Fecha"
+                  hasta={null}
+                  onCambio={(fecha) => cambiarTramo(indice, { fecha })}
+                  unica
+                />
+              </div>
 
-        <div className="lg:col-span-3">
-          <CampoAeropuerto
-            descripcion={datos.destinoNombre ?? null}
-            etiqueta="Destino"
-            key={`destino-${inversiones}`}
-            onCambio={(codigo, nombre) =>
-              setDatos({ ...datos, destino: codigo, destinoNombre: nombre })
-            }
-            valor={datos.destino}
-          />
-        </div>
+              <div className="flex items-end lg:col-span-1">
+                {tramos.length > 2 && (
+                  <button
+                    className="w-full rounded-lg border border-[#E4E8EE] px-2 py-2.5 text-xs text-[#B4451F]"
+                    onClick={() =>
+                      setTramos(tramos.filter((_, i) => i !== indice))
+                    }
+                    type="button"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
 
-        <div className="lg:col-span-4">
-          <RangoFechas
-            conRegreso={redondo}
-            desde={datos.fechaSalida}
-            hasta={datos.fechaRegreso}
-            onCambio={(desde, hasta) =>
-              setDatos({ ...datos, fechaSalida: desde, fechaRegreso: hasta })
-            }
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            {tramos.length < MAXIMO_TRAMOS && (
+              <button
+                className="rounded-lg border border-[#14477E] px-4 py-2 text-sm font-semibold text-[#14477E]"
+                onClick={() =>
+                  setTramos([
+                    ...tramos,
+                    {
+                      ...tramoVacio(tramos[tramos.length - 1].fecha),
+                      origen: tramos[tramos.length - 1].destino,
+                      origenNombre: tramos[tramos.length - 1].destinoNombre,
+                    },
+                  ])
+                }
+                type="button"
+              >
+                + Agregar tramo
+              </button>
+            )}
+            <div className="w-full sm:w-56">
+              <SelectorPasajeros
+                onCambio={(p) => setDatos({ ...datos, ...p })}
+                valor={pasajeros}
+              />
+            </div>
+          </div>
         </div>
+      ) : (
+        <div className="grid gap-3 lg:grid-cols-12">
+          <div className="relative lg:col-span-3">
+            <CampoAeropuerto
+              descripcion={datos.origenNombre ?? null}
+              etiqueta="Origen"
+              key={`origen-${inversiones}-${origenDetectado?.codigo ?? "manual"}`}
+              onCambio={(codigo, nombre) =>
+                setDatos({ ...datos, origen: codigo, origenNombre: nombre })
+              }
+              valor={datos.origen}
+            />
+            {origenDetectado && datos.origen === origenDetectado.codigo && (
+              <p className="mt-1 text-[11px] text-[#5A6B80]">
+                Detectado por tu ubicación (
+                {origenDetectado.ciudad ?? origenDetectado.codigo}) — cámbialo
+                si no sales de ahí
+              </p>
+            )}
+            <button
+              aria-label="Invertir origen y destino"
+              className="absolute -bottom-4 right-5 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-[#E4E8EE] bg-white text-xs text-[#14477E] shadow lg:-right-3 lg:bottom-auto lg:top-8"
+              title="Invertir origen y destino"
+              onClick={invertir}
+              type="button"
+            >
+              ⇄
+            </button>
+          </div>
 
-        <div className="lg:col-span-2">
-          <SelectorPasajeros
-            onCambio={(p) => setDatos({ ...datos, ...p })}
-            valor={pasajeros}
-          />
+          <div className="lg:col-span-3">
+            <CampoAeropuerto
+              descripcion={datos.destinoNombre ?? null}
+              etiqueta="Destino"
+              key={`destino-${inversiones}`}
+              onCambio={(codigo, nombre) =>
+                setDatos({ ...datos, destino: codigo, destinoNombre: nombre })
+              }
+              valor={datos.destino}
+            />
+          </div>
+
+          <div className="lg:col-span-4">
+            <RangoFechas
+              conRegreso={redondo}
+              desde={datos.fechaSalida}
+              hasta={datos.fechaRegreso}
+              onCambio={(desde, hasta) =>
+                setDatos({ ...datos, fechaSalida: desde, fechaRegreso: hasta })
+              }
+            />
+          </div>
+
+          <div className="lg:col-span-2">
+            <SelectorPasajeros
+              onCambio={(p) => setDatos({ ...datos, ...p })}
+              valor={pasajeros}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
@@ -277,7 +494,13 @@ export default function Buscador({
               datos.adultos + datos.menores.length + datos.bebes === 1
                 ? ""
                 : "s"
-            } · ${redondo ? "viaje redondo" : "sólo ida"} · ${
+            } · ${
+              multiciudad
+                ? `multiciudad (${tramos.length} tramos)`
+                : redondo
+                  ? "viaje redondo"
+                  : "sólo ida"
+            } · ${
               CABINAS.find((c) => c.valor === datos.cabina)?.texto ?? "Turista"
             }`}
         </p>

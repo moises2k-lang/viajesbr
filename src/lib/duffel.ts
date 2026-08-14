@@ -142,11 +142,19 @@ async function llamar<T>(ruta: string, init?: RequestInit): Promise<T> {
   return (await llamarCrudo<RespuestaDuffel<T>>(ruta, init)).data;
 }
 
+export interface TramoBusqueda {
+  origen: string;
+  destino: string;
+  fecha: string;
+}
+
 export interface ParametrosBusqueda {
   origen: string;
   destino: string;
   fechaSalida: string;
   fechaRegreso?: string | null;
+  /** Viaje multiciudad: cada tramo con su propio origen, destino y fecha. */
+  tramos?: TramoBusqueda[] | null;
   adultos: number;
   menores: number[];
   bebes: number;
@@ -156,10 +164,21 @@ export interface ParametrosBusqueda {
 export async function buscarOfertas(
   p: ParametrosBusqueda,
 ): Promise<SolicitudOfertas> {
-  const slices = [
-    { origin: p.origen, destination: p.destino, departure_date: p.fechaSalida },
-  ];
-  if (p.fechaRegreso) {
+  const slices =
+    p.tramos && p.tramos.length > 1
+      ? p.tramos.map((tramo) => ({
+          origin: tramo.origen,
+          destination: tramo.destino,
+          departure_date: tramo.fecha,
+        }))
+      : [
+          {
+            origin: p.origen,
+            destination: p.destino,
+            departure_date: p.fechaSalida,
+          },
+        ];
+  if (!p.tramos && p.fechaRegreso) {
     slices.push({
       origin: p.destino,
       destination: p.origen,
