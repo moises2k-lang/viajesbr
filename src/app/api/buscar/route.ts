@@ -21,10 +21,18 @@ const esquema = z.object({
   cabina: z.enum(["economy", "premium_economy", "business", "first"]).nullish(),
 });
 
+const MAXIMO_OFERTAS = 150;
+
+function minutosEntre(desde: string, hasta: string): number {
+  return Math.round((new Date(hasta).getTime() - new Date(desde).getTime()) / 60000);
+}
+
 export interface OfertaConPrecio {
   ofertaId: string;
+  cotizacionId?: string | null;
   aerolinea: string;
   aerolineaIata: string;
+  logo: string | null;
   moneda: string;
   costoNeto: number;
   markup: number;
@@ -36,7 +44,11 @@ export interface OfertaConPrecio {
   tramos: {
     origen: string;
     destino: string;
+    origenNombre: string;
+    destinoNombre: string;
     duracion: string | null;
+    minutos: number;
+    escalas: number;
     marcaTarifa: string | null;
     equipaje: { tipo: string; cantidad: number }[];
     segmentos: {
@@ -45,8 +57,11 @@ export interface OfertaConPrecio {
       destino: string;
       sale: string;
       llega: string;
+      minutos: number;
+      esperaMinutos: number | null;
       cabina: string | null;
       aerolinea: string;
+      avion: string | null;
     }[];
   }[];
 }
@@ -59,6 +74,7 @@ function normalizarOferta(
     ofertaId: oferta.id,
     aerolinea: oferta.owner.name,
     aerolineaIata: oferta.owner.iata_code,
+    logo: oferta.owner.logo_symbol_url ?? null,
     moneda: oferta.total_currency,
     costoNeto: precio.costoNeto,
     markup: precio.markup,
@@ -73,20 +89,33 @@ function normalizarOferta(
     tramos: oferta.slices.map((tramo) => ({
       origen: tramo.origin.iata_code,
       destino: tramo.destination.iata_code,
+      origenNombre: tramo.origin.city_name ?? tramo.origin.name,
+      destinoNombre: tramo.destination.city_name ?? tramo.destination.name,
       duracion: tramo.duration ?? null,
+      minutos: minutosEntre(
+        tramo.segments[0].departing_at,
+        tramo.segments[tramo.segments.length - 1].arriving_at,
+      ),
+      escalas: tramo.segments.length - 1,
       marcaTarifa: tramo.fare_brand_name ?? null,
       equipaje: tramo.segments[0]?.passengers?.[0]?.baggages?.map((b) => ({
         tipo: b.type,
         cantidad: b.quantity,
       })) ?? [],
-      segmentos: tramo.segments.map((segmento) => ({
+      segmentos: tramo.segments.map((segmento, indice) => ({
         vuelo: `${segmento.marketing_carrier.iata_code}${segmento.marketing_carrier_flight_number}`,
         origen: segmento.origin.iata_code,
         destino: segmento.destination.iata_code,
         sale: segmento.departing_at,
         llega: segmento.arriving_at,
+        minutos: minutosEntre(segmento.departing_at, segmento.arriving_at),
+        esperaMinutos:
+          indice === 0
+            ? null
+            : minutosEntre(tramo.segments[indice - 1].arriving_at, segmento.departing_at),
         cabina: segmento.passengers?.[0]?.cabin_class_marketing_name ?? null,
         aerolinea: segmento.marketing_carrier.name,
+        avion: segmento.aircraft?.name ?? null,
       })),
     })),
   };
@@ -158,31 +187,44 @@ export async function POST(request: Request) {
     ],
   );
 
-  for (const { oferta, precio } of ofertas.slice(0, 30)) {
-    await query(
-      `INSERT INTO cotizaciones (busqueda_id, duffel_offer_id, aerolinea, aerolinea_iata, moneda,
-                                 costo_neto, markup, precio_venta, regla_markup_id, expira_en, itinerario)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-      [
-        busqueda.id,
-        oferta.id,
-        oferta.owner.name,
-        oferta.owner.iata_code,
-        oferta.total_currency,
-        precio.costoNeto,
-        precio.markup,
-        precio.precioVenta,
-        precio.reglaId,
-        oferta.expires_at,
-        JSON.stringify(oferta.slices),
-      ],
+  const mostradas = ofertas.slice(0, MAXIMO_OFERTAS);
+  const valores: unknown[] = [];
+  const filas = mostradas.map(({ oferta, precio }, indice) => {
+    const base = indice * 11;
+    valores.push(
+      busqueda.id,
+      oferta.id,
+      oferta.owner.name,
+      oferta.owner.iata_code,
+      oferta.total_currency,
+      precio.costoNeto,
+      precio.markup,
+      precio.precioVenta,
+      precio.reglaId,
+      oferta.expires_at,
+      JSON.stringify(oferta.slices),
     );
-  }
+    return `($${base + 1},$${base + 2},$${base + 3},$${base + 4},$${base + 5},$${base + 6},$${base + 7},$${base + 8},$${base + 9},$${base + 10},$${base + 11})`;
+  });
+
+  const cotizaciones = filas.length
+    ? await query<{ id: string; duffel_offer_id: string }>(
+        `INSERT INTO cotizaciones (busqueda_id, duffel_offer_id, aerolinea, aerolinea_iata, moneda,
+                                   costo_neto, markup, precio_venta, regla_markup_id, expira_en, itinerario)
+         VALUES ${filas.join(",")}
+         RETURNING id::text, duffel_offer_id`,
+        valores,
+      )
+    : [];
+  const porOferta = new Map(cotizaciones.map((c) => [c.duffel_offer_id, c.id]));
 
   return NextResponse.json({
     busquedaId: busqueda.id,
     solicitudId: solicitud.id,
     total: ofertas.length,
-    ofertas: ofertas.slice(0, 30).map(({ oferta, precio }) => normalizarOferta(oferta, precio)),
+    ofertas: mostradas.map(({ oferta, precio }) => ({
+      ...normalizarOferta(oferta, precio),
+      cotizacionId: porOferta.get(oferta.id) ?? null,
+    })),
   });
 }

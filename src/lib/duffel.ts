@@ -42,7 +42,7 @@ export interface Oferta {
   tax_amount?: string | null;
   base_amount?: string | null;
   expires_at: string;
-  owner: { iata_code: string; name: string };
+  owner: { iata_code: string; name: string; logo_symbol_url?: string | null };
   slices: RebanadaOferta[];
   passengers: { id: string; type?: TipoPasajero; age?: number }[];
   conditions?: {
@@ -158,6 +158,20 @@ export async function buscarOfertas(p: ParametrosBusqueda): Promise<SolicitudOfe
       },
     }),
   });
+}
+
+export interface LugarSugerido {
+  id: string;
+  name: string;
+  iata_code: string | null;
+  iata_city_code?: string | null;
+  city_name?: string | null;
+  type: string;
+  airports?: { id: string; name: string; iata_code: string | null; city_name?: string | null }[];
+}
+
+export async function sugerirLugares(consulta: string): Promise<LugarSugerido[]> {
+  return llamar<LugarSugerido[]>(`/places/suggestions?query=${encodeURIComponent(consulta)}`);
 }
 
 export async function obtenerOferta(offerId: string): Promise<Oferta> {

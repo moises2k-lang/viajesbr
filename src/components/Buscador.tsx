@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import CampoAeropuerto from "@/components/CampoAeropuerto";
+import SelectorPasajeros, { type Pasajeros } from "@/components/SelectorPasajeros";
 
 export interface ParametrosFormulario {
   origen: string;
   destino: string;
+  origenNombre?: string | null;
+  destinoNombre?: string | null;
   fechaSalida: string;
   fechaRegreso: string | null;
   adultos: number;
@@ -16,6 +20,8 @@ export interface ParametrosFormulario {
 const VACIO: ParametrosFormulario = {
   origen: "MEX",
   destino: "",
+  origenNombre: "Ciudad de México",
+  destinoNombre: null,
   fechaSalida: "",
   fechaRegreso: null,
   adultos: 1,
@@ -23,6 +29,13 @@ const VACIO: ParametrosFormulario = {
   bebes: 0,
   cabina: "economy",
 };
+
+const CABINAS: { valor: NonNullable<ParametrosFormulario["cabina"]>; texto: string }[] = [
+  { valor: "economy", texto: "Turista" },
+  { valor: "premium_economy", texto: "Premium" },
+  { valor: "business", texto: "Business" },
+  { valor: "first", texto: "Primera" },
+];
 
 interface Props {
   cargando: boolean;
@@ -32,131 +45,141 @@ interface Props {
 
 export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props) {
   const [datos, setDatos] = useState<ParametrosFormulario>(valoresIniciales ?? VACIO);
-  const [edadesTexto, setEdadesTexto] = useState(datos.menores.join(", "));
+  const [redondo, setRedondo] = useState((valoresIniciales?.fechaRegreso ?? null) !== null);
+
+  const pasajeros: Pasajeros = {
+    adultos: datos.adultos,
+    menores: datos.menores,
+    bebes: datos.bebes,
+  };
 
   function enviar(evento: React.FormEvent) {
     evento.preventDefault();
-    const menores = edadesTexto
-      .split(",")
-      .map((v) => v.trim())
-      .filter((v) => v.length > 0)
-      .map((v) => Number(v))
-      .filter((v) => Number.isInteger(v) && v >= 0 && v <= 17);
     onBuscar({
       ...datos,
       origen: datos.origen.trim().toUpperCase(),
       destino: datos.destino.trim().toUpperCase(),
-      menores,
-      fechaRegreso: datos.fechaRegreso || null,
+      fechaRegreso: redondo ? datos.fechaRegreso || null : null,
+    });
+  }
+
+  function invertir() {
+    setDatos({
+      ...datos,
+      origen: datos.destino,
+      destino: datos.origen,
+      origenNombre: datos.destinoNombre ?? null,
+      destinoNombre: datos.origenNombre ?? null,
     });
   }
 
   return (
-    <form className="grid gap-4 rounded-lg border border-neutral-200 p-4 sm:grid-cols-4" onSubmit={enviar}>
-      <label className="flex flex-col gap-1 text-sm">
-        Origen (IATA)
-        <input
-          className="rounded-md border border-neutral-300 px-3 py-2 uppercase"
-          maxLength={3}
-          onChange={(e) => setDatos({ ...datos, origen: e.target.value })}
-          placeholder="MEX"
-          required
-          value={datos.origen}
-        />
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        Destino (IATA)
-        <input
-          className="rounded-md border border-neutral-300 px-3 py-2 uppercase"
-          maxLength={3}
-          onChange={(e) => setDatos({ ...datos, destino: e.target.value })}
-          placeholder="EZE"
-          required
-          value={datos.destino}
-        />
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        Salida
-        <input
-          className="rounded-md border border-neutral-300 px-3 py-2"
-          onChange={(e) => setDatos({ ...datos, fechaSalida: e.target.value })}
-          required
-          type="date"
-          value={datos.fechaSalida}
-        />
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        Regreso (opcional)
-        <input
-          className="rounded-md border border-neutral-300 px-3 py-2"
-          onChange={(e) => setDatos({ ...datos, fechaRegreso: e.target.value })}
-          type="date"
-          value={datos.fechaRegreso ?? ""}
-        />
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        Adultos
-        <input
-          className="rounded-md border border-neutral-300 px-3 py-2"
-          max={9}
-          min={1}
-          onChange={(e) => setDatos({ ...datos, adultos: Number(e.target.value) })}
-          type="number"
-          value={datos.adultos}
-        />
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        Edades de menores
-        <input
-          className="rounded-md border border-neutral-300 px-3 py-2"
-          onChange={(e) => setEdadesTexto(e.target.value)}
-          placeholder="8, 11, 14"
-          value={edadesTexto}
-        />
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        Bebés en brazos
-        <input
-          className="rounded-md border border-neutral-300 px-3 py-2"
-          max={4}
-          min={0}
-          onChange={(e) => setDatos({ ...datos, bebes: Number(e.target.value) })}
-          type="number"
-          value={datos.bebes}
-        />
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        Cabina
-        <select
-          className="rounded-md border border-neutral-300 px-3 py-2"
-          onChange={(e) =>
-            setDatos({ ...datos, cabina: e.target.value as ParametrosFormulario["cabina"] })
-          }
-          value={datos.cabina ?? ""}
-        >
-          <option value="economy">Económica</option>
-          <option value="premium_economy">Premium</option>
-          <option value="business">Business</option>
-          <option value="first">Primera</option>
-        </select>
-      </label>
-
-      <div className="sm:col-span-4">
-        <button
-          className="rounded-md bg-neutral-900 px-5 py-2 text-sm text-white disabled:opacity-50"
-          disabled={cargando}
-          type="submit"
-        >
-          {cargando ? "Buscando…" : "Buscar vuelos"}
-        </button>
+    <form className="rounded-2xl bg-white p-4 shadow-lg shadow-[#0B2545]/10 sm:p-6" onSubmit={enviar}>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="flex rounded-full bg-[#E4E8EE] p-1 text-sm">
+          <button
+            className={`rounded-full px-4 py-1.5 font-medium ${redondo ? "bg-white text-[#0B2545] shadow" : "text-[#5A6B80]"}`}
+            onClick={() => setRedondo(true)}
+            type="button"
+          >
+            Redondo
+          </button>
+          <button
+            className={`rounded-full px-4 py-1.5 font-medium ${redondo ? "text-[#5A6B80]" : "bg-white text-[#0B2545] shadow"}`}
+            onClick={() => setRedondo(false)}
+            type="button"
+          >
+            Sólo ida
+          </button>
+        </div>
+        <div className="flex rounded-full bg-[#E4E8EE] p-1 text-sm">
+          {CABINAS.map((cabina) => (
+            <button
+              className={`rounded-full px-3 py-1.5 font-medium ${
+                datos.cabina === cabina.valor ? "bg-white text-[#0B2545] shadow" : "text-[#5A6B80]"
+              }`}
+              key={cabina.valor}
+              onClick={() => setDatos({ ...datos, cabina: cabina.valor })}
+              type="button"
+            >
+              {cabina.texto}
+            </button>
+          ))}
+        </div>
       </div>
+
+      <div className="grid gap-3 lg:grid-cols-12">
+        <div className="relative lg:col-span-3">
+          <CampoAeropuerto
+            descripcion={datos.origenNombre ?? null}
+            etiqueta="Origen"
+            onCambio={(codigo, nombre) => setDatos({ ...datos, origen: codigo, origenNombre: nombre })}
+            valor={datos.origen}
+          />
+          <button
+            aria-label="Invertir origen y destino"
+            className="absolute -right-3 top-8 z-10 hidden h-7 w-7 items-center justify-center rounded-full border border-[#E4E8EE] bg-white text-xs text-[#14477E] shadow lg:flex"
+            onClick={invertir}
+            type="button"
+          >
+            ⇄
+          </button>
+        </div>
+
+        <div className="lg:col-span-3">
+          <CampoAeropuerto
+            descripcion={datos.destinoNombre ?? null}
+            etiqueta="Destino"
+            onCambio={(codigo, nombre) =>
+              setDatos({ ...datos, destino: codigo, destinoNombre: nombre })
+            }
+            valor={datos.destino}
+          />
+        </div>
+
+        <label className="lg:col-span-2">
+          <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
+            Salida
+          </span>
+          <input
+            className="mt-1 w-full rounded-lg border border-[#E4E8EE] bg-white px-3 py-2.5 text-sm font-medium text-[#0B2545] outline-none focus:border-[#14477E]"
+            onChange={(evento) => setDatos({ ...datos, fechaSalida: evento.target.value })}
+            required
+            type="date"
+            value={datos.fechaSalida}
+          />
+        </label>
+
+        <label className="lg:col-span-2">
+          <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
+            Regreso
+          </span>
+          <input
+            className="mt-1 w-full rounded-lg border border-[#E4E8EE] bg-white px-3 py-2.5 text-sm font-medium text-[#0B2545] outline-none focus:border-[#14477E] disabled:bg-[#F5F7FA] disabled:text-[#9AA7B8]"
+            disabled={!redondo}
+            min={datos.fechaSalida || undefined}
+            onChange={(evento) => setDatos({ ...datos, fechaRegreso: evento.target.value })}
+            required={redondo}
+            type="date"
+            value={datos.fechaRegreso ?? ""}
+          />
+        </label>
+
+        <div className="lg:col-span-2">
+          <SelectorPasajeros
+            onCambio={(p) => setDatos({ ...datos, ...p })}
+            valor={pasajeros}
+          />
+        </div>
+      </div>
+
+      <button
+        className="mt-4 w-full rounded-lg bg-[#0B2545] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#14477E] disabled:opacity-60 sm:w-auto"
+        disabled={cargando}
+        type="submit"
+      >
+        {cargando ? "Buscando tarifas…" : "Buscar vuelos"}
+      </button>
     </form>
   );
 }
