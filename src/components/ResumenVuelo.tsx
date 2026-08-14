@@ -72,8 +72,8 @@ export function DetalleTramos({ oferta }: { oferta: OfertaConPrecio }) {
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 bg-[#0B2545] px-3 py-2 text-white">
             <p className="text-sm font-semibold">
               {nombreTramo(oferta.tramos.length, indice)} ·{" "}
-              <Bandera bandera={tramo.origenBandera} /> {tramo.origen} →{" "}
-              <Bandera bandera={tramo.destinoBandera} /> {tramo.destino}
+              <Bandera bandera={tramo.origenBandera} pais={tramo.origenPais} /> {tramo.origen} →{" "}
+              <Bandera bandera={tramo.destinoBandera} pais={tramo.destinoPais} /> {tramo.destino}
             </p>
             <p className="text-xs text-white/70">
               {fechaCorta(tramo.segmentos[0].sale)} ·{" "}
@@ -90,7 +90,7 @@ export function DetalleTramos({ oferta }: { oferta: OfertaConPrecio }) {
                 {segmento.esperaMinutos !== null && (
                   <p className="my-2 rounded-md bg-[#FFF6E0] px-2 py-1.5 text-xs font-medium text-[#8A6A00]">
                     Escala de {minutosATexto(segmento.esperaMinutos)} en{" "}
-                    <Bandera bandera={segmento.origenBandera} /> {segmento.origen} ·{" "}
+                    <Bandera bandera={segmento.origenBandera} pais={segmento.origenPais} /> {segmento.origen} ·{" "}
                     {segmento.origenNombre}
                   </p>
                 )}
@@ -109,7 +109,7 @@ export function DetalleTramos({ oferta }: { oferta: OfertaConPrecio }) {
                   </div>
                   <div className="min-w-0 flex-1 pb-3">
                     <p className="text-sm font-medium text-[#0B2545]">
-                      <Bandera bandera={segmento.origenBandera} />{" "}
+                      <Bandera bandera={segmento.origenBandera} pais={segmento.origenPais} />{" "}
                       {segmento.origen} · {segmento.origenNombre}
                     </p>
                     <p className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-[#5A6B80]">
@@ -127,13 +127,14 @@ export function DetalleTramos({ oferta }: { oferta: OfertaConPrecio }) {
                       {segmento.avion ? ` · ${segmento.avion}` : ""}
                     </p>
                     <p className="mt-2 text-sm font-medium text-[#0B2545]">
-                      <Bandera bandera={segmento.destinoBandera} />{" "}
+                      <Bandera bandera={segmento.destinoBandera} pais={segmento.destinoPais} />{" "}
                       {segmento.destino} · {segmento.destinoNombre}
                     </p>
                   </div>
                   <div className="w-14 shrink-0 self-end pb-3 text-right">
                     <p className="text-sm font-semibold tabular-nums text-[#0B2545]">
-                      {horaCorta(segmento.llega)}
+                      {horaCorta(segmento.llega)}{" "}
+                      <IconoFranja iso={segmento.llega} />
                     </p>
                     {fechaCorta(segmento.llega) !==
                       fechaCorta(segmento.sale) && (
@@ -236,8 +237,8 @@ export default function ResumenVuelo({ oferta, mostrarMargen }: Props) {
               />
             </p>
             <p className="text-sm text-[#5A6B80]">
-              <Bandera bandera={tramo.origenBandera} /> {tramo.origen} →{" "}
-              <Bandera bandera={tramo.destinoBandera} /> {tramo.destino} ·{" "}
+              <Bandera bandera={tramo.origenBandera} pais={tramo.origenPais} /> {tramo.origen} →{" "}
+              <Bandera bandera={tramo.destinoBandera} pais={tramo.destinoPais} /> {tramo.destino} ·{" "}
               {minutosATexto(tramo.minutos)} ·{" "}
               {tramo.escalas === 0 ? (
                 "directo"
@@ -247,7 +248,7 @@ export default function ResumenVuelo({ oferta, mostrarMargen }: Props) {
                   {tramo.segmentos.slice(0, -1).map((s, i) => (
                     <span key={i}>
                       {i > 0 ? ", " : ""}
-                      <Bandera bandera={s.destinoBandera} /> {s.destino}
+                      <Bandera bandera={s.destinoBandera} pais={s.destinoPais} /> {s.destino}
                     </span>
                   ))}
                   )

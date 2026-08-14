@@ -9,7 +9,12 @@ interface Props {
   etiqueta: string;
   valor: string;
   descripcion: string | null;
-  onCambio: (codigo: string, descripcion: string | null) => void;
+  onCambio: (
+    codigo: string,
+    descripcion: string | null,
+    ciudad?: string | null,
+    pais?: string | null,
+  ) => void;
 }
 
 export default function CampoAeropuerto({
@@ -85,6 +90,8 @@ export default function CampoAeropuerto({
     onCambio(
       opcion.codigo,
       [opcion.bandera, opcion.nombre].filter(Boolean).join(" "),
+      opcion.ciudad,
+      opcion.pais,
     );
     setAbierto(false);
   }

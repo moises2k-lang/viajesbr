@@ -1,13 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type {
   AerolineaResumen,
   CombinacionTramos,
   OfertaConPrecio,
   OpcionTramo,
 } from "@/app/api/buscar/route";
+import type { OpcionCiudad } from "@/app/api/ciudades/route";
 import type { HotelConPrecio } from "@/app/api/hoteles/route";
 import Buscador, { type ParametrosFormulario } from "@/components/Buscador";
 import BuscadorHoteles, {
@@ -71,6 +78,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
     useState<ParametrosFormulario | null>(null);
   // Cada búsqueda aplicada remonta el formulario, incluso si repite los mismos datos.
   const [aplicaciones, setAplicaciones] = useState(0);
+  const hotelBuscadoPara = useRef<string | null>(null);
   const historial = useSyncExternalStore(
     suscribirHistorial,
     historialDelNavegador,
@@ -83,6 +91,10 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
     setAplicaciones((n) => n + 1);
     guardarBusqueda(parametros);
     setEstado({ fase: "buscando" });
+    if (pestana === "paquetes") {
+      hotelBuscadoPara.current = null;
+      setEstadoHoteles({ fase: "inicio" });
+    }
     try {
       const respuesta = await fetch("/api/buscar", {
         method: "POST",
@@ -135,7 +147,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
     }
   }
 
-  async function buscarHotel(parametros: ParametrosHotel) {
+  const buscarHotel = useCallback(async (parametros: ParametrosHotel) => {
     setError(null);
     setUltimoHotel(parametros);
     setEstadoHoteles({ fase: "buscando" });
@@ -162,7 +174,59 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
       setError((e as Error).message);
       setEstadoHoteles({ fase: "inicio" });
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (pestana !== "paquetes") return;
+    if (estado.fase !== "resultados") return;
+    if (!ultimaBusqueda) return;
+    if (estadoHoteles.fase === "buscando") return;
+
+    const busqueda = ultimaBusqueda;
+    const clave = `${busqueda.destino}-${busqueda.fechaSalida}-${busqueda.fechaRegreso ?? ""}-${moneda}-${busqueda.adultos}-${busqueda.menores.join(",")}`;
+    if (hotelBuscadoPara.current === clave) return;
+    hotelBuscadoPara.current = clave;
+
+    if (!busqueda.fechaRegreso) {
+      setEstadoHoteles({ fase: "inicio" });
+      return;
+    }
+
+    async function buscarHotelesDestino() {
+      const consulta =
+        busqueda.destinoCiudad ?? busqueda.destinoNombre ?? busqueda.destino;
+      try {
+        const respuesta = await fetch(
+          `/api/ciudades?q=${encodeURIComponent(consulta)}`,
+        );
+        if (!respuesta.ok) {
+          setEstadoHoteles({ fase: "inicio" });
+          return;
+        }
+        const cuerpo = (await respuesta.json()) as { opciones?: OpcionCiudad[] };
+        const opcion = cuerpo.opciones?.[0];
+        if (!opcion) {
+          setEstadoHoteles({ fase: "inicio" });
+          return;
+        }
+        buscarHotel({
+          placeId: opcion.placeId,
+          destino: opcion.nombre,
+          pais: opcion.pais,
+          entrada: busqueda.fechaSalida,
+          salida: busqueda.fechaRegreso,
+          adultos: busqueda.adultos,
+          menores: busqueda.menores,
+          moneda,
+          nacionalidad: "MX",
+        });
+      } catch {
+        setEstadoHoteles({ fase: "inicio" });
+      }
+    }
+
+    buscarHotelesDestino();
+  }, [pestana, estado.fase, ultimaBusqueda, moneda, estadoHoteles.fase, buscarHotel]);
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#F5F7FA]">
@@ -308,51 +372,53 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
 
         {pestana === "paquetes" && (
           <>
-            <div className="grid gap-6 lg:grid-cols-2">
-              <div className="space-y-6">
-                <h2 className="text-lg font-semibold text-[#0B2545]">
-                  1. Elige tu vuelo
-                </h2>
-                <div className="relative z-10">
-                  <Buscador
-                    cargando={estado.fase === "buscando"}
-                    key={`formulario-paquetes-${aplicaciones}`}
-                    valoresIniciales={ultimaBusqueda}
-                    onBuscar={buscar}
+            <div className="relative z-10">
+              <Buscador
+                cargando={estado.fase === "buscando"}
+                key={`formulario-paquetes-${aplicaciones}`}
+                valoresIniciales={ultimaBusqueda}
+                onBuscar={buscar}
+              />
+            </div>
+
+            {pestana === "paquetes" && error && (
+              <p className="mt-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+                {error}
+              </p>
+            )}
+
+            {pestana === "paquetes" &&
+              (estado.fase === "inicio" || estado.fase === "resultados") && (
+                <div className="mt-4">
+                  <HistorialBusquedas
+                    historial={historial}
+                    onBorrar={borrarHistorial}
+                    onRepetir={buscar}
                   />
                 </div>
+              )}
 
-                {pestana === "paquetes" && error && (
-                  <p className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">
-                    {error}
-                  </p>
-                )}
+            {pestana === "paquetes" && estado.fase === "buscando" && (
+              <div className="mt-6 flex flex-col gap-3">
+                <p className="text-sm text-[#5A6B80]">
+                  Consultando aerolíneas en vivo… puede tardar hasta 30
+                  segundos.
+                </p>
+                {[0, 1, 2, 3].map((n) => (
+                  <div
+                    className="h-28 animate-pulse rounded-xl border border-[#E4E8EE] bg-white"
+                    key={n}
+                  />
+                ))}
+              </div>
+            )}
 
-                {pestana === "paquetes" &&
-                  (estado.fase === "inicio" || estado.fase === "resultados") && (
-                    <HistorialBusquedas
-                      historial={historial}
-                      onBorrar={borrarHistorial}
-                      onRepetir={buscar}
-                    />
-                  )}
-
-                {pestana === "paquetes" && estado.fase === "buscando" && (
-                  <div className="flex flex-col gap-3">
-                    <p className="text-sm text-[#5A6B80]">
-                      Consultando aerolíneas en vivo… puede tardar hasta 30
-                      segundos.
-                    </p>
-                    {[0, 1, 2, 3].map((n) => (
-                      <div
-                        className="h-28 animate-pulse rounded-xl border border-[#E4E8EE] bg-white"
-                        key={n}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {pestana === "paquetes" && estado.fase === "resultados" && (
+            {pestana === "paquetes" && estado.fase === "resultados" && (
+              <div className="mt-6 grid gap-6 lg:grid-cols-2">
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold text-[#0B2545]">
+                    Vuelos
+                  </h2>
                   <ListaOfertas
                     aerolineasCombinaciones={estado.aerolineasCombinaciones}
                     combinaciones={estado.combinaciones}
@@ -365,68 +431,65 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
                     onElegir={(oferta) => setEstado({ fase: "reservando", oferta })}
                     onElegirCombinacion={elegirCombinacion}
                   />
-                )}
-              </div>
-
-              <div className="space-y-6">
-                <h2 className="text-lg font-semibold text-[#0B2545]">
-                  2. Elige tu hotel
-                </h2>
-                <div className="relative z-10">
-                  <BuscadorHoteles
-                    cargando={estadoHoteles.fase === "buscando"}
-                    valoresIniciales={ultimoHotel}
-                    onBuscar={buscarHotel}
-                  />
                 </div>
 
-                {estadoHoteles.fase === "buscando" && (
-                  <div className="flex flex-col gap-3">
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold text-[#0B2545]">
+                    Hoteles en tu destino
+                  </h2>
+                  {estadoHoteles.fase === "inicio" && ultimaBusqueda?.destino && (
                     <p className="text-sm text-[#5A6B80]">
-                      Consultando hoteles en vivo…
+                      Busca vuelos y te mostraremos hoteles disponibles en{" "}
+                      {ultimaBusqueda.destinoNombre ?? ultimaBusqueda.destino}.
                     </p>
-                    {[0, 1, 2].map((n) => (
-                      <div
-                        className="h-32 animate-pulse rounded-xl border border-[#E4E8EE] bg-white"
-                        key={n}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {estadoHoteles.fase === "resultados" && (
-                  <div>
-                    {estadoHoteles.total === 0 ? (
-                      <div className="rounded-xl border border-[#E4E8EE] bg-white p-6 text-center">
-                        <p className="text-base font-medium text-[#0B2545]">
-                          No hay hoteles disponibles
-                        </p>
-                        <p className="mt-1 text-sm text-[#5A6B80]">
-                          {estadoHoteles.mensaje ??
-                            "Prueba con otras fechas o destino."}
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        <p className="mb-3 text-sm text-[#5A6B80]">
-                          {estadoHoteles.total} hotel
-                          {estadoHoteles.total === 1 ? "" : "es"} con
-                          disponibilidad
-                          {ultimoHotel ? ` en ${ultimoHotel.destino}` : ""}
-                          {estadoHoteles.ambiente === "sandbox"
-                            ? " · inventario de prueba (sandbox): no reserva hoteles reales"
-                            : ""}
-                        </p>
-                        <ListaHoteles
-                          hoteles={estadoHoteles.hoteles}
-                          mostrarMargen={modoInterno}
+                  )}
+                  {estadoHoteles.fase === "buscando" && (
+                    <div className="flex flex-col gap-3">
+                      <p className="text-sm text-[#5A6B80]">
+                        Consultando hoteles en vivo…
+                      </p>
+                      {[0, 1, 2].map((n) => (
+                        <div
+                          className="h-32 animate-pulse rounded-xl border border-[#E4E8EE] bg-white"
+                          key={n}
                         />
-                      </>
-                    )}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                  {estadoHoteles.fase === "resultados" && (
+                    <div>
+                      {estadoHoteles.total === 0 ? (
+                        <div className="rounded-xl border border-[#E4E8EE] bg-white p-6 text-center">
+                          <p className="text-base font-medium text-[#0B2545]">
+                            No hay hoteles disponibles
+                          </p>
+                          <p className="mt-1 text-sm text-[#5A6B80]">
+                            {estadoHoteles.mensaje ??
+                              "Prueba con otras fechas o destino."}
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="mb-3 text-sm text-[#5A6B80]">
+                            {estadoHoteles.total} hotel
+                            {estadoHoteles.total === 1 ? "" : "es"} con
+                            disponibilidad
+                            {ultimoHotel ? ` en ${ultimoHotel.destino}` : ""}
+                            {estadoHoteles.ambiente === "sandbox"
+                              ? " · inventario de prueba (sandbox): no reserva hoteles reales"
+                              : ""}
+                          </p>
+                          <ListaHoteles
+                            hoteles={estadoHoteles.hoteles}
+                            mostrarMargen={modoInterno}
+                          />
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </>
         )}
 

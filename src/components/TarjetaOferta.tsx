@@ -81,8 +81,8 @@ export default function TarjetaOferta({
                   />
                 </div>
                 <div className="text-sm text-[#5A6B80]">
-                  <Bandera bandera={tramo.origenBandera} /> {tramo.origen} →{" "}
-                  <Bandera bandera={tramo.destinoBandera} /> {tramo.destino} ·{" "}
+                  <Bandera bandera={tramo.origenBandera} pais={tramo.origenPais} /> {tramo.origen} →{" "}
+                  <Bandera bandera={tramo.destinoBandera} pais={tramo.destinoPais} /> {tramo.destino} ·{" "}
                   {minutosATexto(tramo.minutos)} ·{" "}
                   {tramo.escalas === 0 ? (
                     "directo"
@@ -92,7 +92,7 @@ export default function TarjetaOferta({
                       {tramo.segmentos.slice(0, -1).map((s, i) => (
                         <span key={i}>
                           {i > 0 ? ", " : ""}
-                          <Bandera bandera={s.destinoBandera} /> {s.destino}
+                          <Bandera bandera={s.destinoBandera} pais={s.destinoPais} /> {s.destino}
                         </span>
                       ))}
                       )

@@ -21,6 +21,8 @@ export interface SegmentoNormalizado {
   destinoNombre: string;
   origenCiudad: string | null;
   destinoCiudad: string | null;
+  origenPais: string | null;
+  destinoPais: string | null;
   origenBandera: string | null;
   destinoBandera: string | null;
   sale: string;
@@ -112,6 +114,12 @@ export function normalizarTramo(tramo: RebanadaOferta): TramoNormalizado {
       destinoNombre: segmento.destination.name,
       origenCiudad: segmento.origin.city_name ?? null,
       destinoCiudad: segmento.destination.city_name ?? null,
+      origenPais: segmento.origin.iata_country_code
+        ? nombrePais(segmento.origin.iata_country_code)
+        : null,
+      destinoPais: segmento.destination.iata_country_code
+        ? nombrePais(segmento.destination.iata_country_code)
+        : null,
       origenBandera: segmento.origin.iata_country_code
         ? bandera(segmento.origin.iata_country_code)
         : null,

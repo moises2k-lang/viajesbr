@@ -21,6 +21,10 @@ export interface ParametrosFormulario {
   destino: string;
   origenNombre?: string | null;
   destinoNombre?: string | null;
+  origenCiudad?: string | null;
+  destinoCiudad?: string | null;
+  origenPais?: string | null;
+  destinoPais?: string | null;
   fechaSalida: string;
   fechaRegreso: string | null;
   adultos: number;
@@ -36,6 +40,10 @@ const VACIO: ParametrosFormulario = {
   destino: "",
   origenNombre: null,
   destinoNombre: null,
+  origenCiudad: null,
+  destinoCiudad: null,
+  origenPais: null,
+  destinoPais: null,
   fechaSalida: "",
   fechaRegreso: null,
   adultos: 1,
@@ -210,6 +218,8 @@ export default function Buscador({
                 origenNombre: [opcion.bandera, opcion.nombre]
                   .filter(Boolean)
                   .join(" "),
+                origenCiudad: opcion.ciudad,
+                origenPais: opcion.pais,
               }
             : actuales,
         );
@@ -257,6 +267,10 @@ export default function Buscador({
         destino: limpios[limpios.length - 1].destino,
         origenNombre: limpios[0].origenNombre,
         destinoNombre: limpios[limpios.length - 1].destinoNombre,
+        origenCiudad: null,
+        destinoCiudad: null,
+        origenPais: null,
+        destinoPais: null,
         fechaSalida: limpios[0].fecha,
         fechaRegreso: null,
         tramos: limpios,
@@ -280,6 +294,10 @@ export default function Buscador({
       destino: datos.origen,
       origenNombre: datos.destinoNombre ?? null,
       destinoNombre: datos.origenNombre ?? null,
+      origenCiudad: datos.destinoCiudad ?? null,
+      destinoCiudad: datos.origenCiudad ?? null,
+      origenPais: datos.destinoPais ?? null,
+      destinoPais: datos.origenPais ?? null,
     });
   }
 
@@ -446,8 +464,8 @@ export default function Buscador({
               descripcion={datos.origenNombre ?? null}
               etiqueta="Origen"
               key={`origen-${inversiones}-${origenDetectado?.codigo ?? "manual"}`}
-              onCambio={(codigo, nombre) =>
-                setDatos({ ...datos, origen: codigo, origenNombre: nombre })
+              onCambio={(codigo, nombre, ciudad, pais) =>
+                setDatos({ ...datos, origen: codigo, origenNombre: nombre, origenCiudad: ciudad, origenPais: pais })
               }
               valor={datos.origen}
             />
@@ -474,8 +492,8 @@ export default function Buscador({
               descripcion={datos.destinoNombre ?? null}
               etiqueta="Destino"
               key={`destino-${inversiones}`}
-              onCambio={(codigo, nombre) =>
-                setDatos({ ...datos, destino: codigo, destinoNombre: nombre })
+              onCambio={(codigo, nombre, ciudad, pais) =>
+                setDatos({ ...datos, destino: codigo, destinoNombre: nombre, destinoCiudad: ciudad, destinoPais: pais })
               }
               valor={datos.destino}
             />

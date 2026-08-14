@@ -13,6 +13,7 @@ import {
   minutosATexto,
 } from "@/components/TarjetaOferta";
 import { FRANJAS, dentroDeFranjas } from "@/lib/franjas";
+import IconoFranja from "@/components/IconoFranja";
 import LogoAerolinea from "@/components/LogoAerolinea";
 import Precio from "@/components/Precio";
 
@@ -147,14 +148,18 @@ export default function ArmarVuelo({
   }, [compatibles, completo, filtros, paso, porId]);
 
   const escalasDisponibles = useMemo(() => {
-    const mapa = new Map<string, string>();
+    const mapa = new Map<
+      string,
+      { ciudad: string; pais: string | null; bandera: string | null }
+    >();
     for (const opcion of opciones) {
       if (completo || opcion.indice !== paso) continue;
       for (const segmento of opcion.tramo.segmentos.slice(0, -1)) {
-        mapa.set(
-          segmento.destino,
-          segmento.destinoCiudad ?? segmento.destinoNombre,
-        );
+        mapa.set(segmento.destino, {
+          ciudad: segmento.destinoCiudad ?? segmento.destinoNombre,
+          pais: segmento.destinoPais,
+          bandera: segmento.destinoBandera,
+        });
       }
     }
     return [...mapa.entries()].sort((a, b) => a[0].localeCompare(b[0]));
@@ -205,12 +210,16 @@ export default function ArmarVuelo({
               {opcion ? (
                 <>
                   <span className="font-medium text-[#0B2545]">
-                    {horaCorta(opcion.tramo.segmentos[0].sale)} –{" "}
+                    {horaCorta(opcion.tramo.segmentos[0].sale)}
+                    <IconoFranja className="ml-1" iso={opcion.tramo.segmentos[0].sale} />
+                    <span className="mx-1 text-[#9AA7B8]">–</span>
                     {horaCorta(
                       opcion.tramo.segmentos[opcion.tramo.segmentos.length - 1]
                         .llega,
-                    )}{" "}
-                    · {opcion.tramo.segmentos.map((s) => s.vuelo).join(" + ")}
+                    )}
+                    <IconoFranja className="ml-1" iso={opcion.tramo.segmentos[opcion.tramo.segmentos.length - 1].llega} />
+                    <span className="mx-1 text-[#9AA7B8]">·</span>
+                    {opcion.tramo.segmentos.map((s) => s.vuelo).join(" + ")}
                   </span>
                   <button
                     className="self-start text-xs font-medium text-[#14477E] underline"
@@ -282,9 +291,9 @@ export default function ArmarVuelo({
                   Escala en
                 </p>
                 <div className="mt-1 flex max-w-full flex-wrap gap-1">
-                  {escalasDisponibles.map(([codigo, ciudad]) => (
+                  {escalasDisponibles.map(([codigo, { ciudad, pais, bandera }]) => (
                     <button
-                      className={`rounded-full border px-2.5 py-1 text-xs ${
+                      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${
                         filtros.escalaEn.includes(codigo)
                           ? "border-[#14477E] bg-[#14477E] text-white"
                           : "border-[#E4E8EE] text-[#0B2545]"
@@ -298,9 +307,11 @@ export default function ArmarVuelo({
                             : [...filtros.escalaEn, codigo],
                         })
                       }
+                      title={`${codigo} · ${ciudad}`}
                       type="button"
                     >
-                      {codigo} · {ciudad}
+                      <Bandera bandera={bandera} pais={pais} clase="h-3 w-4" />
+                      <span className="truncate">{codigo} · {ciudad}</span>
                     </button>
                   ))}
                 </div>
@@ -399,13 +410,15 @@ export default function ArmarVuelo({
                         />
                         <span className="text-lg font-semibold tabular-nums text-[#0B2545]">
                           {horaCorta(tramo.segmentos[0].sale)}
+                          <IconoFranja className="ml-1" iso={tramo.segmentos[0].sale} />
                           <span className="mx-2 text-[#9AA7B8]">–</span>
                           {horaCorta(ultimo.llega)}
+                          <IconoFranja className="ml-1" iso={ultimo.llega} />
                         </span>
                         <span className="text-sm text-[#5A6B80]">
-                          <Bandera bandera={tramo.origenBandera} />{" "}
+                          <Bandera bandera={tramo.origenBandera} pais={tramo.origenPais} />{" "}
                           {tramo.origen} →{" "}
-                          <Bandera bandera={tramo.destinoBandera} />{" "}
+                          <Bandera bandera={tramo.destinoBandera} pais={tramo.destinoPais} />{" "}
                           {tramo.destino} · {minutosATexto(tramo.minutos)}
                         </span>
                         <span className="rounded-full bg-[#E4E8EE] px-2 py-0.5 text-xs font-medium text-[#14477E]">
@@ -419,13 +432,22 @@ export default function ArmarVuelo({
                           : tramo.segmentos
                               .slice(1)
                               .map(
-                                (s) =>
-                                  `${minutosATexto(s.esperaMinutos ?? 0)} en ${s.origen}` +
-                                  (s.origenCiudad
-                                    ? ` (${s.origenCiudad})`
-                                    : ""),
+                                (s) => (
+                                  <span key={s.vuelo + s.origen}>
+                                    {minutosATexto(s.esperaMinutos ?? 0)} en{" "}
+                                    <Bandera bandera={s.origenBandera} pais={s.origenPais} />{" "}
+                                    {s.origen}
+                                    {s.origenCiudad ? ` (${s.origenCiudad})` : ""}
+                                  </span>
+                                ),
                               )
-                              .join(" · ")}
+                              .reduce((prev, curr, i) => (
+                                <span key={i}>
+                                  {prev}
+                                  {i > 0 ? " · " : ""}
+                                  {curr}
+                                </span>
+                              ))}
                       </p>
                       <p className="mt-1 text-xs text-[#5A6B80]">
                         {tramo.segmentos

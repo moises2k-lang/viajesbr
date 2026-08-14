@@ -8,6 +8,7 @@ import type {
   OpcionTramo,
 } from "@/app/api/buscar/route";
 import ArmarVuelo from "@/components/ArmarVuelo";
+import Bandera from "@/components/Bandera";
 import TarjetaOferta, { minutosATexto } from "@/components/TarjetaOferta";
 import { dineroCorto } from "@/lib/dinero";
 import { FRANJAS, dentroDeFranjas, franjaDe } from "@/lib/franjas";
@@ -226,14 +227,18 @@ export default function ListaOfertas({
     [ofertas],
   );
   const escalasDisponibles = useMemo(() => {
-    const mapa = new Map<string, string>();
+    const mapa = new Map<
+      string,
+      { ciudad: string; pais: string | null; bandera: string | null }
+    >();
     for (const oferta of ofertas) {
       for (const tramo of oferta.tramos) {
         for (const segmento of tramo.segmentos.slice(0, -1)) {
-          mapa.set(
-            segmento.destino,
-            segmento.destinoCiudad ?? segmento.destinoNombre,
-          );
+          mapa.set(segmento.destino, {
+            ciudad: segmento.destinoCiudad ?? segmento.destinoNombre,
+            pais: segmento.destinoPais,
+            bandera: segmento.destinoBandera,
+          });
         }
       }
     }
@@ -540,7 +545,7 @@ export default function ListaOfertas({
                   Escala en
                 </p>
                 <div className="mt-2 flex max-h-40 flex-col gap-1 overflow-auto">
-                  {escalasDisponibles.map(([codigo, ciudad]) => (
+                  {escalasDisponibles.map(([codigo, { ciudad, pais, bandera }]) => (
                     <label
                       className="flex min-w-0 items-center gap-2 text-[#0B2545]"
                       key={codigo}
@@ -557,6 +562,7 @@ export default function ListaOfertas({
                         }
                         type="checkbox"
                       />
+                      <Bandera bandera={bandera} pais={pais} clase="h-3 w-4" />
                       <span className="truncate">
                         {codigo} · {ciudad}
                       </span>
