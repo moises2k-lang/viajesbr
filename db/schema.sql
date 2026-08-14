@@ -139,6 +139,25 @@ CREATE TABLE IF NOT EXISTS hoteles_busquedas (
 
 CREATE INDEX IF NOT EXISTS hoteles_busquedas_creado_en_idx ON hoteles_busquedas (creado_en DESC);
 
+CREATE TABLE IF NOT EXISTS usuarios (
+  id BIGSERIAL PRIMARY KEY,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  email TEXT NOT NULL UNIQUE,
+  nombre TEXT,
+  password_hash TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sesiones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expira_en TIMESTAMPTZ NOT NULL,
+  usuario_id BIGINT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS sesiones_expira_idx ON sesiones(expira_en);
+
+ALTER TABLE itinerarios ADD COLUMN IF NOT EXISTS usuario_id BIGINT REFERENCES usuarios(id) ON DELETE SET NULL;
+
 -- El destino de hoteles se elige del autocompletado de liteAPI: manda el place_id, no el país.
 ALTER TABLE hoteles_busquedas ADD COLUMN IF NOT EXISTS place_id TEXT;
 ALTER TABLE hoteles_busquedas ALTER COLUMN pais DROP NOT NULL;

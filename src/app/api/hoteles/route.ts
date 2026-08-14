@@ -30,6 +30,7 @@ const esquema = z.object({
 
 export interface HabitacionConPrecio {
   ofertaId: string;
+  cotizacionId?: string | null;
   habitacion: string;
   regimen: string | null;
   reembolsable: boolean | null;
@@ -245,13 +246,20 @@ export async function POST(request: Request) {
   }
 
   if (filas.length > 0) {
-    await query(
+    const guardadas = await query<{ id: string; liteapi_offer_id: string }>(
       `INSERT INTO hoteles_cotizaciones
          (busqueda_id, liteapi_hotel_id, liteapi_offer_id, hotel_nombre, habitacion, regimen,
           moneda, costo_neto, markup, precio_venta, reembolsable, datos)
-       VALUES ${filas.join(",")}`,
+       VALUES ${filas.join(",")}
+       RETURNING id::text, liteapi_offer_id`,
       valores,
     );
+    const porOferta = new Map(guardadas.map((c) => [c.liteapi_offer_id, c.id]));
+    for (const hotel of hoteles) {
+      for (const habitacion of hotel.habitaciones) {
+        habitacion.cotizacionId = porOferta.get(habitacion.ofertaId) ?? null;
+      }
+    }
   }
 
   return NextResponse.json({

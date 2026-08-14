@@ -9,6 +9,7 @@ import type {
 } from "@/app/api/buscar/route";
 import ArmarVuelo from "@/components/ArmarVuelo";
 import Bandera from "@/components/Bandera";
+import IconoFranja from "@/components/IconoFranja";
 import LogoAerolinea from "@/components/LogoAerolinea";
 import TarjetaOferta, { minutosATexto } from "@/components/TarjetaOferta";
 import { dineroCorto } from "@/lib/dinero";
@@ -458,7 +459,8 @@ export default function ListaOfertas({
                         type="button"
                       >
                         <span className="block font-medium">
-                          {franja.icono} {franja.texto}
+                          <IconoFranja className="mr-1" franja={indice} />{" "}
+                          {franja.texto}
                         </span>
                         <span
                           className={

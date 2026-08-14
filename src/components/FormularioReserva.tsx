@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { Bookmark, Building2 } from "lucide-react";
 import type { OfertaConPrecio } from "@/app/api/buscar/route";
+import type {
+  HotelConPrecio,
+  HabitacionConPrecio,
+} from "@/app/api/hoteles/route";
 import ResumenVuelo from "@/components/ResumenVuelo";
 import SelectorTelefono from "@/components/SelectorTelefono";
+import Precio from "@/components/Precio";
 
 export interface ResultadoReserva {
   ordenId: string;
@@ -37,15 +43,31 @@ function etiqueta(
 interface Props {
   oferta: OfertaConPrecio;
   mostrarMargen: boolean;
+  hotel?: HotelConPrecio;
+  habitacion?: HabitacionConPrecio;
   onCancelar: () => void;
   onReservada: (resultado: ResultadoReserva) => void;
+  onGuardar?: (datos: {
+    pasajeros: {
+      titulo: string;
+      nombre: string;
+      apellido: string;
+      fechaNacimiento: string;
+      genero: string;
+    }[];
+    email: string;
+    telefono: string;
+  }) => Promise<string>;
 }
 
 export default function FormularioReserva({
   oferta,
   mostrarMargen,
+  hotel,
+  habitacion,
   onCancelar,
   onReservada,
+  onGuardar,
 }: Props) {
   const [pasajeros, setPasajeros] = useState<PasajeroFormulario[]>(
     oferta.pasajeros.map(() => ({
@@ -59,6 +81,7 @@ export default function FormularioReserva({
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("+52");
   const [enviando, setEnviando] = useState(false);
+  const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function actualizar(
@@ -105,9 +128,54 @@ export default function FormularioReserva({
     }
   }
 
+  async function guardar(evento: React.FormEvent) {
+    evento.preventDefault();
+    if (!onGuardar) return;
+    setError(null);
+    setGuardando(true);
+    try {
+      const pasajerosLimpios = pasajeros.map((p) => ({
+        titulo: p.titulo,
+        nombre: p.nombre.trim(),
+        apellido: p.apellido.trim(),
+        fechaNacimiento: p.fechaNacimiento,
+        genero: p.genero,
+      }));
+      const id = await onGuardar({
+        pasajeros: pasajerosLimpios,
+        email,
+        telefono,
+      });
+      window.open(`/api/itinerarios/${id}/pdf`, "_blank");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setGuardando(false);
+    }
+  }
+
   return (
     <section className="mt-8 space-y-6">
       <ResumenVuelo mostrarMargen={mostrarMargen} oferta={oferta} />
+
+      {hotel && habitacion && (
+        <div className="rounded-xl border border-[#E4E8EE] bg-white p-4">
+          <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-[#0B2545]">
+            <Building2 className="h-5 w-5" /> Hotel incluido
+          </h3>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="font-semibold text-[#0B2545]">{hotel.nombre}</p>
+              <p className="text-sm text-[#5A6B80]">
+                {habitacion.habitacion} · {hotel.noches} noches
+              </p>
+            </div>
+            <p className="text-xl font-semibold text-[#0B2545]">
+              <Precio monto={habitacion.precioVenta} moneda={hotel.moneda} />
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-xl border border-[#E4E8EE] bg-white p-4">
         <div className="flex items-baseline justify-between">
@@ -227,13 +295,26 @@ export default function FormularioReserva({
             </p>
           )}
 
-          <button
-            className="self-start rounded-lg bg-[#C9A227] px-5 py-2.5 text-sm font-semibold text-[#0B2545] disabled:opacity-50"
-            disabled={enviando}
-            type="submit"
-          >
-            {enviando ? "Emitiendo…" : "Confirmar reserva"}
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              className="self-start rounded-lg bg-[#C9A227] px-5 py-2.5 text-sm font-semibold text-[#0B2545] disabled:opacity-50"
+              disabled={enviando || guardando}
+              type="submit"
+            >
+              {enviando ? "Emitiendo…" : "Confirmar reserva"}
+            </button>
+            {onGuardar && (
+              <button
+                className="inline-flex items-center gap-1.5 self-start rounded-lg border border-[#14477E] bg-white px-5 py-2.5 text-sm font-semibold text-[#14477E] disabled:opacity-50"
+                disabled={enviando || guardando}
+                onClick={guardar}
+                type="button"
+              >
+                <Bookmark className="h-4 w-4" />
+                {guardando ? "Guardando…" : "Guardar reserva"}
+              </button>
+            )}
+          </div>
         </form>
       </div>
     </section>

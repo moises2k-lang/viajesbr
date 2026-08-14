@@ -25,6 +25,7 @@ async function llamar<T>(ruta: string, init?: RequestInit): Promise<T> {
       ...(init?.headers || {}),
     },
     cache: "no-store",
+    signal: AbortSignal.timeout(20000),
   });
 
   const texto = await respuesta.text();

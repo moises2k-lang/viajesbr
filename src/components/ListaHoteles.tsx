@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 
 import Precio from "@/components/Precio";
 import type { FichaHotel } from "@/app/api/hoteles/[hotelId]/route";
-import type { HotelConPrecio } from "@/app/api/hoteles/route";
+import type { HotelConPrecio, HabitacionConPrecio } from "@/app/api/hoteles/route";
 import { emparejarHabitacion } from "@/lib/habitaciones";
 import DetalleHotel from "@/components/DetalleHotel";
 import Bandera from "@/components/Bandera";
@@ -15,9 +15,10 @@ type Orden = "precio" | "calificacion" | "estrellas" | "nombre";
 interface Props {
   hoteles: HotelConPrecio[];
   mostrarMargen: boolean;
+  onElegir?: (hotel: HotelConPrecio, habitacion: HabitacionConPrecio) => void;
 }
 
-export default function ListaHoteles({ hoteles, mostrarMargen }: Props) {
+export default function ListaHoteles({ hoteles, mostrarMargen, onElegir }: Props) {
   const [abierto, setAbierto] = useState<string | null>(null);
   const [detalle, setDetalle] = useState<string | null>(null);
   const [fichas, setFichas] = useState<Record<string, FichaHotel>>({});
@@ -294,6 +295,15 @@ export default function ListaHoteles({ hoteles, mostrarMargen }: Props) {
                     >
                       {desplegado ? "Ocultar tarifas" : "Ver tarifas"}
                     </button>
+                    {onElegir && hotel.habitaciones[0] && (
+                      <button
+                        className="mt-2 w-full rounded-lg bg-[#14477E] px-4 py-2 text-sm font-semibold text-white"
+                        onClick={() => onElegir(hotel, hotel.habitaciones[0])}
+                        type="button"
+                      >
+                        Elegir tarifa principal
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -390,6 +400,15 @@ export default function ListaHoteles({ hoteles, mostrarMargen }: Props) {
                                 />
                               </p>
                             )}
+                            {onElegir && (
+                              <button
+                                className="mt-2 rounded-lg bg-[#F0A400] px-3 py-1.5 text-sm font-semibold text-[#0B2545]"
+                                onClick={() => onElegir(hotel, habitacion)}
+                                type="button"
+                              >
+                                Elegir
+                              </button>
+                            )}
                           </div>
                         </li>
                       );
@@ -423,6 +442,7 @@ export default function ListaHoteles({ hoteles, mostrarMargen }: Props) {
             setDetalle(null);
             setErrorFicha(null);
           }}
+          onElegir={onElegir}
         />
       )}
     </div>

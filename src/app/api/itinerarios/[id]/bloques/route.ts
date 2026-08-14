@@ -16,6 +16,7 @@ interface Cuerpo {
   costoNeto?: unknown;
   precioVenta?: unknown;
   cotizacionId?: unknown;
+  datos?: unknown;
 }
 
 interface CotizacionGuardada extends Record<string, unknown> {
@@ -77,8 +78,12 @@ export async function POST(
   const cotizacionId = typeof cuerpo.cotizacionId === "string" && /^\d+$/.test(cuerpo.cotizacionId)
     ? cuerpo.cotizacionId
     : null;
+  const datos =
+    typeof cuerpo.datos === "object" && cuerpo.datos !== null
+      ? JSON.stringify(cuerpo.datos)
+      : null;
 
-  if (cotizacionId) {
+  if (cotizacionId && (!cuerpo.tipo || cuerpo.tipo === "vuelo")) {
     const [cotizacion] = await query<CotizacionGuardada>(
       `SELECT id::text, aerolinea, costo_neto::text, precio_venta::text, itinerario
          FROM cotizaciones WHERE id = $1`,
@@ -94,7 +99,7 @@ export async function POST(
       );
     }
     const texto = textoDeOferta(cotizacion.itinerario);
-    tipo = "vuelo";
+    tipo = typeof cuerpo.tipo === "string" && TIPOS.includes(cuerpo.tipo) ? cuerpo.tipo : "vuelo";
     titulo = titulo || texto.titulo;
     fecha = fecha ?? texto.fecha;
     detalle = detalle ?? texto.detalle;
@@ -115,8 +120,8 @@ export async function POST(
   const [bloque] = await query<{ id: string }>(
     `INSERT INTO itinerario_bloques
        (itinerario_id, posicion, tipo, titulo, fecha, fecha_fin, detalle, proveedor,
-        costo_neto, precio_venta, cotizacion_id)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        costo_neto, precio_venta, cotizacion_id, datos)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb)
      RETURNING id::text`,
     [
       id,
@@ -130,6 +135,7 @@ export async function POST(
       costoNeto,
       precioVenta,
       cotizacionId,
+      datos,
     ],
   );
 

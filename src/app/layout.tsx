@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Barlow } from "next/font/google";
 import { MonedaProvider } from "@/components/MonedaContext";
+import { AuthProvider } from "@/components/AuthContext";
 import "./globals.css";
 
 const barlow = Barlow({
@@ -23,7 +24,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${barlow.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <MonedaProvider>{children}</MonedaProvider>
+        <MonedaProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </MonedaProvider>
       </body>
     </html>
   );

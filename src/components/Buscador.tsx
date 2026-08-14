@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ArrowLeftRight, ArrowRight, Map } from "lucide-react";
 import type { OpcionLugar } from "@/app/api/lugares/route";
 import CampoAeropuerto from "@/components/CampoAeropuerto";
 import RangoFechas from "@/components/RangoFechas";
@@ -309,25 +310,25 @@ export default function Buscador({
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="flex rounded-full bg-[#E4E8EE] p-1 text-sm">
           <button
-            className={`rounded-full px-4 py-1.5 font-medium ${tipo === "redondo" ? "bg-white text-[#0B2545] shadow" : "text-[#5A6B80]"}`}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 font-medium ${tipo === "redondo" ? "bg-white text-[#0B2545] shadow" : "text-[#5A6B80]"}`}
             onClick={() => setTipo("redondo")}
             type="button"
           >
-            Redondo
+            <ArrowLeftRight className="h-4 w-4" /> Redondo
           </button>
           <button
-            className={`rounded-full px-4 py-1.5 font-medium ${tipo === "ida" ? "bg-white text-[#0B2545] shadow" : "text-[#5A6B80]"}`}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 font-medium ${tipo === "ida" ? "bg-white text-[#0B2545] shadow" : "text-[#5A6B80]"}`}
             onClick={() => setTipo("ida")}
             type="button"
           >
-            Sólo ida
+            <ArrowRight className="h-4 w-4" /> Sólo ida
           </button>
           <button
-            className={`rounded-full px-4 py-1.5 font-medium ${tipo === "multiciudad" ? "bg-white text-[#0B2545] shadow" : "text-[#5A6B80]"}`}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 font-medium ${tipo === "multiciudad" ? "bg-white text-[#0B2545] shadow" : "text-[#5A6B80]"}`}
             onClick={activarMulticiudad}
             type="button"
           >
-            Multiciudad
+            <Map className="h-4 w-4" /> Multiciudad
           </button>
         </div>
         <div className="flex rounded-full bg-[#E4E8EE] p-1 text-sm">

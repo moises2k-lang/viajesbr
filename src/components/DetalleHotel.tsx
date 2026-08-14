@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { FichaHotel } from "@/app/api/hoteles/[hotelId]/route";
-import type { HotelConPrecio } from "@/app/api/hoteles/route";
+import type { HotelConPrecio, HabitacionConPrecio } from "@/app/api/hoteles/route";
 import Precio from "@/components/Precio";
 import { emparejarHabitacion } from "@/lib/habitaciones";
 import Bandera from "@/components/Bandera";
@@ -15,6 +15,7 @@ interface Props {
   error: string | null;
   mostrarMargen: boolean;
   onCerrar: () => void;
+  onElegir?: (hotel: HotelConPrecio, habitacion: HabitacionConPrecio) => void;
 }
 
 export default function DetalleHotel({
@@ -24,6 +25,7 @@ export default function DetalleHotel({
   error,
   mostrarMargen,
   onCerrar,
+  onElegir,
 }: Props) {
   const [fotoGrande, setFotoGrande] = useState(0);
 
@@ -59,14 +61,25 @@ export default function DetalleHotel({
               <Bandera bandera={hotel.bandera} />
             </p>
           </div>
-          <button
-            aria-label="Cerrar detalle del hotel"
-            className="shrink-0 rounded-full border border-[#E4E8EE] px-3 py-1 text-sm text-[#0B2545]"
-            onClick={onCerrar}
-            type="button"
-          >
-            Cerrar
-          </button>
+          <div className="flex shrink-0 gap-2">
+            {onElegir && hotel.habitaciones[0] && (
+              <button
+                className="rounded-lg bg-[#F0A400] px-3 py-1.5 text-sm font-semibold text-[#0B2545]"
+                onClick={() => onElegir(hotel, hotel.habitaciones[0])}
+                type="button"
+              >
+                Elegir tarifa principal
+              </button>
+            )}
+            <button
+              aria-label="Cerrar detalle del hotel"
+              className="shrink-0 rounded-full border border-[#E4E8EE] px-3 py-1 text-sm text-[#0B2545]"
+              onClick={onCerrar}
+              type="button"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
 
         <div className="px-4 pb-6">
@@ -391,6 +404,15 @@ export default function DetalleHotel({
                             monto={habitacion.markup}
                           />
                         </p>
+                      )}
+                      {onElegir && (
+                        <button
+                          className="mt-2 rounded-lg bg-[#F0A400] px-3 py-1.5 text-sm font-semibold text-[#0B2545]"
+                          onClick={() => onElegir(hotel, habitacion)}
+                          type="button"
+                        >
+                          Elegir
+                        </button>
                       )}
                     </div>
                   </li>

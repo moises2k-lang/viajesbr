@@ -341,6 +341,7 @@ export default function ArmarVuelo({
                     }
                     type="button"
                   >
+                    <IconoFranja className="mr-1" franja={indice} />{" "}
                     {franja.texto} {franja.detalle}
                   </button>
                 ))}

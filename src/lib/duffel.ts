@@ -119,6 +119,7 @@ async function llamarCrudo<T>(ruta: string, init?: RequestInit): Promise<T> {
       ...(init?.headers || {}),
     },
     cache: "no-store",
+    signal: AbortSignal.timeout(25000),
   });
 
   const texto = await respuesta.text();
@@ -193,7 +194,7 @@ export async function buscarOfertas(
     passengers.push({ type: "infant_without_seat" });
 
   return llamar<SolicitudOfertas>(
-    "/air/offer_requests?return_offers=true&supplier_timeout=20000",
+    "/air/offer_requests?return_offers=true&supplier_timeout=10000",
     {
       method: "POST",
       body: JSON.stringify({
