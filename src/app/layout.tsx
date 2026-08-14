@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
-      lang="es"
+      lang="en"
       className={`${barlow.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">

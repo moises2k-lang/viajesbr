@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Calendar } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface Props {
   desde: string;
@@ -14,22 +15,6 @@ interface Props {
   onCambio: (desde: string, hasta: string | null) => void;
 }
 
-const DIAS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
-const MESES = [
-  "enero",
-  "febrero",
-  "marzo",
-  "abril",
-  "mayo",
-  "junio",
-  "julio",
-  "agosto",
-  "septiembre",
-  "octubre",
-  "noviembre",
-  "diciembre",
-];
-
 function aIso(anio: number, mes: number, dia: number): string {
   return `${anio}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 }
@@ -37,12 +22,6 @@ function aIso(anio: number, mes: number, dia: number): string {
 function hoyIso(): string {
   const ahora = new Date();
   return aIso(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
-}
-
-function textoLargo(iso: string): string {
-  const [anio, mes, dia] = iso.split("-").map(Number);
-  const fecha = new Date(anio, mes - 1, dia);
-  return `${DIAS[(fecha.getDay() + 6) % 7]} ${dia} ${MESES[mes - 1].slice(0, 3)} ${anio}`;
 }
 
 /** Casillas del mes: null para los huecos antes del día 1 (semana inicia lunes). */
@@ -56,15 +35,18 @@ function casillas(anio: number, mes: number): (number | null)[] {
   ];
 }
 
+const LUNES_BASE = new Date(2020, 5, 1); // 1 de junio de 2020 fue lunes
+
 export default function RangoFechas({
   desde,
   hasta,
   conRegreso,
   unica = false,
-  etiquetaDesde = "Desde",
-  etiquetaHasta = "Hasta",
+  etiquetaDesde,
+  etiquetaHasta,
   onCambio,
 }: Props) {
+  const { t, locale } = useI18n();
   const [abierto, setAbierto] = useState(false);
   const [eligiendo, setEligiendo] = useState<"desde" | "hasta">("desde");
   const [encima, setEncima] = useState<string | null>(null);
@@ -126,6 +108,30 @@ export default function RangoFechas({
         )
       : 0;
 
+  const formatoFecha = new Intl.DateTimeFormat(locale, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  function textoLargo(iso: string): string {
+    const [anio, mes, dia] = iso.split("-").map(Number);
+    const fecha = new Date(anio, mes - 1, dia);
+    return formatoFecha.format(fecha);
+  }
+
+  const formatoMes = new Intl.DateTimeFormat(locale, {
+    month: "long",
+    year: "numeric",
+  });
+
+  const formatoDia = new Intl.DateTimeFormat(locale, { weekday: "short" });
+
+  const cabecerasDias = Array.from({ length: 7 }, (_, i) =>
+    formatoDia.format(new Date(LUNES_BASE.getTime() + i * 86400000)),
+  );
+
   function mes(desplazamiento: number) {
     const fecha = new Date(mesBase.anio, mesBase.mes + desplazamiento, 1);
     const anio = fecha.getFullYear();
@@ -134,10 +140,10 @@ export default function RangoFechas({
     return (
       <div className="w-64" key={`${anio}-${numeroMes}`}>
         <p className="mb-2 text-center text-sm font-semibold capitalize text-[#0B2545]">
-          {MESES[numeroMes]} {anio}
+          {formatoMes.format(fecha)}
         </p>
         <div className="grid grid-cols-7 gap-y-1 text-center text-[10px] uppercase text-[#9AA7B8]">
-          {DIAS.map((dia) => (
+          {cabecerasDias.map((dia) => (
             <span key={dia}>{dia}</span>
           ))}
         </div>
@@ -198,12 +204,15 @@ export default function RangoFechas({
   const claseCampo =
     "mt-1 inline-flex w-full min-w-0 items-center gap-2 rounded-lg border bg-white px-3 py-2.5 text-left text-sm font-medium transition focus:outline-none";
 
+  const labelDesde = etiquetaDesde ?? t("common.from");
+  const labelHasta = etiquetaHasta ?? t("common.to");
+
   return (
     <div className="relative" ref={contenedor}>
       <div className={`grid min-w-0 gap-2 ${unica ? "grid-cols-1" : "grid-cols-2"}`}>
         <div className="min-w-0">
           <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
-            {etiquetaDesde}
+            {labelDesde}
           </span>
           <button
             className={`${claseCampo} ${
@@ -216,14 +225,14 @@ export default function RangoFechas({
           >
             <Calendar className="h-4 w-4 shrink-0 text-[#5A6B80]" />
             <span className="truncate">
-              {desde ? textoLargo(desde) : "Elegir fecha"}
+              {desde ? textoLargo(desde) : t("search.chooseDate")}
             </span>
           </button>
         </div>
         {!unica && (
           <div className="min-w-0">
             <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
-              {etiquetaHasta}
+              {labelHasta}
             </span>
             <button
               className={`${claseCampo} disabled:cursor-not-allowed disabled:bg-[#F5F7FA] disabled:text-[#9AA7B8] ${
@@ -240,8 +249,8 @@ export default function RangoFechas({
                 {conRegreso
                   ? hasta
                     ? textoLargo(hasta)
-                    : "Elegir fecha"
-                  : "Sólo ida"}
+                    : t("search.chooseDate")
+                  : t("common.oneWay")}
               </span>
             </button>
           </div>
@@ -261,9 +270,9 @@ export default function RangoFechas({
             <span className="text-xs text-[#5A6B80]">
               {conRegreso
                 ? eligiendo === "desde"
-                  ? "Elige la fecha de salida"
-                  : "Elige la fecha de regreso"
-                : "Elige la fecha de salida"}
+                  ? t("search.chooseDepartureDate")
+                  : t("search.chooseReturnDate")
+                : t("search.chooseDepartureDate")}
             </span>
             <button
               className="h-7 w-7 rounded-full border border-[#E4E8EE] text-sm text-[#14477E]"
@@ -284,11 +293,11 @@ export default function RangoFechas({
           <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#E4E8EE] pt-3">
             <p className="text-xs text-[#5A6B80]">
               {desde === ""
-                ? "Elige la fecha de salida"
+                ? t("search.chooseDepartureDate")
                 : conRegreso && hasta
-                  ? `${textoLargo(desde)} → ${textoLargo(hasta)} · ${noches} noche${noches === 1 ? "" : "s"}`
+                  ? `${textoLargo(desde)} → ${textoLargo(hasta)} · ${noches} ${noches === 1 ? t("common.night") : t("common.nights")}`
                   : conRegreso
-                    ? `${textoLargo(desde)} → elige el regreso`
+                    ? `${textoLargo(desde)} → ${t("search.chooseReturn")}`
                     : textoLargo(desde)}
             </p>
             <div className="flex items-center gap-2">
@@ -300,14 +309,14 @@ export default function RangoFechas({
                 }}
                 type="button"
               >
-                Limpiar
+                {t("common.clear")}
               </button>
               <button
                 className="rounded-lg bg-[#0B2545] px-4 py-1.5 text-xs font-semibold text-white"
                 onClick={() => setAbierto(false)}
                 type="button"
               >
-                Listo
+                {t("common.done")}
               </button>
             </div>
           </div>

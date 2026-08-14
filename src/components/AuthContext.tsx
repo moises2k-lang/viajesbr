@@ -42,13 +42,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function parseRespuesta(res: Response) {
+    const type = res.headers.get("content-type") ?? "";
+    if (type.includes("application/json")) {
+      return (await res.json()) as { error?: string } & Partial<Usuario>;
+    }
+    const text = await res.text();
+    throw new Error(text || `${res.status} ${res.statusText}`);
+  }
+
   async function iniciarSesion(email: string, password: string) {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    const data = (await res.json()) as { error?: string } & Partial<Usuario>;
+    const data = await parseRespuesta(res);
     if (!res.ok) throw new Error(data.error ?? "No se pudo iniciar sesión");
     setUsuario(data as Usuario);
   }
@@ -59,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, nombre }),
     });
-    const data = (await res.json()) as { error?: string } & Partial<Usuario>;
+    const data = await parseRespuesta(res);
     if (!res.ok) throw new Error(data.error ?? "No se pudo crear la cuenta");
     setUsuario(data as Usuario);
   }

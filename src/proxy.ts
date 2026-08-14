@@ -1,40 +1,21 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { proxy as verificarProxy } from "@/lib/proxy";
 
-const SOLICITAR_CREDENCIALES = new NextResponse("Acceso restringido", {
-  status: 401,
-  headers: { "WWW-Authenticate": 'Basic realm="Administración", charset="UTF-8"' },
-});
+export default function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  const protegido =
+    path.startsWith("/admin") ||
+    path === "/api/markup" ||
+    path.startsWith("/api/documentos");
 
-function credencialValida(request: NextRequest): boolean {
-  const usuario = process.env.ADMIN_USUARIO;
-  const contrasena = process.env.ADMIN_CONTRASENA;
-  if (!usuario || !contrasena) {
-    return false;
+  if (protegido) {
+    return verificarProxy(request);
   }
-  const encabezado = request.headers.get("authorization");
-  if (!encabezado?.startsWith("Basic ")) {
-    return false;
-  }
-  const [recibidoUsuario, ...resto] = atob(encabezado.slice(6)).split(":");
-  return recibidoUsuario === usuario && resto.join(":") === contrasena;
-}
 
-export function proxy(request: NextRequest) {
-  if (credencialValida(request)) {
-    return NextResponse.next();
-  }
-  return SOLICITAR_CREDENCIALES;
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    "/admin/:path*",
-    "/api/markup",
-    "/api/itinerarios",
-    "/api/itinerarios/:path*",
-    "/api/documentos/:path*",
-    "/api/reservar",
-    "/api/hoteles/reservar",
-  ],
+  matcher: ["/admin/:path*", "/api/markup", "/api/documentos/:path*"],
 };

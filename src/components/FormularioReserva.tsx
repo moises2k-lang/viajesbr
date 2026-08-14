@@ -9,7 +9,9 @@ import type {
 } from "@/app/api/hoteles/route";
 import ResumenVuelo from "@/components/ResumenVuelo";
 import SelectorTelefono from "@/components/SelectorTelefono";
+import FechaNacimiento from "@/components/FechaNacimiento";
 import Precio from "@/components/Precio";
+import { useI18n } from "@/lib/i18n";
 
 export interface ResultadoReserva {
   ordenId: string;
@@ -69,6 +71,7 @@ export default function FormularioReserva({
   onReservada,
   onGuardar,
 }: Props) {
+  const { t } = useI18n();
   const [pasajeros, setPasajeros] = useState<PasajeroFormulario[]>(
     oferta.pasajeros.map(() => ({
       titulo: "mr",
@@ -180,18 +183,18 @@ export default function FormularioReserva({
       <div className="rounded-xl border border-[#E4E8EE] bg-white p-4">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold text-[#0B2545]">
-            Datos de los pasajeros
+            {t("form.passengerTitle")}
           </h2>
           <button
-            className="text-sm text-[#14477E] underline"
+            className="text-sm font-medium text-[#14477E] underline"
             onClick={onCancelar}
             type="button"
           >
-            Volver a resultados
+            {t("common.back")}
           </button>
         </div>
 
-        <p className="mt-1 text-sm text-[#5A6B80]">
+        <p className="mt-1 text-sm font-medium text-[#3A4A5A]">
           Los nombres deben ir exactamente como en el pasaporte; la aerolínea
           cobra por corregirlos.
         </p>
@@ -202,81 +205,81 @@ export default function FormularioReserva({
               className="grid gap-3 border-t border-neutral-200 pt-4 sm:grid-cols-2 lg:grid-cols-5"
               key={indice}
             >
-              <legend className="text-sm font-medium">
+              <legend className="text-sm font-bold text-[#0B2545]">
                 {etiqueta(oferta.pasajeros[indice], indice)}
               </legend>
 
-              <label className="flex min-w-0 flex-col gap-1 text-sm">
-                Título
+              <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-[#0B2545]">
+                {t("common.title")}
                 <select
-                  className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2"
+                  className="w-full min-w-0 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-[#0B2545]"
                   onChange={(e) => actualizar(indice, "titulo", e.target.value)}
                   value={pasajero.titulo}
                 >
-                  <option value="mr">Sr.</option>
-                  <option value="ms">Sra./Srta.</option>
-                  <option value="mrs">Sra.</option>
-                  <option value="miss">Srta.</option>
-                  <option value="dr">Dr.</option>
+                  <option value="mr">{t("common.titleMr")}</option>
+                  <option value="ms">{t("common.titleMs")}</option>
+                  <option value="mrs">{t("common.titleMrs")}</option>
+                  <option value="miss">{t("common.titleMiss")}</option>
+                  <option value="dr">{t("common.titleDr")}</option>
                 </select>
               </label>
 
-              <label className="flex min-w-0 flex-col gap-1 text-sm">
-                Nombre(s)
+              <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-[#0B2545]">
+                {t("form.firstName")}
                 <input
-                  className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2"
+                  className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-[#0B2545] placeholder:text-[#9AA7B8]"
                   onChange={(e) => actualizar(indice, "nombre", e.target.value)}
+                  placeholder={t("form.firstName")}
                   required
                   value={pasajero.nombre}
                 />
               </label>
 
-              <label className="flex min-w-0 flex-col gap-1 text-sm">
-                Apellidos
+              <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-[#0B2545]">
+                {t("form.lastName")}
                 <input
-                  className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2"
+                  className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-[#0B2545] placeholder:text-[#9AA7B8]"
                   onChange={(e) =>
                     actualizar(indice, "apellido", e.target.value)
                   }
+                  placeholder={t("form.lastName")}
                   required
                   value={pasajero.apellido}
                 />
               </label>
 
-              <label className="flex min-w-0 flex-col gap-1 text-sm">
-                Fecha de nacimiento
-                <input
-                  className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2"
-                  onChange={(e) =>
-                    actualizar(indice, "fechaNacimiento", e.target.value)
-                  }
-                  required
-                  type="date"
-                  value={pasajero.fechaNacimiento}
-                />
-              </label>
+              <FechaNacimiento
+                className="min-w-0"
+                etiqueta={t("form.birthDate")}
+                required
+                value={pasajero.fechaNacimiento}
+                onChange={(v) => actualizar(indice, "fechaNacimiento", v)}
+              />
 
-              <label className="flex min-w-0 flex-col gap-1 text-sm">
-                Sexo
+              <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-[#0B2545]">
+                {t("common.gender")}
                 <select
-                  className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2"
+                  className="w-full min-w-0 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-[#0B2545]"
                   onChange={(e) => actualizar(indice, "genero", e.target.value)}
                   value={pasajero.genero}
                 >
-                  <option value="m">Masculino</option>
-                  <option value="f">Femenino</option>
+                  <option value="m">{t("common.male")}</option>
+                  <option value="f">{t("common.female")}</option>
                 </select>
               </label>
             </fieldset>
           ))}
 
           <fieldset className="grid gap-3 border-t border-neutral-200 pt-4 sm:grid-cols-2">
-            <legend className="text-sm font-medium">Contacto</legend>
-            <label className="flex min-w-0 flex-col gap-1 text-sm">
-              Correo
+            <legend className="text-sm font-bold text-[#0B2545]">
+              {t("common.contact")}
+            </legend>
+            <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-[#0B2545]">
+              {t("common.email")}
               <input
-                className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2"
+                className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-[#0B2545] placeholder:text-[#9AA7B8]"
                 onChange={(e) => setEmail(e.target.value)}
+                placeholder={t("common.email")}
                 required
                 type="email"
                 value={email}
@@ -301,7 +304,7 @@ export default function FormularioReserva({
               disabled={enviando || guardando}
               type="submit"
             >
-              {enviando ? "Emitiendo…" : "Confirmar reserva"}
+              {enviando ? t("common.loading") : t("form.finalizeReservation")}
             </button>
             {onGuardar && (
               <button
@@ -311,7 +314,7 @@ export default function FormularioReserva({
                 type="button"
               >
                 <Bookmark className="h-4 w-4" />
-                {guardando ? "Guardando…" : "Guardar reserva"}
+                {guardando ? t("common.loading") : t("form.saveReservation")}
               </button>
             )}
           </div>

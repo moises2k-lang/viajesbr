@@ -6,6 +6,7 @@ import {
   translate,
   type Locale,
   detectLocale,
+  DEFAULT_LOCALE,
   LOCALES,
 } from "@/lib/i18n";
 
@@ -15,9 +16,9 @@ interface Props {
 
 export default function I18nProvider({ children }: Props) {
   const [locale, setLocaleState] = useState<Locale>(() => {
-    if (typeof window === "undefined") return "es";
+    if (typeof window === "undefined") return DEFAULT_LOCALE;
     const detected = detectLocale();
-    return LOCALES.includes(detected) ? detected : "es";
+    return LOCALES.includes(detected) ? detected : DEFAULT_LOCALE;
   });
 
   useEffect(() => {

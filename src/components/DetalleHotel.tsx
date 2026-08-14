@@ -7,6 +7,7 @@ import type { HotelConPrecio, HabitacionConPrecio } from "@/app/api/hoteles/rout
 import Precio from "@/components/Precio";
 import { emparejarHabitacion } from "@/lib/habitaciones";
 import Bandera from "@/components/Bandera";
+import { CaracteristicasHabitacion, ServiciosHotel } from "@/components/Caracteristicas";
 
 interface Props {
   hotel: HotelConPrecio;
@@ -230,16 +231,7 @@ export default function DetalleHotel({
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#5A6B80]">
                     Servicios del hotel
                   </p>
-                  <div className="mt-1 flex flex-wrap gap-1.5">
-                    {ficha.servicios.map((servicio) => (
-                      <span
-                        className="rounded-md bg-[#F5F7FA] px-2 py-1 text-xs text-[#0B2545]"
-                        key={servicio}
-                      >
-                        {servicio}
-                      </span>
-                    ))}
-                  </div>
+                  <ServiciosHotel servicios={ficha.servicios} limite={60} />
                 </div>
               )}
 
@@ -341,32 +333,13 @@ export default function DetalleHotel({
                       <p className="text-sm font-semibold text-[#0B2545]">
                         {habitacion.habitacion}
                       </p>
-                      <p className="text-xs text-[#5A6B80]">
-                        {[
-                          habitacion.regimen,
-                          habitacion.reembolsable === null
-                            ? null
-                            : habitacion.reembolsable
-                              ? `reembolsable${habitacion.cancelaAntesDe ? ` hasta ${habitacion.cancelaAntesDe}` : ""}`
-                              : "no reembolsable",
-                          catalogo?.metros ? `${catalogo.metros} m²` : null,
-                          catalogo?.ocupacionMaxima
-                            ? `hasta ${catalogo.ocupacionMaxima} huéspedes`
-                            : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
-                      {catalogo?.camas.length ? (
-                        <p className="text-xs text-[#5A6B80]">
-                          {catalogo.camas.join(" · ")}
-                        </p>
-                      ) : null}
-                      {catalogo?.servicios.length ? (
-                        <p className="mt-1 text-xs text-[#5A6B80]">
-                          {catalogo.servicios.slice(0, 8).join(" · ")}
-                        </p>
-                      ) : null}
+                      <div className="mt-1">
+                        <CaracteristicasHabitacion
+                          catalogo={catalogo}
+                          habitacion={habitacion}
+                          limiteServicios={8}
+                        />
+                      </div>
                       {habitacion.impuestosNoIncluidos.length > 0 && (
                         <p className="mt-1 text-xs text-[#B4451F]">
                           Se paga en el hotel:{" "}

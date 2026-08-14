@@ -26,17 +26,25 @@ export async function POST(request: Request) {
   }
   const { email, password } = validado.data;
 
-  const [usuario] = await query<{ id: string; password_hash: string; nombre: string | null }>(
-    "SELECT id::text, password_hash, nombre FROM usuarios WHERE email = $1 LIMIT 1",
-    [email],
-  );
-  if (!usuario || !(await verifyPassword(password, usuario.password_hash))) {
+  try {
+    const [usuario] = await query<{ id: string; password_hash: string; nombre: string | null }>(
+      "SELECT id::text, password_hash, nombre FROM usuarios WHERE email = $1 LIMIT 1",
+      [email],
+    );
+    if (!usuario || !(await verifyPassword(password, usuario.password_hash))) {
+      return NextResponse.json(
+        { error: "Correo o contraseña incorrectos" },
+        { status: 401 },
+      );
+    }
+
+    await crearSesion(usuario.id);
+    return NextResponse.json({ id: usuario.id, email, nombre: usuario.nombre });
+  } catch (error) {
+    console.error("Error en login:", error);
     return NextResponse.json(
-      { error: "Correo o contraseña incorrectos" },
-      { status: 401 },
+      { error: "No se pudo iniciar sesión. Intenta de nuevo más tarde." },
+      { status: 500 },
     );
   }
-
-  await crearSesion(usuario.id);
-  return NextResponse.json({ id: usuario.id, email, nombre: usuario.nombre });
 }

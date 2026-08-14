@@ -1,8 +1,30 @@
 import { createContext, useContext } from "react";
 
-export const LOCALES = ["es", "en", "fr"] as const;
+export const LOCALES = [
+  "en",
+  "es",
+  "fr",
+  "zh",
+  "hi",
+  "ar",
+  "bn",
+  "pt",
+  "ru",
+  "ja",
+  "de",
+  "ko",
+  "vi",
+  "it",
+  "tr",
+  "pl",
+  "nl",
+  "th",
+  "uk",
+  "id",
+  "ta",
+] as const;
 export type Locale = (typeof LOCALES)[number];
-export const DEFAULT_LOCALE: Locale = "es";
+export const DEFAULT_LOCALE: Locale = "en";
 
 export type Dict = Record<string, unknown>;
 
@@ -42,10 +64,12 @@ export function detectLocale(): Locale {
   if (lng && LOCALES.includes(lng as Locale)) return lng as Locale;
   const stored = window.localStorage.getItem("locale") as Locale | null;
   if (stored && LOCALES.includes(stored)) return stored;
-  const nav = (navigator.language || "es").toLowerCase();
-  if (nav.startsWith("en")) return "en";
-  if (nav.startsWith("fr")) return "fr";
-  return "es";
+  const nav = (navigator.language || DEFAULT_LOCALE).toLowerCase();
+  const exact = LOCALES.find((l) => nav === l);
+  if (exact) return exact;
+  const prefix = LOCALES.find((l) => nav.startsWith(`${l}-`));
+  if (prefix) return prefix;
+  return DEFAULT_LOCALE;
 }
 
 interface I18nContextValue {
@@ -64,13 +88,54 @@ export function useI18n() {
   return useContext(I18nContext);
 }
 
-export function useLocaleName(locale: Locale): string {
-  const names: Record<Locale, string> = {
-    es: "Español",
-    en: "English",
-    fr: "Français",
-  };
-  return names[locale];
+export function getLocaleName(locale: Locale): string {
+  try {
+    const name = new Intl.DisplayNames(locale, {
+      type: "language",
+      languageDisplay: "standard",
+    }).of(locale);
+    if (name) return name;
+  } catch {
+    // ignore
+  }
+  return locale;
+}
+
+const LOCALE_COUNTRY: Record<Locale, string> = {
+  en: "US",
+  es: "ES",
+  fr: "FR",
+  zh: "CN",
+  hi: "IN",
+  ar: "SA",
+  bn: "BD",
+  pt: "BR",
+  ru: "RU",
+  ja: "JP",
+  de: "DE",
+  ko: "KR",
+  vi: "VN",
+  it: "IT",
+  tr: "TR",
+  pl: "PL",
+  nl: "NL",
+  th: "TH",
+  uk: "UA",
+  id: "ID",
+  ta: "IN",
+};
+
+function regionalIndicator(letter: string): string {
+  const code = letter.toUpperCase().charCodeAt(0);
+  if (code >= 65 && code <= 90) {
+    return String.fromCodePoint(0x1f1e6 + (code - 65));
+  }
+  return letter;
+}
+
+export function localeFlag(locale: Locale): string {
+  const country = LOCALE_COUNTRY[locale] ?? locale.toUpperCase();
+  return regionalIndicator(country[0]) + regionalIndicator(country[1]);
 }
 
 const common = {
@@ -141,6 +206,18 @@ const common = {
   name: "Nombre",
   company: "Empresa",
   contact: "Contacto",
+  title: "Título",
+  titleMr: "Sr.",
+  titleMs: "Sra./Srta.",
+  titleMrs: "Sra.",
+  titleMiss: "Srta.",
+  titleDr: "Dr.",
+  gender: "Sexo",
+  male: "Masculino",
+  female: "Femenino",
+  day: "Día",
+  month: "Mes",
+  year: "Año",
   notes: "Notas",
   city: "Ciudad",
   airport: "Aeropuerto",
@@ -173,6 +250,15 @@ const common = {
   age: "Edad",
   years: "años",
   inArms: "en brazos",
+  recentSearches: "Tus búsquedas recientes",
+  clearHistory: "Borrar historial",
+  newSearch: "Nueva búsqueda",
+  netCost: "Costo neto",
+  salePrice: "Precio de venta",
+  environment: "Ambiente",
+  bookingConfirmed: "Reserva confirmada",
+  reservationKey: "Clave de reserva",
+  hotelConfirmation: "Confirmación del hotel",
 };
 
 const home = {
@@ -236,6 +322,14 @@ const search = {
   hotelDestination: "Destino del hotel",
   allAirports: "Todos los aeropuertos",
   noAirports: "Sin aeropuertos con ese nombre",
+  chooseReturn: "Elige el regreso",
+  saved: "guardada(s)",
+  savedFlight: "Vuelo guardado",
+  noHotels: "No hay hoteles disponibles",
+  noHotelsMessage: "Prueba con otras fechas o destino.",
+  available: "con disponibilidad",
+  sandboxNotice: "inventario de prueba (sandbox): no reserva hoteles reales",
+  searchingFlights: "Consultando aerolíneas en vivo… puede tardar hasta 20 segundos.",
 };
 
 const flights = {
@@ -251,6 +345,13 @@ const flights = {
   checked: "Documentado",
   selectFlight: "Seleccionar vuelo",
   selectedFlight: "Vuelo seleccionado",
+  fareBrand: "Tarifa",
+  changeable: "Cambios permitidos",
+  nonChangeable: "Sin cambios",
+  refundable: "Reembolsable",
+  nonRefundable: "No reembolsable",
+  noCheckedBaggage: "Sin maleta documentada",
+  noBaggageIncluded: "Sin equipaje incluido",
 };
 
 const hotels = {
@@ -263,6 +364,11 @@ const hotels = {
   freeCancellation: "Cancelación gratuita",
   breakfastIncluded: "Desayuno incluido",
   payAtProperty: "Pagar en el hotel",
+  roomSize: "{{size}} m²",
+  maxOccupancy: "Hasta {{max}} huéspedes",
+  cancelUntil: "Cancela antes de {{date}}",
+  nonRefundableRoom: "No reembolsable",
+  refundableRoom: "Reembolsable",
 };
 
 const corporate = {
@@ -327,6 +433,9 @@ const form = {
   documentType: "Tipo de documento",
   documentNumber: "Número de documento",
   birthDate: "Fecha de nacimiento",
+  day: "Día",
+  month: "Mes",
+  year: "Año",
   phoneLabel: "Teléfono",
   emergencyContact: "Contacto de emergencia",
   saveReservation: "Guardar reserva",
@@ -339,6 +448,9 @@ const form = {
   infantDetail: "Menos de 2 años, sin asiento",
   hotelAgePolicy: "La edad del menor decide si el hotel cobra extra por él.",
   flightAgePolicy: "La edad es la que tendrá el menor el día del vuelo; la aerolínea la valida contra el pasaporte.",
+  paymentMethod: "Método de pago",
+  paymentCreditCard: "Tarjeta de crédito",
+  paymentWallet: "Wallet / Crédito",
 };
 
 const errors = {
@@ -349,7 +461,15 @@ const errors = {
   searchFailed: "No pudimos completar la búsqueda",
 };
 
-const dicts = { common, home, auth, search, flights, hotels, corporate, form, errors };
+const packages = {
+  step1: "Paso 1: Elige tu vuelo",
+  step2: "Paso 2: Elige tu hotel",
+  flightChosen: "Vuelo elegido",
+  changeFlight: "Cambiar vuelo",
+  searchingHotels: "Buscando hoteles disponibles en",
+};
+
+const dicts = { common, home, auth, search, flights, hotels, corporate, form, errors, packages };
 
 type LocaleDict = typeof dicts;
 
@@ -425,6 +545,12 @@ const en: LocaleDict = {
     name: "Name",
     company: "Company",
     contact: "Contact",
+    title: "Title",
+    titleMr: "Mr.",
+    titleMs: "Ms.",
+    titleMrs: "Mrs.",
+    titleMiss: "Miss",
+    titleDr: "Dr.",
     notes: "Notes",
     city: "City",
     airport: "Airport",
@@ -432,6 +558,12 @@ const en: LocaleDict = {
     nationality: "Nationality",
     passport: "Passport",
     birthday: "Date of birth",
+    gender: "Gender",
+    male: "Male",
+    female: "Female",
+    day: "Day",
+    month: "Month",
+    year: "Year",
     language: "Language",
     currency: "Currency",
     total: "Total",
@@ -517,6 +649,14 @@ const en: LocaleDict = {
     hotelDestination: "Hotel destination",
     allAirports: "All airports",
     noAirports: "No airports with that name",
+    chooseReturn: "Choose return",
+    saved: "saved",
+    savedFlight: "Saved flight",
+    noHotels: "No hotels available",
+    noHotelsMessage: "Try other dates or destination.",
+    available: "available",
+    sandboxNotice: "sandbox inventory: does not book real hotels",
+    searchingFlights: "Checking live airlines… may take up to 20 seconds.",
   },
   flights: {
     direct: "Nonstop",
@@ -531,6 +671,13 @@ const en: LocaleDict = {
     checked: "Checked",
     selectFlight: "Select flight",
     selectedFlight: "Selected flight",
+    fareBrand: "Fare",
+    changeable: "Changes allowed",
+    nonChangeable: "No changes",
+    refundable: "Refundable",
+    nonRefundable: "Non-refundable",
+    noCheckedBaggage: "No checked bag",
+    noBaggageIncluded: "No baggage included",
   },
   hotels: {
     hotel: "Hotel",
@@ -542,6 +689,11 @@ const en: LocaleDict = {
     freeCancellation: "Free cancellation",
     breakfastIncluded: "Breakfast included",
     payAtProperty: "Pay at property",
+    roomSize: "{{size}} m²",
+    maxOccupancy: "Up to {{max}} guests",
+    cancelUntil: "Cancel before {{date}}",
+    nonRefundableRoom: "Non-refundable",
+    refundableRoom: "Refundable",
   },
   corporate: {
     title: "Quote your business or MICE trip",
@@ -604,6 +756,9 @@ const en: LocaleDict = {
     documentType: "Document type",
     documentNumber: "Document number",
     birthDate: "Date of birth",
+    day: "Day",
+    month: "Month",
+    year: "Year",
     phoneLabel: "Phone",
     emergencyContact: "Emergency contact",
     saveReservation: "Save reservation",
@@ -616,7 +771,11 @@ const en: LocaleDict = {
     infantDetail: "Under 2 years, no seat",
     hotelAgePolicy: "The child's age determines whether the hotel charges extra for them.",
     flightAgePolicy: "The age is what the child will be on the flight date; the airline validates it against the passport.",
+    paymentMethod: "Payment method",
+    paymentCreditCard: "Credit card",
+    paymentWallet: "Wallet / credit",
   },
+  packages: { ...packages },
   errors: {
     completeCompany: "Complete the company and contact details.",
     completeTrip: "Complete origin, destination and departure date.",
@@ -696,6 +855,12 @@ const fr: LocaleDict = {
     name: "Prénom",
     company: "Entreprise",
     contact: "Contact",
+    title: "Titre",
+    titleMr: "M.",
+    titleMs: "Mme/Mlle",
+    titleMrs: "Mme",
+    titleMiss: "Mlle",
+    titleDr: "Dr",
     notes: "Notes",
     city: "Ville",
     airport: "Aéroport",
@@ -703,6 +868,12 @@ const fr: LocaleDict = {
     nationality: "Nationalité",
     passport: "Passeport",
     birthday: "Date de naissance",
+    gender: "Sexe",
+    male: "Masculin",
+    female: "Féminin",
+    day: "Jour",
+    month: "Mois",
+    year: "Année",
     language: "Langue",
     currency: "Devise",
     total: "Total",
@@ -788,6 +959,14 @@ const fr: LocaleDict = {
     hotelDestination: "Destination de l'hôtel",
     allAirports: "Tous les aéroports",
     noAirports: "Aucun aéroport avec ce nom",
+    chooseReturn: "Choisissez le retour",
+    saved: "enregistrée(s)",
+    savedFlight: "Vol enregistré",
+    noHotels: "Aucun hôtel disponible",
+    noHotelsMessage: "Essayez d'autres dates ou destinations.",
+    available: "disponible(s)",
+    sandboxNotice: "inventaire sandbox : ne réserve pas de vrais hôtels",
+    searchingFlights: "Consultation des compagnies aériennes en direct… cela peut prendre jusqu'à 20 secondes.",
   },
   flights: {
     direct: "Direct",
@@ -802,6 +981,13 @@ const fr: LocaleDict = {
     checked: "Enregistré",
     selectFlight: "Sélectionner le vol",
     selectedFlight: "Vol sélectionné",
+    fareBrand: "Tarif",
+    changeable: "Modifiable",
+    nonChangeable: "Non modifiable",
+    refundable: "Remboursable",
+    nonRefundable: "Non remboursable",
+    noCheckedBaggage: "Sans bagage enregistré",
+    noBaggageIncluded: "Sans bagage inclus",
   },
   hotels: {
     hotel: "Hôtel",
@@ -813,6 +999,11 @@ const fr: LocaleDict = {
     freeCancellation: "Annulation gratuite",
     breakfastIncluded: "Petit-déjeuner inclus",
     payAtProperty: "Payer à l'hôtel",
+    roomSize: "{{size}} m²",
+    maxOccupancy: "Jusqu'à {{max}} hôtes",
+    cancelUntil: "Annuler avant {{date}}",
+    nonRefundableRoom: "Non remboursable",
+    refundableRoom: "Remboursable",
   },
   corporate: {
     title: "Devis pour votre voyage d'affaires ou MICE",
@@ -875,6 +1066,9 @@ const fr: LocaleDict = {
     documentType: "Type de document",
     documentNumber: "Numéro de document",
     birthDate: "Date de naissance",
+    day: "Jour",
+    month: "Mois",
+    year: "Année",
     phoneLabel: "Téléphone",
     emergencyContact: "Contact d'urgence",
     saveReservation: "Enregistrer la réservation",
@@ -887,7 +1081,11 @@ const fr: LocaleDict = {
     infantDetail: "Moins de 2 ans, sans siège",
     hotelAgePolicy: "L'âge de l'enfant détermine si l'hôtel facture un supplément.",
     flightAgePolicy: "L'âge est celui que l'enfant aura le jour du vol; la compagnie aérienne le valide avec le passeport.",
+    paymentMethod: "Mode de paiement",
+    paymentCreditCard: "Carte de crédit",
+    paymentWallet: "Wallet / crédit",
   },
+  packages: { ...packages },
   errors: {
     completeCompany: "Remplissez les coordonnées de l'entreprise et du contact.",
     completeTrip: "Remplissez l'origine, la destination et la date de départ.",
@@ -897,4 +1095,8 @@ const fr: LocaleDict = {
   },
 };
 
-export const DICTIONARIES: Record<Locale, LocaleDict> = { es, en, fr };
+const emptyDicts = Object.fromEntries(
+  LOCALES.filter((l) => !["es", "en", "fr"].includes(l)).map((l) => [l, {} as Dict]),
+) as Record<Exclude<Locale, "es" | "en" | "fr">, Dict>;
+
+export const DICTIONARIES: Record<Locale, Dict> = { es, en, fr, ...emptyDicts };

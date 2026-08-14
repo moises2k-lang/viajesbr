@@ -7,6 +7,7 @@ import { DetalleTramos, equipajeTexto } from "@/components/ResumenVuelo";
 import LogoAerolinea from "@/components/LogoAerolinea";
 import IconoFranja from "@/components/IconoFranja";
 import Precio from "@/components/Precio";
+import { CaracteristicasVuelo } from "@/components/Caracteristicas";
 
 export function horaCorta(iso: string): string {
   return new Date(iso).toLocaleTimeString("es-MX", {
@@ -116,8 +117,12 @@ export default function TarjetaOferta({
             </div>
           ))}
 
+          <div className="mt-2">
+            <CaracteristicasVuelo oferta={oferta} />
+          </div>
+
           <button
-            className="mt-1 text-xs font-medium text-[#14477E] underline"
+            className="mt-2 text-xs font-medium text-[#14477E] underline"
             onClick={() => setAbierto((v) => !v)}
             type="button"
           >

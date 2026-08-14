@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useAuth } from "@/components/AuthContext";
 import SelectorTelefono from "@/components/SelectorTelefono";
 import CampoAeropuerto from "@/components/CampoAeropuerto";
+import FechaNacimiento from "@/components/FechaNacimiento";
+import RangoFechas from "@/components/RangoFechas";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -110,7 +112,7 @@ function inputClase(invalido?: boolean) {
 }
 
 function labelClase() {
-  return "block text-xs font-medium uppercase tracking-wide text-[#5A6B80] mb-1";
+  return "block text-xs font-bold uppercase tracking-wide text-[#0B2545] mb-1";
 }
 
 function sectionTitle(icon: React.ReactNode, title: string) {
@@ -355,12 +357,12 @@ export default function CorporativoWizard() {
     <div className="flex min-h-screen flex-col bg-[#F5F7FA]">
       <header className="bg-[#0B2545]">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <Link href="/">
+          <Link href="/" prefetch={false}>
             <img alt="IA Travel Planning" className="h-9" src="/logo.svg" />
           </Link>
           <nav className="flex items-center gap-4 text-sm text-white/80">
-            <Link className="hover:text-white" href="/">{t("common.flights")} / {t("common.hotels")}</Link>
-            <Link className="hover:text-white" href="/admin/itinerarios">{t("common.itineraries")}</Link>
+            <Link className="hover:text-white" href="/" prefetch={false}>{t("common.flights")} / {t("common.hotels")}</Link>
+            <Link className="hover:text-white" href="/admin/itinerarios" prefetch={false}>{t("common.itineraries")}</Link>
             {usuario && <span className="hidden sm:inline">{usuario.nombre ?? usuario.email}</span>}
             <LanguageSwitcher />
           </nav>
@@ -553,15 +555,12 @@ export default function CorporativoWizard() {
                               value={viajero.nacionalidad}
                             />
                           </div>
-                          <div>
-                            <label className={labelClase()}>{t("common.birthday")}</label>
-                            <input
-                              className={inputClase()}
-                              onChange={(e) => actualizarViajero(viajero.id, "fechaNacimiento", e.target.value)}
-                              type="date"
-                              value={viajero.fechaNacimiento}
-                            />
-                          </div>
+                          <FechaNacimiento
+                            className="sm:col-span-2 lg:col-span-4"
+                            etiqueta={t("common.birthday")}
+                            value={viajero.fechaNacimiento}
+                            onChange={(v) => actualizarViajero(viajero.id, "fechaNacimiento", v)}
+                          />
                         </div>
                       </div>
                     ))}
@@ -598,22 +597,17 @@ export default function CorporativoWizard() {
                         actualizar("destinoDesc", desc);
                       }}
                     />
-                    <div>
-                      <label className={labelClase()}>{t("corporate.departureDate")} *</label>
-                      <input
-                        className={inputClase()}
-                        onChange={(e) => actualizar("fechaSalida", e.target.value)}
-                        type="date"
-                        value={f.fechaSalida}
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClase()}>{t("corporate.returnDate")}</label>
-                      <input
-                        className={inputClase()}
-                        onChange={(e) => actualizar("fechaRegreso", e.target.value)}
-                        type="date"
-                        value={f.fechaRegreso}
+                    <div className="sm:col-span-2">
+                      <RangoFechas
+                        conRegreso
+                        desde={f.fechaSalida}
+                        etiquetaDesde={t("common.departure")}
+                        etiquetaHasta={t("common.return")}
+                        hasta={f.fechaRegreso || null}
+                        onCambio={(desde, hasta) => {
+                          actualizar("fechaSalida", desde);
+                          actualizar("fechaRegreso", hasta ?? "");
+                        }}
                       />
                     </div>
                   </div>

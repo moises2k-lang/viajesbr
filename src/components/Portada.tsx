@@ -29,6 +29,9 @@ import ListaOfertas from "@/components/ListaOfertas";
 import FormularioReserva, {
   type ResultadoReserva,
 } from "@/components/FormularioReserva";
+import FormularioReservaHotel, {
+  type ResultadoReservaHotel,
+} from "@/components/FormularioReservaHotel";
 import ResumenVuelo from "@/components/ResumenVuelo";
 import SelectorMoneda from "@/components/SelectorMoneda";
 import Precio from "@/components/Precio";
@@ -71,7 +74,17 @@ type EstadoHoteles =
       total: number;
       ambiente: string;
       mensaje?: string;
-    };
+    }
+  | {
+      fase: "reservando";
+      hotel: HotelConPrecio;
+      habitacion: HabitacionConPrecio;
+      hoteles: HotelConPrecio[];
+      total: number;
+      ambiente: string;
+      mensaje?: string;
+    }
+  | { fase: "confirmada"; resultado: ResultadoReservaHotel };
 
 type Paquete =
   | { paso: 1 }
@@ -315,6 +328,48 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
     return cuerpo.id;
   }
 
+  async function guardarCotizacionHotel(datos: {
+    nombre: string;
+    apellido: string;
+    correo: string;
+    telefono: string;
+  }) {
+    if (estadoHoteles.fase !== "reservando") throw new Error("No hay hotel seleccionado");
+    const { hotel, habitacion } = estadoHoteles;
+    const cliente = `${datos.nombre} ${datos.apellido}`.trim() || datos.correo;
+    const respuesta = await fetch("/api/itinerarios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        titulo: `Hotel ${hotel.nombre}`,
+        cliente,
+        resumen: `${datos.correo} · ${datos.telefono}`,
+        moneda: hotel.moneda,
+        estado: "cotizacion",
+        bloques: [
+          {
+            posicion: 0,
+            tipo: "hotel",
+            titulo: `Hotel ${hotel.nombre}`,
+            fecha: ultimoHotel?.entrada ?? null,
+            fecha_fin: ultimoHotel?.salida ?? null,
+            detalle: `${habitacion.habitacion} · ${hotel.noches} ${hotel.noches === 1 ? "noche" : "noches"}`,
+            proveedor: "liteAPI",
+            costo_neto: habitacion.costoNeto,
+            precio_venta: habitacion.precioVenta,
+            cotizacion_id: habitacion.cotizacionId ? parseInt(habitacion.cotizacionId, 10) : null,
+            datos: { hotel, habitacion, contacto: datos },
+          },
+        ],
+      }),
+    });
+    const cuerpo = (await respuesta.json()) as { id?: string; error?: string };
+    if (!respuesta.ok || !cuerpo.id) {
+      throw new Error(cuerpo.error ?? "No se pudo guardar la cotización");
+    }
+    return cuerpo.id;
+  }
+
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#F5F7FA]">
       <header className="bg-[#0B2545]">
@@ -456,7 +511,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
             {estadoHoteles.fase === "buscando" && (
               <div className="mt-6 flex flex-col gap-3">
                 <p className="text-sm text-[#5A6B80]">
-                  Consultando hoteles en vivo…
+                  {t("search.searchingHotels")}
                 </p>
                 {[0, 1, 2].map((n) => (
                   <div
@@ -472,30 +527,111 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
                 {estadoHoteles.total === 0 ? (
                   <div className="rounded-xl border border-[#E4E8EE] bg-white p-6 text-center">
                     <p className="text-base font-medium text-[#0B2545]">
-                      No hay hoteles disponibles
+                      {t("search.noHotels")}
                     </p>
                     <p className="mt-1 text-sm text-[#5A6B80]">
-                      {estadoHoteles.mensaje ??
-                        "Prueba con otras fechas o destino."}
+                      {estadoHoteles.mensaje ?? t("search.noHotelsMessage")}
                     </p>
                   </div>
                 ) : (
                   <>
                     <p className="mb-3 text-sm text-[#5A6B80]">
-                      {estadoHoteles.total} hotel
-                      {estadoHoteles.total === 1 ? "" : "es"} con disponibilidad
-                      {ultimoHotel ? ` en ${ultimoHotel.destino}` : ""}
+                      {estadoHoteles.total}{" "}
+                      {estadoHoteles.total === 1
+                        ? t("hotels.hotel")
+                        : t("hotels.hotels")}{" "}
+                      {t("search.available")}
+                      {ultimoHotel ? ` ${t("common.in")} ${ultimoHotel.destino}` : ""}
                       {estadoHoteles.ambiente === "sandbox"
-                        ? " · inventario de prueba (sandbox): no reserva hoteles reales"
+                        ? ` · ${t("search.sandboxNotice")}`
                         : ""}
                     </p>
                     <ListaHoteles
                       hoteles={estadoHoteles.hoteles}
                       mostrarMargen={modoInterno}
+                      onElegir={(hotel, habitacion) =>
+                        setEstadoHoteles({
+                          fase: "reservando",
+                          hotel,
+                          habitacion,
+                          hoteles: estadoHoteles.hoteles,
+                          total: estadoHoteles.total,
+                          ambiente: estadoHoteles.ambiente,
+                          mensaje: estadoHoteles.mensaje,
+                        })
+                      }
                     />
                   </>
                 )}
               </div>
+            )}
+
+            {estadoHoteles.fase === "reservando" && (
+              <FormularioReservaHotel
+                habitacion={estadoHoteles.habitacion}
+                hotel={estadoHoteles.hotel}
+                onCancelar={() =>
+                  setEstadoHoteles({
+                    fase: "resultados",
+                    hoteles: estadoHoteles.hoteles,
+                    total: estadoHoteles.total,
+                    ambiente: estadoHoteles.ambiente,
+                    mensaje: estadoHoteles.mensaje,
+                  })
+                }
+                onGuardar={guardarCotizacionHotel}
+                onReservada={(resultado) =>
+                  setEstadoHoteles({ fase: "confirmada", resultado })
+                }
+              />
+            )}
+
+            {estadoHoteles.fase === "confirmada" && (
+              <section className="mt-8 rounded-xl border border-green-300 bg-green-50 p-6">
+                <h2 className="text-lg font-semibold text-green-900">
+                  {t("common.bookingConfirmed")}
+                </h2>
+                <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                  <dt className="text-[#5A6B80]">{t("common.reservationKey")}</dt>
+                  <dd className="font-mono font-semibold">
+                    {estadoHoteles.resultado.bookingId}
+                  </dd>
+                  <dt className="text-[#5A6B80]">{t("common.hotelConfirmation")}</dt>
+                  <dd className="font-mono font-semibold">
+                    {estadoHoteles.resultado.confirmacionHotel ?? "—"}
+                  </dd>
+                  <dt className="text-[#5A6B80]">{t("common.environment")}</dt>
+                  <dd>{estadoHoteles.resultado.ambiente}</dd>
+                  <dt className="text-[#5A6B80]">{t("common.netCost")}</dt>
+                  <dd>
+                    <Precio
+                      monto={estadoHoteles.resultado.costoNeto}
+                      moneda={estadoHoteles.resultado.moneda}
+                    />
+                  </dd>
+                  <dt className="text-[#5A6B80]">{t("common.markup")}</dt>
+                  <dd>
+                    <Precio
+                      monto={estadoHoteles.resultado.markup}
+                      moneda={estadoHoteles.resultado.moneda}
+                    />
+                  </dd>
+                  <dt className="text-[#5A6B80]">{t("common.salePrice")}</dt>
+                  <dd className="font-semibold">
+                    <Precio
+                      monto={estadoHoteles.resultado.precioVenta}
+                      moneda={estadoHoteles.resultado.moneda}
+                    />
+                  </dd>
+                </dl>
+                <button
+                  className="mt-6 rounded-lg bg-[#0B2545] px-4 py-2 text-sm text-white"
+                  onClick={() => setEstadoHoteles({ fase: "inicio" })}
+                  type="button"
+                >
+                  {t("common.newSearch")}
+                </button>
+              </section>
             )}
           </>
         )}
@@ -549,7 +685,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
                   <div className="space-y-4">
                     <h2 className="text-lg font-semibold text-[#0B2545]">
                       <TicketsPlane className="mr-1 inline h-5 w-5" />
-                      Paso 1: Elige tu vuelo
+                      {t("packages.step1")}
                     </h2>
                     <ListaOfertas
                       aerolineasCombinaciones={estado.aerolineasCombinaciones}
@@ -572,14 +708,14 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
                   <>
                     <div className="flex items-center justify-between">
                       <h2 className="text-lg font-semibold text-[#0B2545]">
-                        Vuelo elegido
+                        {t("packages.flightChosen")}
                       </h2>
                       <button
                         className="text-sm text-[#14477E] underline"
                         onClick={() => setPaquete({ paso: 1 })}
                         type="button"
                       >
-                        Cambiar vuelo
+                        {t("packages.changeFlight")}
                       </button>
                     </div>
                     <ResumenVuelo
@@ -593,18 +729,18 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
                   <div className="space-y-4">
                     <h2 className="text-lg font-semibold text-[#0B2545]">
                       <Building2 className="mr-1 inline h-5 w-5" />
-                      Paso 2: Elige tu hotel
+                      {t("packages.step2")}
                     </h2>
                     {estadoHoteles.fase === "inicio" && ultimaBusqueda?.destino && (
                       <p className="text-sm text-[#5A6B80]">
-                        Buscando hoteles disponibles en{" "}
+                        {t("packages.searchingHotels")}{" "}
                         {ultimaBusqueda.destinoNombre ?? ultimaBusqueda.destino}.
                       </p>
                     )}
                     {estadoHoteles.fase === "buscando" && (
                       <div className="flex flex-col gap-3">
                         <p className="text-sm text-[#5A6B80]">
-                          Consultando hoteles en vivo…
+                          {t("search.searchingHotels")}
                         </p>
                         {[0, 1, 2].map((n) => (
                           <div
@@ -619,22 +755,23 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
                         {estadoHoteles.total === 0 ? (
                           <div className="rounded-xl border border-[#E4E8EE] bg-white p-6 text-center">
                             <p className="text-base font-medium text-[#0B2545]">
-                              No hay hoteles disponibles
+                              {t("search.noHotels")}
                             </p>
                             <p className="mt-1 text-sm text-[#5A6B80]">
-                              {estadoHoteles.mensaje ??
-                                "Prueba con otras fechas o destino."}
+                              {estadoHoteles.mensaje ?? t("search.noHotelsMessage")}
                             </p>
                           </div>
                         ) : (
                           <>
                             <p className="mb-3 text-sm text-[#5A6B80]">
-                              {estadoHoteles.total} hotel
-                              {estadoHoteles.total === 1 ? "" : "es"} con
-                              disponibilidad
-                              {ultimoHotel ? ` en ${ultimoHotel.destino}` : ""}
+                              {estadoHoteles.total}{" "}
+                              {estadoHoteles.total === 1
+                                ? t("hotels.hotel")
+                                : t("hotels.hotels")}{" "}
+                              {t("search.available")}
+                              {ultimoHotel ? ` ${t("common.in")} ${ultimoHotel.destino}` : ""}
                               {estadoHoteles.ambiente === "sandbox"
-                                ? " · inventario de prueba (sandbox): no reserva hoteles reales"
+                                ? ` · ${t("search.sandboxNotice")}`
                                 : ""}
                             </p>
                             <ListaHoteles
@@ -687,7 +824,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
         {pestana === "vuelos" && estado.fase === "buscando" && (
           <div className="mt-6 flex flex-col gap-3">
             <p className="text-sm text-[#5A6B80]">
-              Consultando aerolíneas en vivo… puede tardar hasta 20 segundos.
+              {t("search.searchingFlights")}
             </p>
             {[0, 1, 2, 3].map((n) => (
               <div

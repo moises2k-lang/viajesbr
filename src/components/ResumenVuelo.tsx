@@ -6,6 +6,7 @@ import Bandera from "@/components/Bandera";
 import LogoAerolinea from "@/components/LogoAerolinea";
 import IconoFranja from "@/components/IconoFranja";
 import Precio from "@/components/Precio";
+import { CaracteristicasVuelo } from "@/components/Caracteristicas";
 import {
   fechaCorta,
   horaCorta,
@@ -209,6 +210,10 @@ export default function ResumenVuelo({ oferta, mostrarMargen }: Props) {
             )}
           </p>
         </div>
+      </div>
+
+      <div className="mt-2">
+        <CaracteristicasVuelo oferta={oferta} />
       </div>
 
       <div

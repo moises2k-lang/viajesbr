@@ -9,6 +9,7 @@ import type { HotelConPrecio, HabitacionConPrecio } from "@/app/api/hoteles/rout
 import { emparejarHabitacion } from "@/lib/habitaciones";
 import DetalleHotel from "@/components/DetalleHotel";
 import Bandera from "@/components/Bandera";
+import { CaracteristicasHabitacion, ServiciosHotel } from "@/components/Caracteristicas";
 
 type Orden = "precio" | "calificacion" | "estrellas" | "nombre";
 
@@ -267,6 +268,14 @@ export default function ListaHoteles({ hoteles, mostrarMargen, onElegir }: Props
                       {hotel.noches} noche
                       {hotel.noches === 1 ? "" : "s"}
                     </p>
+                    {fichas[hotel.hotelId]?.servicios && (
+                      <div className="mt-1">
+                        <ServiciosHotel
+                          limite={6}
+                          servicios={fichas[hotel.hotelId].servicios}
+                        />
+                      </div>
+                    )}
                     <button
                       className="mt-2 text-xs font-medium text-[#14477E] underline"
                       onClick={() => {
@@ -341,24 +350,14 @@ export default function ListaHoteles({ hoteles, mostrarMargen, onElegir }: Props
                             <p className="text-sm font-medium text-[#0B2545]">
                               {habitacion.habitacion}
                             </p>
-                            <p className="text-xs text-[#5A6B80]">
-                              {[
-                                habitacion.regimen,
-                                habitacion.reembolsable === null
-                                  ? null
-                                  : habitacion.reembolsable
-                                    ? `reembolsable${habitacion.cancelaAntesDe ? ` hasta ${habitacion.cancelaAntesDe}` : ""}`
-                                    : "no reembolsable",
-                                catalogo?.metros
-                                  ? `${catalogo.metros} m²`
-                                  : null,
-                                catalogo?.camas[0] ?? null,
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </p>
+                            <div className="mt-1">
+                              <CaracteristicasHabitacion
+                                catalogo={catalogo}
+                                habitacion={habitacion}
+                              />
+                            </div>
                             {habitacion.impuestosNoIncluidos.length > 0 && (
-                              <p className="text-xs text-[#B4451F]">
+                              <p className="mt-1 text-xs text-[#B4451F]">
                                 Se paga en el hotel:{" "}
                                 {habitacion.impuestosNoIncluidos.map((i, idx) => (
                                   <span key={idx}>
