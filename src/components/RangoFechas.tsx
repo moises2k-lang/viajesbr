@@ -194,49 +194,50 @@ export default function RangoFechas({
     );
   }
 
+  const claseCampo =
+    "mt-1 w-full min-w-0 rounded-lg border bg-white px-3 py-2.5 text-left text-sm font-medium transition focus:outline-none";
+
   return (
     <div className="relative" ref={contenedor}>
       <div className={`grid min-w-0 gap-2 ${unica ? "grid-cols-1" : "grid-cols-2"}`}>
-        <button
-          className={`min-w-0 rounded-lg border bg-white px-3 py-2.5 text-left ${
-            abierto && eligiendo === "desde"
-              ? "border-[#14477E]"
-              : "border-[#E4E8EE]"
-          }`}
-          onClick={() => abrir("desde")}
-          type="button"
-        >
+        <div className="min-w-0">
           <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
             {etiquetaDesde}
           </span>
-          <span className="block truncate whitespace-nowrap text-sm font-medium text-[#0B2545]">
-            {desde ? textoLargo(desde) : "Elegir fecha"}
-          </span>
-        </button>
-        {!unica && (
           <button
-            className={`min-w-0 rounded-lg border bg-white px-3 py-2.5 text-left disabled:bg-[#F5F7FA] ${
-              abierto && eligiendo === "hasta"
-                ? "border-[#14477E]"
+            className={`${claseCampo} truncate whitespace-nowrap ${
+              abierto && eligiendo === "desde"
+                ? "border-[#14477E] focus:ring-2 focus:ring-[#14477E]/20"
                 : "border-[#E4E8EE]"
             }`}
-            disabled={!conRegreso}
-            onClick={() => abrir("hasta")}
+            onClick={() => abrir("desde")}
             type="button"
           >
+            {desde ? textoLargo(desde) : "Elegir fecha"}
+          </button>
+        </div>
+        {!unica && (
+          <div className="min-w-0">
             <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
               {etiquetaHasta}
             </span>
-            <span
-              className={`block truncate whitespace-nowrap text-sm font-medium ${conRegreso ? "text-[#0B2545]" : "text-[#9AA7B8]"}`}
+            <button
+              className={`${claseCampo} truncate whitespace-nowrap disabled:cursor-not-allowed disabled:bg-[#F5F7FA] disabled:text-[#9AA7B8] ${
+                abierto && eligiendo === "hasta"
+                  ? "border-[#14477E] focus:ring-2 focus:ring-[#14477E]/20"
+                  : "border-[#E4E8EE]"
+              }`}
+              disabled={!conRegreso}
+              onClick={() => abrir("hasta")}
+              type="button"
             >
               {conRegreso
                 ? hasta
                   ? textoLargo(hasta)
                   : "Elegir fecha"
                 : "Sólo ida"}
-            </span>
-          </button>
+            </button>
+          </div>
         )}
       </div>
 
