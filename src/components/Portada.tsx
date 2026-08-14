@@ -1,11 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import type { OfertaConPrecio } from "@/app/api/buscar/route";
 import Buscador, { type ParametrosFormulario } from "@/components/Buscador";
+import HistorialBusquedas from "@/components/HistorialBusquedas";
 import ListaOfertas from "@/components/ListaOfertas";
 import FormularioReserva, { type ResultadoReserva } from "@/components/FormularioReserva";
+import {
+  borrarHistorial,
+  guardarBusqueda,
+  historialDelNavegador,
+  historialDelServidor,
+  suscribirHistorial,
+} from "@/lib/historial";
+
+/** Remonta el formulario cuando se aplica otra búsqueda (por ejemplo desde el historial). */
+function claveFormulario(p: ParametrosFormulario | null): string {
+  if (!p) return "formulario-vacio";
+  return [
+    p.origen,
+    p.destino,
+    p.fechaSalida,
+    p.fechaRegreso ?? "",
+    p.adultos,
+    p.menores.join(","),
+    p.bebes,
+    p.cabina ?? "",
+  ].join("-");
+}
 
 type Estado =
   | { fase: "inicio" }
@@ -18,10 +41,16 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
   const [estado, setEstado] = useState<Estado>({ fase: "inicio" });
   const [error, setError] = useState<string | null>(null);
   const [ultimaBusqueda, setUltimaBusqueda] = useState<ParametrosFormulario | null>(null);
+  const historial = useSyncExternalStore(
+    suscribirHistorial,
+    historialDelNavegador,
+    historialDelServidor,
+  );
 
   async function buscar(parametros: ParametrosFormulario) {
     setError(null);
     setUltimaBusqueda(parametros);
+    guardarBusqueda(parametros);
     setEstado({ fase: "buscando" });
     try {
       const respuesta = await fetch("/api/buscar", {
@@ -74,10 +103,19 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
         <div className="relative z-10">
           <Buscador
             cargando={estado.fase === "buscando"}
+            key={claveFormulario(ultimaBusqueda)}
             valoresIniciales={ultimaBusqueda}
             onBuscar={buscar}
           />
         </div>
+
+        {estado.fase !== "buscando" && (
+          <HistorialBusquedas
+            historial={historial}
+            onBorrar={borrarHistorial}
+            onRepetir={buscar}
+          />
+        )}
 
         {error && (
           <p className="mt-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">
