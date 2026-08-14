@@ -49,10 +49,10 @@ export default function Home() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img alt="IA Travel Planning" className="h-9" src="/logo.svg" />
           <nav className="flex items-center gap-4 text-sm text-white/80">
-            <Link className="hover:text-white" href="/admin/itinerarios">
+            <Link className="hover:text-white" href="/admin/itinerarios" prefetch={false}>
               Itinerarios
             </Link>
-            <Link className="hover:text-white" href="/admin/markup">
+            <Link className="hover:text-white" href="/admin/markup" prefetch={false}>
               Markup
             </Link>
           </nav>

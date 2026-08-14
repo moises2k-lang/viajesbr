@@ -45,7 +45,9 @@ interface Props {
 
 export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props) {
   const [datos, setDatos] = useState<ParametrosFormulario>(valoresIniciales ?? VACIO);
-  const [redondo, setRedondo] = useState((valoresIniciales?.fechaRegreso ?? null) !== null);
+  const [redondo, setRedondo] = useState(
+    valoresIniciales ? valoresIniciales.fechaRegreso !== null : true,
+  );
 
   const pasajeros: Pasajeros = {
     adultos: datos.adultos,
