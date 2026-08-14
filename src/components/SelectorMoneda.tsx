@@ -28,7 +28,7 @@ export default function SelectorMoneda({
       valor: m.codigo,
       iso: m.paisIso,
       etiqueta: `${m.codigo} – ${m.nombre}`,
-    }));
+    })).sort((a, b) => a.etiqueta.localeCompare(b.etiqueta, "es"));
     if (permitirVacio) {
       return [
         { valor: "", iso: "", etiqueta: vacioEtiqueta },
@@ -40,10 +40,12 @@ export default function SelectorMoneda({
 
   return (
     <SelectorConBandera
+      buscable
       className={className}
       etiqueta={etiqueta}
       items={items}
       placeholder={placeholder}
+      placeholderBusqueda="Buscar moneda…"
       valor={valor ?? ""}
       onCambio={(nuevo) => onCambio(nuevo === "" ? null : nuevo)}
     />
