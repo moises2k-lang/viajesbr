@@ -204,10 +204,10 @@ export async function aeropuertosDelPais(codigoPais: string): Promise<Aeropuerto
   const aeropuertos: AeropuertoSugerido[] = [];
   let after: string | null = null;
   for (let pagina = 0; pagina < 10; pagina += 1) {
-    const ruta =
+    const ruta: string =
       `/air/airports?iata_country_code=${encodeURIComponent(codigoPais)}&limit=200` +
       (after ? `&after=${encodeURIComponent(after)}` : "");
-    const cuerpo = await llamarCrudo<PaginaAeropuertos>(ruta);
+    const cuerpo: PaginaAeropuertos = await llamarCrudo<PaginaAeropuertos>(ruta);
     aeropuertos.push(...cuerpo.data);
     after = cuerpo.meta.after ?? null;
     if (!after) break;
