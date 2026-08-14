@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { OfertaConPrecio } from "@/app/api/buscar/route";
 import ResumenVuelo from "@/components/ResumenVuelo";
+import SelectorTelefono from "@/components/SelectorTelefono";
 
 export interface ResultadoReserva {
   ordenId: string;
@@ -213,15 +214,11 @@ export default function FormularioReserva({
                 value={email}
               />
             </label>
-            <label className="flex min-w-0 flex-col gap-1 text-sm">
-              Teléfono (con lada +52)
-              <input
-                className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2"
-                onChange={(e) => setTelefono(e.target.value)}
-                required
-                value={telefono}
-              />
-            </label>
+            <SelectorTelefono
+              required
+              value={telefono}
+              onChange={setTelefono}
+            />
           </fieldset>
 
           {error && (

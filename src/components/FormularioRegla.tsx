@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import SelectorMoneda from "@/components/SelectorMoneda";
 
 interface NuevaRegla {
   nombre: string;
@@ -124,16 +125,12 @@ export default function FormularioRegla() {
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Moneda (opcional)
-        <input
-          className="rounded-md border border-neutral-300 px-3 py-2 uppercase"
-          maxLength={3}
-          onChange={(e) => setNueva({ ...nueva, moneda: e.target.value })}
-          placeholder="USD"
-          value={nueva.moneda}
-        />
-      </label>
+      <SelectorMoneda
+        etiqueta="Moneda (opcional)"
+        permitirVacio
+        valor={nueva.moneda || null}
+        onCambio={(v) => setNueva({ ...nueva, moneda: v ?? "" })}
+      />
 
       <label className="flex flex-col gap-1 text-sm">
         Porcentaje sobre el neto

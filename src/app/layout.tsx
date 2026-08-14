@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Barlow } from "next/font/google";
 import "./globals.css";
 
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
   description: "Vuelos, hoteles e itinerarios con tarifas en tiempo real",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="es"
