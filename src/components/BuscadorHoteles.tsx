@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import type { OpcionCiudad } from "@/app/api/ciudades/route";
+import CampoCiudad from "@/components/CampoCiudad";
 import RangoFechas from "@/components/RangoFechas";
+import SelectorPasajeros, { type Pasajeros } from "@/components/SelectorPasajeros";
 
 export interface ParametrosHotel {
-  ciudad: string;
-  pais: string;
+  placeId: string;
+  destino: string;
+  pais: string | null;
   entrada: string;
   salida: string | null;
   adultos: number;
@@ -14,11 +18,10 @@ export interface ParametrosHotel {
   nacionalidad: string;
 }
 
-const EDADES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
-
 const VACIO: ParametrosHotel = {
-  ciudad: "",
-  pais: "",
+  placeId: "",
+  destino: "",
+  pais: null,
   entrada: "",
   salida: null,
   adultos: 2,
@@ -26,6 +29,14 @@ const VACIO: ParametrosHotel = {
   moneda: "USD",
   nacionalidad: "MX",
 };
+
+function noches(entrada: string, salida: string | null): number | null {
+  if (!entrada || !salida) return null;
+  const dia = 24 * 60 * 60 * 1000;
+  const diferencia =
+    new Date(`${salida}T00:00:00Z`).getTime() - new Date(`${entrada}T00:00:00Z`).getTime();
+  return diferencia > 0 ? Math.round(diferencia / dia) : null;
+}
 
 interface Props {
   cargando: boolean;
@@ -36,55 +47,39 @@ interface Props {
 export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }: Props) {
   const [datos, setDatos] = useState<ParametrosHotel>(valoresIniciales ?? VACIO);
 
-  const completo =
-    datos.ciudad.trim().length >= 2 &&
-    datos.pais.trim().length === 2 &&
-    datos.entrada !== "" &&
-    datos.salida !== null;
+  const pasajeros: Pasajeros = { adultos: datos.adultos, menores: datos.menores, bebes: 0 };
+  const totalNoches = noches(datos.entrada, datos.salida);
+  const falta = !datos.placeId
+    ? "Elige un destino de la lista"
+    : totalNoches === null
+      ? "Elige las fechas de entrada y salida"
+      : null;
 
   function enviar(evento: React.FormEvent) {
     evento.preventDefault();
-    if (!completo) return;
-    onBuscar({
-      ...datos,
-      ciudad: datos.ciudad.trim(),
-      pais: datos.pais.trim().toUpperCase(),
-    });
+    if (falta) return;
+    onBuscar(datos);
   }
 
   return (
     <form className="rounded-2xl bg-white p-4 shadow-lg shadow-[#0B2545]/10 sm:p-6" onSubmit={enviar}>
       <div className="grid gap-3 lg:grid-cols-12">
         <div className="lg:col-span-4">
-          <label className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
-            Ciudad
-          </label>
-          <input
-            autoComplete="off"
-            className="mt-1 w-full rounded-lg border border-[#E4E8EE] bg-white px-3 py-2.5 text-sm font-medium text-[#0B2545] outline-none focus:border-[#14477E] focus:ring-2 focus:ring-[#14477E]/20"
-            onChange={(evento) => setDatos({ ...datos, ciudad: evento.target.value })}
-            placeholder="Buenos Aires"
-            required
-            value={datos.ciudad}
+          <CampoCiudad
+            descripcion={datos.destino || null}
+            etiqueta="Destino"
+            onCambio={(opcion: OpcionCiudad | null) =>
+              setDatos({
+                ...datos,
+                placeId: opcion?.placeId ?? "",
+                destino: opcion ? [opcion.bandera, opcion.nombre].filter(Boolean).join(" ") : "",
+                pais: opcion?.pais ?? null,
+              })
+            }
           />
         </div>
 
-        <div className="lg:col-span-2">
-          <label className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
-            País (2 letras)
-          </label>
-          <input
-            autoComplete="off"
-            className="mt-1 w-full rounded-lg border border-[#E4E8EE] bg-white px-3 py-2.5 text-sm font-medium uppercase text-[#0B2545] outline-none focus:border-[#14477E] focus:ring-2 focus:ring-[#14477E]/20"
-            maxLength={2}
-            onChange={(evento) => setDatos({ ...datos, pais: evento.target.value })}
-            placeholder="AR"
-            required
-            value={datos.pais}
-          />
-        </div>
-
-        <div className="lg:col-span-6">
+        <div className="lg:col-span-5">
           <RangoFechas
             conRegreso
             desde={datos.entrada}
@@ -96,77 +91,29 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
         </div>
 
         <div className="lg:col-span-3">
-          <label className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
-            Adultos
-          </label>
-          <select
-            className="mt-1 w-full rounded-lg border border-[#E4E8EE] bg-white px-3 py-2.5 text-sm font-medium text-[#0B2545]"
-            onChange={(evento) => setDatos({ ...datos, adultos: Number(evento.target.value) })}
-            value={datos.adultos}
-          >
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
+          <SelectorPasajeros
+            etiqueta="Huéspedes"
+            onCambio={(p) => setDatos({ ...datos, adultos: p.adultos, menores: p.menores })}
+            sinBebes
+            valor={pasajeros}
+          />
         </div>
+      </div>
 
-        <div className="lg:col-span-6">
-          <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
-            Menores y sus edades
-          </span>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            {datos.menores.map((edad, indice) => (
-              <span className="flex items-center gap-1" key={`menor-${indice}`}>
-                <select
-                  className="rounded border border-[#E4E8EE] px-2 py-1 text-sm text-[#0B2545]"
-                  onChange={(evento) => {
-                    const menores = [...datos.menores];
-                    menores[indice] = Number(evento.target.value);
-                    setDatos({ ...datos, menores });
-                  }}
-                  value={edad}
-                >
-                  {EDADES.map((opcion) => (
-                    <option key={opcion} value={opcion}>
-                      {opcion} años
-                    </option>
-                  ))}
-                </select>
-                <button
-                  className="text-xs text-[#14477E] underline"
-                  onClick={() =>
-                    setDatos({
-                      ...datos,
-                      menores: datos.menores.filter((_, i) => i !== indice),
-                    })
-                  }
-                  type="button"
-                >
-                  quitar
-                </button>
-              </span>
-            ))}
-            <button
-              className="rounded-full border border-[#14477E] px-3 py-1 text-xs font-medium text-[#14477E]"
-              onClick={() => setDatos({ ...datos, menores: [...datos.menores, 6] })}
-              type="button"
-            >
-              Agregar menor
-            </button>
-          </div>
-        </div>
-
-        <div className="lg:col-span-3 lg:self-end">
-          <button
-            className="w-full rounded-lg bg-[#F0A400] px-4 py-3 text-sm font-semibold text-[#0B2545] disabled:opacity-50"
-            disabled={cargando || !completo}
-            type="submit"
-          >
-            {cargando ? "Buscando hoteles…" : "Buscar hoteles"}
-          </button>
-        </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          className="w-full rounded-lg bg-[#0B2545] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#14477E] disabled:opacity-60 sm:w-auto"
+          disabled={cargando || falta !== null}
+          type="submit"
+        >
+          {cargando ? "Buscando hoteles…" : "Buscar hoteles"}
+        </button>
+        <p className="text-xs text-[#5A6B80]">
+          {falta ??
+            `${totalNoches} noche${totalNoches === 1 ? "" : "s"} · ${datos.adultos} adulto${
+              datos.adultos === 1 ? "" : "s"
+            }${datos.menores.length > 0 ? ` · ${datos.menores.length} menor${datos.menores.length === 1 ? "" : "es"}` : ""} · precios en ${datos.moneda}`}
+        </p>
       </div>
     </form>
   );

@@ -78,7 +78,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
       const respuesta = await fetch("/api/hoteles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...parametros, salida: parametros.salida }),
+        body: JSON.stringify(parametros),
       });
       const cuerpo = await respuesta.json();
       if (!respuesta.ok) {
@@ -180,7 +180,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
               <div className="mt-6">
                 <p className="mb-3 text-sm text-[#5A6B80]">
                   {estadoHoteles.total} hotel{estadoHoteles.total === 1 ? "" : "es"} con
-                  disponibilidad
+                  disponibilidad{ultimoHotel ? ` en ${ultimoHotel.destino}` : ""}
                   {estadoHoteles.ambiente === "sandbox"
                     ? " · inventario de prueba (sandbox): no reserva hoteles reales"
                     : ""}

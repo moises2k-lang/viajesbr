@@ -1,18 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { OpcionLugar } from "@/app/api/lugares/route";
+import type { OpcionCiudad } from "@/app/api/ciudades/route";
 
 interface Props {
   etiqueta: string;
-  valor: string;
   descripcion: string | null;
-  onCambio: (codigo: string, descripcion: string | null) => void;
+  onCambio: (opcion: OpcionCiudad | null) => void;
 }
 
-export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio }: Props) {
-  const [texto, setTexto] = useState(descripcion ? `${descripcion} (${valor})` : valor);
-  const [opciones, setOpciones] = useState<OpcionLugar[]>([]);
+export default function CampoCiudad({ etiqueta, descripcion, onCambio }: Props) {
+  const [texto, setTexto] = useState(descripcion ?? "");
+  const [opciones, setOpciones] = useState<OpcionCiudad[]>([]);
   const [abierto, setAbierto] = useState(false);
   const [buscando, setBuscando] = useState(false);
   const [resaltada, setResaltada] = useState(0);
@@ -30,7 +29,7 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
 
   useEffect(() => {
     const consulta = texto.trim();
-    if (consulta.length < 2) {
+    if (consulta.length < 3) {
       setOpciones([]);
       setBuscando(false);
       return;
@@ -39,10 +38,10 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
     setBuscando(true);
     const temporizador = setTimeout(async () => {
       try {
-        const respuesta = await fetch(`/api/lugares?q=${encodeURIComponent(consulta)}`, {
+        const respuesta = await fetch(`/api/ciudades?q=${encodeURIComponent(consulta)}`, {
           signal: control.signal,
         });
-        const cuerpo = (await respuesta.json()) as { opciones?: OpcionLugar[] };
+        const cuerpo = (await respuesta.json()) as { opciones?: OpcionCiudad[] };
         setOpciones(respuesta.ok ? (cuerpo.opciones ?? []) : []);
         setResaltada(0);
       } catch {
@@ -50,17 +49,16 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
       } finally {
         setBuscando(false);
       }
-    }, 250);
+    }, 350);
     return () => {
       control.abort();
       clearTimeout(temporizador);
     };
   }, [texto]);
 
-  function elegir(opcion: OpcionLugar) {
-    const nombre = [opcion.bandera, opcion.nombre].filter(Boolean).join(" ");
-    setTexto(`${nombre} (${opcion.codigo})`);
-    onCambio(opcion.codigo, nombre);
+  function elegir(opcion: OpcionCiudad) {
+    setTexto([opcion.bandera, opcion.nombre].filter(Boolean).join(" "));
+    onCambio(opcion);
     setAbierto(false);
   }
 
@@ -80,6 +78,8 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
     }
   }
 
+  const consulta = texto.trim();
+
   return (
     <div className="relative" ref={contenedor}>
       <label className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
@@ -89,57 +89,43 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
         autoComplete="off"
         className="mt-1 w-full rounded-lg border border-[#E4E8EE] bg-white px-3 py-2.5 text-sm font-medium text-[#0B2545] outline-none focus:border-[#14477E] focus:ring-2 focus:ring-[#14477E]/20"
         onChange={(evento) => {
-          const nuevo = evento.target.value;
-          setTexto(nuevo);
+          setTexto(evento.target.value);
           setAbierto(true);
-          if (/^[A-Za-z]{3}$/.test(nuevo.trim())) {
-            onCambio(nuevo.trim().toUpperCase(), null);
-          }
+          onCambio(null);
         }}
         onFocus={(evento) => {
           setAbierto(true);
           evento.currentTarget.select();
         }}
         onKeyDown={teclas}
-        placeholder="Ciudad, aeropuerto o código"
+        placeholder="Ciudad, zona o país"
         required
         value={texto}
       />
-      {abierto && texto.trim().length >= 2 && (
+
+      {abierto && consulta.length >= 3 && (
         <ul className="absolute z-30 mt-1 max-h-72 w-full min-w-[20rem] max-w-[calc(100vw-2rem)] overflow-auto rounded-lg border border-[#E4E8EE] bg-white shadow-lg">
           {opciones.map((opcion, indice) => (
-            <li key={`${opcion.tipo}-${opcion.codigo}`}>
+            <li key={opcion.placeId}>
               <button
-                className={`flex w-full items-start justify-between gap-3 px-3 py-2 text-left text-sm ${
+                className={`flex w-full items-start gap-2 px-3 py-2 text-left text-sm ${
                   indice === resaltada ? "bg-[#F5F7FA]" : ""
                 }`}
                 onClick={() => elegir(opcion)}
                 onMouseEnter={() => setResaltada(indice)}
                 type="button"
               >
-                <span className="flex min-w-0 items-center gap-2">
-                  {opcion.bandera && <span className="text-lg leading-none">{opcion.bandera}</span>}
-                  <span className="min-w-0">
-                    <span className="block font-medium text-[#0B2545]">{opcion.nombre}</span>
-                    <span className="block text-xs text-[#5A6B80]">
-                      {[
-                        opcion.tipo === "ciudad" ? "Todos los aeropuertos" : opcion.ciudad,
-                        opcion.pais,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </span>
-                  </span>
-                </span>
-                <span className="shrink-0 rounded bg-[#E4E8EE] px-1.5 py-0.5 font-mono text-xs text-[#14477E]">
-                  {opcion.codigo}
+                {opcion.bandera && <span className="text-lg leading-none">{opcion.bandera}</span>}
+                <span className="min-w-0">
+                  <span className="block font-medium text-[#0B2545]">{opcion.nombre}</span>
+                  <span className="block text-xs text-[#5A6B80]">{opcion.detalle}</span>
                 </span>
               </button>
             </li>
           ))}
           {opciones.length === 0 && (
             <li className="px-3 py-2 text-sm text-[#5A6B80]">
-              {buscando ? "Buscando aeropuertos…" : "Sin aeropuertos con ese nombre"}
+              {buscando ? "Buscando destinos…" : "Sin destinos con ese nombre"}
             </li>
           )}
         </ul>

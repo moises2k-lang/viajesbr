@@ -126,7 +126,8 @@ CREATE TABLE IF NOT EXISTS hoteles_busquedas (
   id BIGSERIAL PRIMARY KEY,
   creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
   ciudad TEXT NOT NULL,
-  pais TEXT NOT NULL,
+  pais TEXT,
+  place_id TEXT,
   entrada DATE NOT NULL,
   salida DATE NOT NULL,
   adultos SMALLINT NOT NULL,
@@ -137,6 +138,10 @@ CREATE TABLE IF NOT EXISTS hoteles_busquedas (
 );
 
 CREATE INDEX IF NOT EXISTS hoteles_busquedas_creado_en_idx ON hoteles_busquedas (creado_en DESC);
+
+-- El destino de hoteles se elige del autocompletado de liteAPI: manda el place_id, no el país.
+ALTER TABLE hoteles_busquedas ADD COLUMN IF NOT EXISTS place_id TEXT;
+ALTER TABLE hoteles_busquedas ALTER COLUMN pais DROP NOT NULL;
 
 CREATE TABLE IF NOT EXISTS hoteles_cotizaciones (
   id BIGSERIAL PRIMARY KEY,

@@ -10,10 +10,13 @@ export interface Pasajeros {
 
 interface Props {
   valor: Pasajeros;
+  etiqueta?: string;
+  /** Los hoteles cobran por huésped, sin la categoría de bebé en brazos. */
+  sinBebes?: boolean;
   onCambio: (valor: Pasajeros) => void;
 }
 
-const EDADES_MENORES = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+const EDADES_MENORES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
 
 function resumen(p: Pasajeros): string {
   const partes = [`${p.adultos} adulto${p.adultos === 1 ? "" : "s"}`];
@@ -70,7 +73,12 @@ function Contador({
   );
 }
 
-export default function SelectorPasajeros({ valor, onCambio }: Props) {
+export default function SelectorPasajeros({
+  valor,
+  etiqueta = "Pasajeros",
+  sinBebes = false,
+  onCambio,
+}: Props) {
   const [abierto, setAbierto] = useState(false);
   const contenedor = useRef<HTMLDivElement>(null);
 
@@ -94,14 +102,16 @@ export default function SelectorPasajeros({ valor, onCambio }: Props) {
   return (
     <div className="relative" ref={contenedor}>
       <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
-        Pasajeros
+        {etiqueta}
       </span>
       <button
-        className="mt-1 w-full rounded-lg border border-[#E4E8EE] bg-white px-3 py-2.5 text-left text-sm font-medium text-[#0B2545]"
+        aria-expanded={abierto}
+        className="mt-1 flex w-full items-center justify-between gap-2 rounded-lg border border-[#E4E8EE] bg-white px-3 py-2.5 text-left text-sm font-medium text-[#0B2545]"
         onClick={() => setAbierto((v) => !v)}
         type="button"
       >
-        {resumen(valor)}
+        <span className="truncate">{resumen(valor)}</span>
+        <span className="text-xs text-[#5A6B80]">{abierto ? "▲" : "▼"}</span>
       </button>
 
       {abierto && (
@@ -115,8 +125,8 @@ export default function SelectorPasajeros({ valor, onCambio }: Props) {
             valor={valor.adultos}
           />
           <Contador
-            detalle="2 a 11 años, con asiento"
-            etiqueta="Menores"
+            detalle={sinBebes ? "0 a 17 años" : "2 a 11 años, con asiento"}
+            etiqueta={sinBebes ? "Menores" : "Menores con asiento"}
             maximo={8}
             minimo={0}
             onCambio={cambiarMenores}
@@ -136,7 +146,7 @@ export default function SelectorPasajeros({ valor, onCambio }: Props) {
                     }}
                     value={edad}
                   >
-                    {EDADES_MENORES.map((opcion) => (
+                    {(sinBebes ? EDADES_MENORES : EDADES_MENORES.slice(2, 12)).map((opcion) => (
                       <option key={opcion} value={opcion}>
                         {opcion} años
                       </option>
@@ -146,20 +156,32 @@ export default function SelectorPasajeros({ valor, onCambio }: Props) {
               ))}
             </div>
           )}
-          <div className="mt-2 border-t border-[#E4E8EE] pt-1">
-            <Contador
-              detalle="Menos de 2 años, sin asiento"
-              etiqueta="Bebés en brazos"
-              maximo={Math.max(1, valor.adultos)}
-              minimo={0}
-              onCambio={(v) => onCambio({ ...valor, bebes: v })}
-              valor={valor.bebes}
-            />
+          {!sinBebes && (
+            <div className="mt-2 border-t border-[#E4E8EE] pt-1">
+              <Contador
+                detalle="Menos de 2 años, sin asiento"
+                etiqueta="Bebés en brazos"
+                maximo={Math.max(1, valor.adultos)}
+                minimo={0}
+                onCambio={(v) => onCambio({ ...valor, bebes: v })}
+                valor={valor.bebes}
+              />
+            </div>
+          )}
+          <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#E4E8EE] pt-3">
+            <p className="text-xs text-[#5A6B80]">
+              {sinBebes
+                ? "La edad del menor decide si el hotel cobra extra por él."
+                : "La edad es la que tendrá el menor el día del vuelo; la aerolínea la valida contra el pasaporte."}
+            </p>
+            <button
+              className="shrink-0 rounded-lg bg-[#0B2545] px-3 py-1.5 text-xs font-semibold text-white"
+              onClick={() => setAbierto(false)}
+              type="button"
+            >
+              Listo
+            </button>
           </div>
-          <p className="mt-2 text-xs text-[#5A6B80]">
-            La edad es la que tendrá el menor el día del vuelo; la aerolínea la valida contra el
-            pasaporte.
-          </p>
         </div>
       )}
     </div>

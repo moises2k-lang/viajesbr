@@ -1,5 +1,8 @@
 import { Path, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
+import { FUENTE, registrarFuentes } from "@/documentos/fuentes";
 import { MARCA } from "@/lib/marca";
+
+registrarFuentes();
 
 export const estilos = StyleSheet.create({
   pagina: {
@@ -7,7 +10,7 @@ export const estilos = StyleSheet.create({
     paddingBottom: 56,
     paddingHorizontal: 40,
     fontSize: 9.5,
-    fontFamily: "Helvetica",
+    fontFamily: FUENTE,
     color: "#1A2230",
   },
   encabezado: {
@@ -19,14 +22,14 @@ export const estilos = StyleSheet.create({
     marginBottom: 16,
   },
   encabezadoTextos: { marginLeft: 10, flexGrow: 1 },
-  marcaNombre: { fontSize: 15, fontFamily: "Helvetica-Bold", color: MARCA.azul },
+  marcaNombre: { fontSize: 15, fontWeight: 700, color: MARCA.azul },
   marcaBajada: { fontSize: 7.5, color: MARCA.gris, letterSpacing: 2.2, marginTop: 2 },
   contacto: { fontSize: 7.5, color: MARCA.gris, textAlign: "right", lineHeight: 1.5 },
-  titulo: { fontSize: 17, fontFamily: "Helvetica-Bold", color: MARCA.azul, marginBottom: 4 },
+  titulo: { fontSize: 17, fontWeight: 700, color: MARCA.azul, marginBottom: 4 },
   subtitulo: { fontSize: 9.5, color: MARCA.gris, marginBottom: 14, lineHeight: 1.5 },
   seccion: {
     fontSize: 11,
-    fontFamily: "Helvetica-Bold",
+    fontWeight: 700,
     color: MARCA.azul,
     marginTop: 16,
     marginBottom: 6,
@@ -38,13 +41,13 @@ export const estilos = StyleSheet.create({
   celdaEncabezado: {
     padding: 6,
     fontSize: 8,
-    fontFamily: "Helvetica-Bold",
+    fontWeight: 700,
     color: "#FFFFFF",
     letterSpacing: 0.4,
   },
   celda: { padding: 6, fontSize: 8.5, lineHeight: 1.45 },
   etiqueta: { fontSize: 7.5, color: MARCA.gris, letterSpacing: 0.6 },
-  dato: { fontSize: 10, fontFamily: "Helvetica-Bold", color: MARCA.azul, marginTop: 2 },
+  dato: { fontSize: 10, fontWeight: 700, color: MARCA.azul, marginTop: 2 },
   totalCaja: {
     marginTop: 14,
     padding: 12,

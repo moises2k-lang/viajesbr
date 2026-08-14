@@ -86,11 +86,19 @@ export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props
     bebes: datos.bebes,
   };
 
-  const completo =
-    datos.origen.trim().length === 3 &&
-    datos.destino.trim().length === 3 &&
-    datos.fechaSalida !== "" &&
-    (!redondo || datos.fechaRegreso !== null);
+  const falta =
+    datos.origen.trim().length !== 3
+      ? "Elige el aeropuerto de origen"
+      : datos.destino.trim().length !== 3
+        ? "Elige el aeropuerto de destino"
+        : datos.origen.trim().toUpperCase() === datos.destino.trim().toUpperCase()
+          ? "El origen y el destino no pueden ser el mismo"
+          : datos.fechaSalida === ""
+            ? "Elige la fecha de salida"
+            : redondo && datos.fechaRegreso === null
+              ? "Elige la fecha de regreso"
+              : null;
+  const completo = falta === null;
 
   function enviar(evento: React.FormEvent) {
     evento.preventDefault();
@@ -160,7 +168,8 @@ export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props
           />
           <button
             aria-label="Invertir origen y destino"
-            className="absolute -right-3 top-8 z-10 hidden h-7 w-7 items-center justify-center rounded-full border border-[#E4E8EE] bg-white text-xs text-[#14477E] shadow lg:flex"
+            className="absolute right-2 top-8 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[#E4E8EE] bg-white text-xs text-[#14477E] shadow lg:-right-3"
+            title="Invertir origen y destino"
             onClick={invertir}
             type="button"
           >
@@ -199,13 +208,23 @@ export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props
         </div>
       </div>
 
-      <button
-        className="mt-4 w-full rounded-lg bg-[#0B2545] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#14477E] disabled:opacity-60 sm:w-auto"
-        disabled={cargando || !completo}
-        type="submit"
-      >
-        {cargando ? "Buscando tarifas…" : "Buscar vuelos"}
-      </button>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          className="w-full rounded-lg bg-[#0B2545] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#14477E] disabled:opacity-60 sm:w-auto"
+          disabled={cargando || !completo}
+          type="submit"
+        >
+          {cargando ? "Buscando tarifas…" : "Buscar vuelos"}
+        </button>
+        <p className="text-xs text-[#5A6B80]">
+          {falta ??
+            `${datos.adultos + datos.menores.length + datos.bebes} pasajero${
+              datos.adultos + datos.menores.length + datos.bebes === 1 ? "" : "s"
+            } · ${redondo ? "viaje redondo" : "sólo ida"} · ${
+              CABINAS.find((c) => c.valor === datos.cabina)?.texto ?? "Turista"
+            }`}
+        </p>
+      </div>
     </form>
   );
 }

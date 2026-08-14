@@ -94,9 +94,23 @@ export interface RespuestaTarifas {
   data: { hotelId: string; roomTypes: TipoHabitacionLiteApi[] }[];
 }
 
+export interface LugarLiteApi {
+  placeId: string;
+  displayName: string;
+  formattedAddress: string;
+  types?: string[];
+}
+
+/** Autocompletado de destinos de liteAPI; el placeId sirve directo para buscar tarifas. */
+export async function sugerirCiudades(consulta: string): Promise<LugarLiteApi[]> {
+  const cuerpo = await llamar<{ data: LugarLiteApi[] }>(
+    `/data/places?textQuery=${encodeURIComponent(consulta)}&language=es`,
+  );
+  return cuerpo.data ?? [];
+}
+
 export interface ParametrosHoteles {
-  ciudad: string;
-  pais: string;
+  placeId: string;
   entrada: string;
   salida: string;
   adultos: number;
@@ -120,8 +134,7 @@ export async function buscarHoteles(p: ParametrosHoteles): Promise<RespuestaTari
           ...(p.menores.length > 0 ? { children: p.menores } : {}),
         },
       ],
-      cityName: p.ciudad,
-      countryCode: p.pais,
+      placeId: p.placeId,
       limit: p.limite,
       hotelInfo: true,
     }),

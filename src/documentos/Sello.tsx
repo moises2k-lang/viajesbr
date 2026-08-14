@@ -24,7 +24,7 @@ const estilos = StyleSheet.create({
     borderRadius: 3,
     marginBottom: 10,
   },
-  texto: { fontSize: 8, fontFamily: "Helvetica-Bold", letterSpacing: 0.8 },
+  texto: { fontSize: 8, fontWeight: 700, letterSpacing: 0.8 },
   aviso: {
     padding: 9,
     borderLeftWidth: 3,

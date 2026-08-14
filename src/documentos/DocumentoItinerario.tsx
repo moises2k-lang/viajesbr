@@ -121,7 +121,7 @@ export function DocumentoItinerario({
           <Text style={estilos.etiqueta}>
             {esCotizacion ? "INVERSIÓN TOTAL ESTIMADA" : "TOTAL DEL VIAJE"}
           </Text>
-          <Text style={{ fontSize: 18, fontFamily: "Helvetica-Bold", color: "#0B2545" }}>
+          <Text style={{ fontSize: 18, fontWeight: 700, color: "#0B2545" }}>
             {formatoMoneda(total, itinerario.moneda)}
           </Text>
           {interno ? (
@@ -152,19 +152,19 @@ export function DocumentoItinerario({
 
         <Text style={estilos.seccion}>Glosario</Text>
         <Text style={estilos.parrafo}>
-          <Text style={{ fontFamily: "Helvetica-Bold" }}>PNR:</Text> clave de reserva de la
+          <Text style={{ fontWeight: 700 }}>PNR:</Text> clave de reserva de la
           aerolínea, seis caracteres, con la que consultas tu vuelo directamente con ella.
         </Text>
         <Text style={estilos.parrafo}>
-          <Text style={{ fontFamily: "Helvetica-Bold" }}>Escala vs. conexión:</Text> escala es una
+          <Text style={{ fontWeight: 700 }}>Escala vs. conexión:</Text> escala es una
           parada del mismo vuelo; conexión implica cambiar de avión y, a veces, de terminal.
         </Text>
         <Text style={estilos.parrafo}>
-          <Text style={{ fontFamily: "Helvetica-Bold" }}>Equipaje documentado:</Text> el que viaja en
+          <Text style={{ fontWeight: 700 }}>Equipaje documentado:</Text> el que viaja en
           la bodega. El de mano va contigo en cabina y casi siempre tiene límite de peso y medidas.
         </Text>
         <Text style={estilos.parrafo}>
-          <Text style={{ fontFamily: "Helvetica-Bold" }}>Prebook:</Text> paso previo a pagar un
+          <Text style={{ fontWeight: 700 }}>Prebook:</Text> paso previo a pagar un
           hotel, donde el proveedor congela el precio unos minutos.
         </Text>
 

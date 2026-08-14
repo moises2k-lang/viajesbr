@@ -178,7 +178,7 @@ export function DocumentoConfirmacion({
 
         <View style={estilos.totalCaja} wrap={false}>
           <Text style={estilos.etiqueta}>TOTAL PAGADO POR EL VIAJERO</Text>
-          <Text style={{ fontSize: 18, fontFamily: "Helvetica-Bold", color: "#0B2545" }}>
+          <Text style={{ fontSize: 18, fontWeight: 700, color: "#0B2545" }}>
             {formatoMoneda(Number(orden.precio_venta), orden.moneda)}
           </Text>
           {interno ? (

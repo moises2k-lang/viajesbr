@@ -17,8 +17,9 @@ const MAXIMO_HOTELES = 60;
 const MAXIMO_TARIFAS_POR_HOTEL = 12;
 
 const esquema = z.object({
-  ciudad: z.string().trim().min(2),
-  pais: z.string().trim().length(2),
+  placeId: z.string().trim().min(5),
+  destino: z.string().trim().min(2),
+  pais: z.string().trim().length(2).nullable().default(null),
   entrada: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   salida: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   adultos: z.number().int().min(1).max(9),
@@ -99,8 +100,7 @@ export async function POST(request: Request) {
   let respuesta;
   try {
     respuesta = await buscarHoteles({
-      ciudad: p.ciudad,
-      pais: p.pais.toUpperCase(),
+      placeId: p.placeId,
       entrada: p.entrada,
       salida: p.salida,
       adultos: p.adultos,
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
         {
           aerolineaIata: "",
           origen: "",
-          destino: p.ciudad.toUpperCase(),
+          destino: p.destino.toUpperCase(),
           moneda: total.moneda,
         },
         reglas,
@@ -162,15 +162,15 @@ export async function POST(request: Request) {
     if (habitaciones.length === 0) continue;
     habitaciones.sort((a, b) => a.precioVenta - b.precioVenta);
     habitaciones.splice(MAXIMO_TARIFAS_POR_HOTEL);
-    const paisHotel = info?.country_code?.toUpperCase() ?? p.pais.toUpperCase();
+    const paisHotel = info?.country_code?.toUpperCase() ?? p.pais?.toUpperCase() ?? null;
 
     hoteles.push({
       hotelId: fila.hotelId,
       nombre: info?.name ?? fila.hotelId,
       direccion: info?.address ?? null,
-      ciudad: info?.city_name ?? p.ciudad,
-      pais: nombrePais(paisHotel),
-      bandera: bandera(paisHotel),
+      ciudad: info?.city_name ?? null,
+      pais: paisHotel ? nombrePais(paisHotel) : null,
+      bandera: paisHotel ? bandera(paisHotel) : null,
       estrellas: info?.stars ?? null,
       calificacion: info?.rating ?? null,
       resenas: info?.reviewCount ?? null,
@@ -188,13 +188,14 @@ export async function POST(request: Request) {
   const ambiente = esAmbientePruebaHoteles() ? "sandbox" : "live";
 
   const [busqueda] = await query<{ id: string }>(
-    `INSERT INTO hoteles_busquedas (ciudad, pais, entrada, salida, adultos, menores, moneda,
-                                    hoteles_encontrados, ambiente)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    `INSERT INTO hoteles_busquedas (ciudad, pais, place_id, entrada, salida, adultos, menores,
+                                    moneda, hoteles_encontrados, ambiente)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
      RETURNING id::text`,
     [
-      p.ciudad,
-      p.pais.toUpperCase(),
+      p.destino,
+      p.pais?.toUpperCase() ?? null,
+      p.placeId,
       p.entrada,
       p.salida,
       p.adultos,
