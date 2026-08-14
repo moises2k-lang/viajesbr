@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { OfertaConPrecio } from "@/app/api/buscar/route";
+import { DetalleTramos, equipajeTexto } from "@/components/ResumenVuelo";
 
 export function horaCorta(iso: string): string {
   return new Date(iso).toLocaleTimeString("es-MX", {
@@ -25,27 +26,17 @@ export function minutosATexto(minutos: number): string {
   return `${horas}h${resto > 0 ? ` ${resto}m` : ""}`;
 }
 
-function equipajeTexto(equipaje: { tipo: string; cantidad: number }[]): string {
-  if (equipaje.length === 0) return "Equipaje no informado por la aerolínea";
-  const documentadas = equipaje.find((e) => e.tipo === "checked")?.cantidad ?? 0;
-  const mano = equipaje.find((e) => e.tipo === "carry_on")?.cantidad ?? 0;
-  const partes: string[] = [];
-  if (mano > 0) partes.push(`${mano} de mano`);
-  partes.push(
-    documentadas > 0
-      ? `${documentadas} documentada${documentadas === 1 ? "" : "s"}`
-      : "sin maleta documentada",
-  );
-  return partes.join(" · ");
-}
-
 interface Props {
   oferta: OfertaConPrecio;
   mostrarMargen: boolean;
   onElegir: (oferta: OfertaConPrecio) => void;
 }
 
-export default function TarjetaOferta({ oferta, mostrarMargen, onElegir }: Props) {
+export default function TarjetaOferta({
+  oferta,
+  mostrarMargen,
+  onElegir,
+}: Props) {
   const [abierto, setAbierto] = useState(false);
   const pasajeros = oferta.pasajeros.length;
 
@@ -56,13 +47,19 @@ export default function TarjetaOferta({ oferta, mostrarMargen, onElegir }: Props
           <div className="mb-3 flex items-center gap-2">
             {oferta.logo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img alt={oferta.aerolinea} className="h-6 w-6 rounded" src={oferta.logo} />
+              <img
+                alt={oferta.aerolinea}
+                className="h-6 w-6 rounded"
+                src={oferta.logo}
+              />
             ) : (
               <span className="flex h-6 w-6 items-center justify-center rounded bg-[#E4E8EE] font-mono text-[10px] text-[#14477E]">
                 {oferta.aerolineaIata}
               </span>
             )}
-            <span className="text-sm font-medium text-[#0B2545]">{oferta.aerolinea}</span>
+            <span className="text-sm font-medium text-[#0B2545]">
+              {oferta.aerolinea}
+            </span>
             {oferta.tramos[0]?.marcaTarifa && (
               <span className="rounded-full bg-[#E4E8EE] px-2 py-0.5 text-xs text-[#14477E]">
                 {oferta.tramos[0].marcaTarifa}
@@ -71,7 +68,10 @@ export default function TarjetaOferta({ oferta, mostrarMargen, onElegir }: Props
           </div>
 
           {oferta.tramos.map((tramo, indice) => (
-            <div className="border-t border-[#E4E8EE] py-3 first:border-t-0 first:pt-0" key={indice}>
+            <div
+              className="border-t border-[#E4E8EE] py-3 first:border-t-0 first:pt-0"
+              key={indice}
+            >
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <div className="text-lg font-semibold tabular-nums text-[#0B2545]">
                   {horaCorta(tramo.segmentos[0].sale)}
@@ -79,8 +79,8 @@ export default function TarjetaOferta({ oferta, mostrarMargen, onElegir }: Props
                   {horaCorta(tramo.segmentos[tramo.segmentos.length - 1].llega)}
                 </div>
                 <div className="text-sm text-[#5A6B80]">
-                  {tramo.origenBandera} {tramo.origen} → {tramo.destinoBandera} {tramo.destino} ·{" "}
-                  {minutosATexto(tramo.minutos)} ·{" "}
+                  {tramo.origenBandera} {tramo.origen} → {tramo.destinoBandera}{" "}
+                  {tramo.destino} · {minutosATexto(tramo.minutos)} ·{" "}
                   {tramo.escalas === 0
                     ? "directo"
                     : `${tramo.escalas} escala${tramo.escalas === 1 ? "" : "s"} (${tramo.segmentos
@@ -99,7 +99,8 @@ export default function TarjetaOferta({ oferta, mostrarMargen, onElegir }: Props
                   .join(", ")}
               </p>
               <p className="mt-1 text-xs text-[#5A6B80]">
-                {fechaCorta(tramo.segmentos[0].sale)} · {equipajeTexto(tramo.equipaje)}
+                {fechaCorta(tramo.segmentos[0].sale)} ·{" "}
+                {equipajeTexto(tramo.equipaje)}
               </p>
             </div>
           ))}
@@ -109,60 +110,18 @@ export default function TarjetaOferta({ oferta, mostrarMargen, onElegir }: Props
             onClick={() => setAbierto((v) => !v)}
             type="button"
           >
-            {abierto ? "Ocultar detalle de vuelos" : "Ver detalle de vuelos y condiciones"}
+            {abierto
+              ? "Ocultar detalle de vuelos"
+              : "Ver detalle de vuelos y condiciones"}
           </button>
 
           {abierto && (
-            <div className="mt-3 space-y-3 rounded-lg bg-[#F5F7FA] p-3">
-              {oferta.tramos.map((tramo, indice) => (
-                <div key={`detalle-${indice}`}>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#5A6B80]">
-                    {indice === 0 ? "Ida" : `Tramo ${indice + 1}`} · {tramo.origenBandera}{" "}
-                    {tramo.origenNombre} ({tramo.origen}) – {tramo.destinoBandera}{" "}
-                    {tramo.destinoNombre} ({tramo.destino})
-                  </p>
-                  {tramo.segmentos.map((segmento) => (
-                    <div className="mt-1 text-xs text-[#0B2545]" key={segmento.vuelo + segmento.sale}>
-                      {segmento.esperaMinutos !== null && (
-                        <p className="my-1 text-[#5A6B80]">
-                          Espera en {segmento.origenNombre} ({segmento.origen}):{" "}
-                          {minutosATexto(segmento.esperaMinutos)}
-                        </p>
-                      )}
-                      <p>
-                        <span className="font-mono">{segmento.vuelo}</span> ·{" "}
-                        {segmento.origenBandera} {segmento.origenNombre} ({segmento.origen}){" "}
-                        {fechaCorta(segmento.sale)} {horaCorta(segmento.sale)} →{" "}
-                        {segmento.destinoBandera} {segmento.destinoNombre} ({segmento.destino}){" "}
-                        {fechaCorta(segmento.llega)} {horaCorta(segmento.llega)} ·{" "}
-                        {minutosATexto(segmento.minutos)}
-                      </p>
-                      <p className="text-[#5A6B80]">
-                        {segmento.aerolinea}
-                        {segmento.cabina ? ` · ${segmento.cabina}` : ""}
-                        {segmento.avion ? ` · ${segmento.avion}` : ""}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ))}
-              <p className="text-xs text-[#5A6B80]">
-                {oferta.cambiosPermitidos === null
-                  ? "Cambios: la aerolínea no informa"
-                  : oferta.cambiosPermitidos
-                    ? "Permite cambios (con penalización según tarifa)"
-                    : "No permite cambios"}
-                {" · "}
-                {oferta.reembolsoPermitido === null
-                  ? "reembolso no informado"
-                  : oferta.reembolsoPermitido
-                    ? "reembolsable"
-                    : "no reembolsable"}
-              </p>
+            <div className="mt-3 rounded-lg bg-[#F5F7FA] p-3">
+              <DetalleTramos oferta={oferta} />
               {oferta.cotizacionId && (
-                <p className="text-xs text-[#5A6B80]">
-                  Cotización guardada #{oferta.cotizacionId} — úsala para armar el itinerario en
-                  /admin/itinerarios
+                <p className="mt-3 text-xs text-[#5A6B80]">
+                  Cotización guardada #{oferta.cotizacionId} — úsala para armar
+                  el itinerario en /admin/itinerarios
                 </p>
               )}
             </div>
@@ -172,16 +131,27 @@ export default function TarjetaOferta({ oferta, mostrarMargen, onElegir }: Props
         <div className="flex flex-col items-end justify-between gap-2 border-t border-[#E4E8EE] pt-3 sm:w-52 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
           <div className="text-right">
             <p className="text-2xl font-semibold text-[#0B2545]">
-              {oferta.precioVenta.toLocaleString("es-MX", { maximumFractionDigits: 2 })}
-              <span className="ml-1 text-sm font-normal text-[#5A6B80]">{oferta.moneda}</span>
+              {oferta.precioVenta.toLocaleString("es-MX", {
+                maximumFractionDigits: 2,
+              })}
+              <span className="ml-1 text-sm font-normal text-[#5A6B80]">
+                {oferta.moneda}
+              </span>
             </p>
             <p className="text-xs text-[#5A6B80]">
-              total {pasajeros} pasajero{pasajeros === 1 ? "" : "s"} · impuestos incluidos
+              total {pasajeros} pasajero{pasajeros === 1 ? "" : "s"} · impuestos
+              incluidos
             </p>
             {mostrarMargen && (
               <p className="mt-1 text-xs text-[#9AA7B8]">
-                neto {oferta.costoNeto.toLocaleString("es-MX", { maximumFractionDigits: 2 })} + markup{" "}
-                {oferta.markup.toLocaleString("es-MX", { maximumFractionDigits: 2 })}
+                neto{" "}
+                {oferta.costoNeto.toLocaleString("es-MX", {
+                  maximumFractionDigits: 2,
+                })}{" "}
+                + markup{" "}
+                {oferta.markup.toLocaleString("es-MX", {
+                  maximumFractionDigits: 2,
+                })}
               </p>
             )}
           </div>

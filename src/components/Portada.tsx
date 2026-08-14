@@ -5,11 +5,15 @@ import { useState, useSyncExternalStore } from "react";
 import type { OfertaConPrecio } from "@/app/api/buscar/route";
 import type { HotelConPrecio } from "@/app/api/hoteles/route";
 import Buscador, { type ParametrosFormulario } from "@/components/Buscador";
-import BuscadorHoteles, { type ParametrosHotel } from "@/components/BuscadorHoteles";
+import BuscadorHoteles, {
+  type ParametrosHotel,
+} from "@/components/BuscadorHoteles";
 import ListaHoteles from "@/components/ListaHoteles";
 import HistorialBusquedas from "@/components/HistorialBusquedas";
 import ListaOfertas from "@/components/ListaOfertas";
-import FormularioReserva, { type ResultadoReserva } from "@/components/FormularioReserva";
+import FormularioReserva, {
+  type ResultadoReserva,
+} from "@/components/FormularioReserva";
 import {
   borrarHistorial,
   guardarBusqueda,
@@ -28,15 +32,23 @@ type Estado =
 type EstadoHoteles =
   | { fase: "inicio" }
   | { fase: "buscando" }
-  | { fase: "resultados"; hoteles: HotelConPrecio[]; total: number; ambiente: string };
+  | {
+      fase: "resultados";
+      hoteles: HotelConPrecio[];
+      total: number;
+      ambiente: string;
+    };
 
 export default function Portada({ modoInterno }: { modoInterno: boolean }) {
   const [pestana, setPestana] = useState<"vuelos" | "hoteles">("vuelos");
   const [estado, setEstado] = useState<Estado>({ fase: "inicio" });
-  const [estadoHoteles, setEstadoHoteles] = useState<EstadoHoteles>({ fase: "inicio" });
+  const [estadoHoteles, setEstadoHoteles] = useState<EstadoHoteles>({
+    fase: "inicio",
+  });
   const [ultimoHotel, setUltimoHotel] = useState<ParametrosHotel | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [ultimaBusqueda, setUltimaBusqueda] = useState<ParametrosFormulario | null>(null);
+  const [ultimaBusqueda, setUltimaBusqueda] =
+    useState<ParametrosFormulario | null>(null);
   // Cada búsqueda aplicada remonta el formulario, incluso si repite los mismos datos.
   const [aplicaciones, setAplicaciones] = useState(0);
   const historial = useSyncExternalStore(
@@ -63,7 +75,11 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
         setEstado({ fase: "inicio" });
         return;
       }
-      setEstado({ fase: "resultados", ofertas: cuerpo.ofertas, total: cuerpo.total });
+      setEstado({
+        fase: "resultados",
+        ofertas: cuerpo.ofertas,
+        total: cuerpo.total,
+      });
     } catch (e) {
       setError((e as Error).message);
       setEstado({ fase: "inicio" });
@@ -99,25 +115,33 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA]">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#F5F7FA]">
       <header className="bg-[#0B2545]">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img alt="IA Travel Planning" className="h-9" src="/logo.svg" />
           <nav className="flex items-center gap-4 text-sm text-white/80">
-            <Link className="hover:text-white" href="/admin/itinerarios" prefetch={false}>
+            <Link
+              className="hover:text-white"
+              href="/admin/itinerarios"
+              prefetch={false}
+            >
               Itinerarios
             </Link>
-            <Link className="hover:text-white" href="/admin/markup" prefetch={false}>
+            <Link
+              className="hover:text-white"
+              href="/admin/markup"
+              prefetch={false}
+            >
               Markup
             </Link>
           </nav>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 pb-16">
-        <section className="-mb-6 bg-[#0B2545] pb-14 pt-2 text-white">
-          <div className="px-1">
+      <section className="bg-[#0B2545] pb-16 pt-2 text-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div>
             <h1 className="text-2xl font-semibold sm:text-3xl">
               {pestana === "vuelos"
                 ? "Vuelos con tarifas en tiempo real"
@@ -132,7 +156,9 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
               {(["vuelos", "hoteles"] as const).map((opcion) => (
                 <button
                   className={`rounded-full px-4 py-1.5 text-sm font-medium ${
-                    pestana === opcion ? "bg-white text-[#0B2545]" : "bg-white/15 text-white"
+                    pestana === opcion
+                      ? "bg-white text-[#0B2545]"
+                      : "bg-white/15 text-white"
                   }`}
                   key={opcion}
                   onClick={() => {
@@ -146,8 +172,10 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
               ))}
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
+      <main className="mx-auto -mt-10 w-full max-w-7xl flex-1 px-4 pb-16 sm:px-6">
         {pestana === "hoteles" && (
           <>
             <div className="relative z-10">
@@ -166,7 +194,9 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
 
             {estadoHoteles.fase === "buscando" && (
               <div className="mt-6 flex flex-col gap-3">
-                <p className="text-sm text-[#5A6B80]">Consultando hoteles en vivo…</p>
+                <p className="text-sm text-[#5A6B80]">
+                  Consultando hoteles en vivo…
+                </p>
                 {[0, 1, 2].map((n) => (
                   <div
                     className="h-32 animate-pulse rounded-xl border border-[#E4E8EE] bg-white"
@@ -179,13 +209,17 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
             {estadoHoteles.fase === "resultados" && (
               <div className="mt-6">
                 <p className="mb-3 text-sm text-[#5A6B80]">
-                  {estadoHoteles.total} hotel{estadoHoteles.total === 1 ? "" : "es"} con
-                  disponibilidad{ultimoHotel ? ` en ${ultimoHotel.destino}` : ""}
+                  {estadoHoteles.total} hotel
+                  {estadoHoteles.total === 1 ? "" : "es"} con disponibilidad
+                  {ultimoHotel ? ` en ${ultimoHotel.destino}` : ""}
                   {estadoHoteles.ambiente === "sandbox"
                     ? " · inventario de prueba (sandbox): no reserva hoteles reales"
                     : ""}
                 </p>
-                <ListaHoteles hoteles={estadoHoteles.hoteles} mostrarMargen={modoInterno} />
+                <ListaHoteles
+                  hoteles={estadoHoteles.hoteles}
+                  mostrarMargen={modoInterno}
+                />
               </div>
             )}
           </>
@@ -220,7 +254,10 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
               Consultando aerolíneas en vivo… puede tardar hasta 30 segundos.
             </p>
             {[0, 1, 2, 3].map((n) => (
-              <div className="h-28 animate-pulse rounded-xl border border-[#E4E8EE] bg-white" key={n} />
+              <div
+                className="h-28 animate-pulse rounded-xl border border-[#E4E8EE] bg-white"
+                key={n}
+              />
             ))}
           </div>
         )}
@@ -236,23 +273,31 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
 
         {pestana === "vuelos" && estado.fase === "reservando" && (
           <FormularioReserva
+            mostrarMargen={modoInterno}
             oferta={estado.oferta}
             onCancelar={() => ultimaBusqueda && buscar(ultimaBusqueda)}
-            onReservada={(resultado) => setEstado({ fase: "confirmada", resultado })}
+            onReservada={(resultado) =>
+              setEstado({ fase: "confirmada", resultado })
+            }
           />
         )}
 
         {pestana === "vuelos" && estado.fase === "confirmada" && (
           <section className="mt-8 rounded-xl border border-green-300 bg-green-50 p-6">
-            <h2 className="text-lg font-semibold text-green-900">Reserva confirmada</h2>
+            <h2 className="text-lg font-semibold text-green-900">
+              Reserva confirmada
+            </h2>
             <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
               <dt className="text-[#5A6B80]">Clave de reserva (PNR)</dt>
-              <dd className="font-mono font-semibold">{estado.resultado.pnr}</dd>
+              <dd className="font-mono font-semibold">
+                {estado.resultado.pnr}
+              </dd>
               <dt className="text-[#5A6B80]">Ambiente</dt>
               <dd>{estado.resultado.ambiente}</dd>
               <dt className="text-[#5A6B80]">Costo neto</dt>
               <dd>
-                {estado.resultado.costoNeto.toFixed(2)} {estado.resultado.moneda}
+                {estado.resultado.costoNeto.toFixed(2)}{" "}
+                {estado.resultado.moneda}
               </dd>
               <dt className="text-[#5A6B80]">Markup</dt>
               <dd>
@@ -260,7 +305,8 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
               </dd>
               <dt className="text-[#5A6B80]">Precio de venta</dt>
               <dd className="font-semibold">
-                {estado.resultado.precioVenta.toFixed(2)} {estado.resultado.moneda}
+                {estado.resultado.precioVenta.toFixed(2)}{" "}
+                {estado.resultado.moneda}
               </dd>
             </dl>
             <button
@@ -273,6 +319,16 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
           </section>
         )}
       </main>
+
+      <footer className="mt-auto bg-[#0B2545] text-white/70">
+        <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-6 text-xs sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <p>IA Travel Planning · Moises Mejlachowicz</p>
+          <p>
+            Tarifas y disponibilidad en tiempo real · los precios cambian sin
+            aviso
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

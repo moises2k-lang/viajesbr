@@ -13,13 +13,17 @@ export function bandera(codigoPais: string): string | null {
 const LETRAS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 function construirIndicePorNombre(): Map<string, string> {
-  const enIngles = new Intl.DisplayNames(["en"], { type: "region" });
-  const enEspanol = new Intl.DisplayNames(["es"], { type: "region" });
+  // liteAPI devuelve el país en inglés o español, y en forma corta ("EE. UU.", "US").
+  const variantes = (["en", "es"] as const).flatMap((idioma) =>
+    (["long", "short"] as const).map(
+      (style) => new Intl.DisplayNames([idioma], { type: "region", style }),
+    ),
+  );
   const indice = new Map<string, string>();
   for (const primera of LETRAS) {
     for (const segunda of LETRAS) {
       const codigo = `${primera}${segunda}`;
-      for (const nombres of [enIngles, enEspanol]) {
+      for (const nombres of variantes) {
         const nombre = nombres.of(codigo);
         if (nombre && nombre.toUpperCase() !== codigo) {
           indice.set(nombre.toLocaleLowerCase(), codigo);

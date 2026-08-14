@@ -168,7 +168,7 @@ export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props
           />
           <button
             aria-label="Invertir origen y destino"
-            className="absolute right-2 top-8 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[#E4E8EE] bg-white text-xs text-[#14477E] shadow lg:-right-3"
+            className="absolute -bottom-4 right-5 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-[#E4E8EE] bg-white text-xs text-[#14477E] shadow lg:-right-3 lg:bottom-auto lg:top-8"
             title="Invertir origen y destino"
             onClick={invertir}
             type="button"
