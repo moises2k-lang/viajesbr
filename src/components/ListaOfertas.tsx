@@ -9,6 +9,7 @@ import type {
 } from "@/app/api/buscar/route";
 import ArmarVuelo from "@/components/ArmarVuelo";
 import Bandera from "@/components/Bandera";
+import LogoAerolinea from "@/components/LogoAerolinea";
 import TarjetaOferta, { minutosATexto } from "@/components/TarjetaOferta";
 import { dineroCorto } from "@/lib/dinero";
 import { FRANJAS, dentroDeFranjas, franjaDe } from "@/lib/franjas";
@@ -205,12 +206,16 @@ export default function ListaOfertas({
   const [modo, setModo] = useState<"tarifas" | "tramos">("tarifas");
 
   const aerolineas = useMemo(() => {
-    const mapa = new Map<string, { nombre: string; minimo: number }>();
+    const mapa = new Map<
+      string,
+      { nombre: string; logo: string | null; minimo: number }
+    >();
     for (const oferta of ofertas) {
       const actual = mapa.get(oferta.aerolineaIata);
       if (!actual || oferta.precioVenta < actual.minimo) {
         mapa.set(oferta.aerolineaIata, {
           nombre: oferta.aerolinea,
+          logo: oferta.logo,
           minimo: oferta.precioVenta,
         });
       }
@@ -318,13 +323,14 @@ export default function ListaOfertas({
         <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-[#E4E8EE] bg-white p-3">
           <div className="flex rounded-full bg-[#E4E8EE] p-1 text-sm">
             {[
-              { valor: "tarifas" as const, texto: "Tarifas completas" },
+              { valor: "tarifas" as const, texto: "Tarifas completas", icono: "🎫" },
               {
                 valor: "tramos" as const,
                 texto:
                   tramosBuscados === 2
                     ? "Elegir ida y regreso"
                     : "Elegir tramo por tramo",
+                icono: "✈️",
               },
             ].map((opcion) => (
               <button
@@ -337,7 +343,7 @@ export default function ListaOfertas({
                 onClick={() => setModo(opcion.valor)}
                 type="button"
               >
-                {opcion.texto}
+                {opcion.icono} {opcion.texto}
               </button>
             ))}
           </div>
@@ -380,10 +386,10 @@ export default function ListaOfertas({
               </p>
               <div className="mt-2 flex flex-col gap-1">
                 {[
-                  { texto: "Cualquiera", valor: null },
-                  { texto: "Directo", valor: 0 },
-                  { texto: "Máximo 1 escala", valor: 1 },
-                  { texto: "Máximo 2 escalas", valor: 2 },
+                  { texto: "Cualquiera", valor: null, icono: "✈️" },
+                  { texto: "Directo", valor: 0, icono: "➡️" },
+                  { texto: "Máximo 1 escala", valor: 1, icono: "1️⃣" },
+                  { texto: "Máximo 2 escalas", valor: 2, icono: "2️⃣" },
                 ].map((opcion) => (
                   <label
                     className="flex items-center gap-2 text-[#0B2545]"
@@ -397,7 +403,7 @@ export default function ListaOfertas({
                       }
                       type="radio"
                     />
-                    {opcion.texto}
+                    <span>{opcion.icono} {opcion.texto}</span>
                   </label>
                 ))}
               </div>
@@ -411,21 +417,21 @@ export default function ListaOfertas({
                 }
                 type="checkbox"
               />
-              Sólo con maleta documentada
+              <span>🧳 Sólo con maleta documentada</span>
             </label>
 
             {(
               [
-                { grupo: "franjasSalida" as const, texto: "Salida de la ida" },
+                { grupo: "franjasSalida" as const, texto: "🛫 Salida de la ida" },
                 {
                   grupo: "franjasLlegada" as const,
-                  texto: "Llegada al destino",
+                  texto: "🛬 Llegada al destino",
                 },
                 ...(hayRegreso
                   ? [
                       {
                         grupo: "franjasRegreso" as const,
-                        texto: "Salida del regreso",
+                        texto: "🛫 Salida del regreso",
                       },
                     ]
                   : []),
@@ -452,7 +458,7 @@ export default function ListaOfertas({
                         type="button"
                       >
                         <span className="block font-medium">
-                          {franja.texto}
+                          {franja.icono} {franja.texto}
                         </span>
                         <span
                           className={
@@ -470,7 +476,7 @@ export default function ListaOfertas({
 
             <label className="mt-4 block">
               <span className="text-xs font-semibold uppercase tracking-wide text-[#5A6B80]">
-                Duración máxima del viaje
+                ⏱️ Duración máxima del viaje
               </span>
               <select
                 className="mt-2 w-full rounded-lg border border-[#E4E8EE] px-3 py-1.5"
@@ -501,7 +507,7 @@ export default function ListaOfertas({
 
             <label className="mt-4 block">
               <span className="text-xs font-semibold uppercase tracking-wide text-[#5A6B80]">
-                Precio máximo
+                💰 Precio máximo
               </span>
               <select
                 className="mt-2 w-full rounded-lg border border-[#E4E8EE] px-3 py-1.5"
@@ -527,7 +533,7 @@ export default function ListaOfertas({
 
             <div className="mt-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#5A6B80]">
-                Número de vuelo
+                ✈️ # Número de vuelo
               </p>
               <input
                 className="mt-2 w-full min-w-0 rounded-lg border border-[#E4E8EE] px-3 py-1.5"
@@ -542,7 +548,7 @@ export default function ListaOfertas({
             {escalasDisponibles.length > 0 && (
               <div className="mt-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#5A6B80]">
-                  Escala en
+                  🌍 Escala en
                 </p>
                 <div className="mt-2 flex max-h-40 flex-col gap-1 overflow-auto">
                   {escalasDisponibles.map(([codigo, { ciudad, pais, bandera }]) => (
@@ -574,7 +580,7 @@ export default function ListaOfertas({
 
             <div className="mt-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#5A6B80]">
-                Aerolínea
+                🏢 Aerolínea
               </p>
               <div className="mt-2 flex max-h-48 flex-col gap-1 overflow-auto">
                 {aerolineas.map(([iata, datos]) => (
@@ -594,6 +600,12 @@ export default function ListaOfertas({
                           })
                         }
                         type="checkbox"
+                      />
+                      <LogoAerolinea
+                        className="h-5 w-5"
+                        iata={iata}
+                        logo={datos.logo}
+                        nombre={datos.nombre}
                       />
                       <span className="truncate">{datos.nombre}</span>
                     </span>

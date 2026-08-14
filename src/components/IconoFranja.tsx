@@ -2,8 +2,6 @@
 
 import { franjaDe, FRANJAS } from "@/lib/franjas";
 
-const ICONOS = ["🌅", "☀️", "🌇", "🌙"];
-
 export default function IconoFranja({
   iso,
   className = "",
@@ -12,13 +10,13 @@ export default function IconoFranja({
   className?: string;
 }) {
   const i = franjaDe(iso);
-  if (i < 0 || i >= ICONOS.length) return null;
+  if (i < 0 || i >= FRANJAS.length) return null;
   return (
     <span
       className={`inline-block text-xs ${className}`}
       title={`${FRANJAS[i].texto} (${FRANJAS[i].detalle})`}
     >
-      {ICONOS[i]}
+      {FRANJAS[i].icono}
     </span>
   );
 }
