@@ -1,11 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthContext";
 import SelectorTelefono from "@/components/SelectorTelefono";
 import CampoAeropuerto from "@/components/CampoAeropuerto";
-import { Building2, Plane, Hotel, Car, FileText, Users, ArrowRight, CheckCircle2 } from "lucide-react";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useI18n } from "@/lib/i18n";
+import {
+  Building2,
+  Plane,
+  Car,
+  FileText,
+  Users,
+  ArrowRight,
+  CheckCircle2,
+  Trash2,
+  Plus,
+  Briefcase,
+} from "lucide-react";
+
+interface Viajero {
+  id: string;
+  nombre: string;
+  apellidos: string;
+  email: string;
+  telefono: string;
+  pasaporte: string;
+  nacionalidad: string;
+  fechaNacimiento: string;
+}
 
 interface Bloque {
   posicion: number;
@@ -25,7 +49,7 @@ interface Formulario {
   contacto: string;
   email: string;
   telefono: string;
-  numViajeros: number;
+  viajeros: Viajero[];
   tipoViaje: string;
   origenCodigo: string;
   origenDesc: string | null;
@@ -43,12 +67,25 @@ interface Formulario {
   notas: string;
 }
 
+function viajeroVacio(): Viajero {
+  return {
+    id: crypto.randomUUID(),
+    nombre: "",
+    apellidos: "",
+    email: "",
+    telefono: "",
+    pasaporte: "",
+    nacionalidad: "",
+    fechaNacimiento: "",
+  };
+}
+
 const VACIO: Formulario = {
   empresa: "",
   contacto: "",
   email: "",
   telefono: "",
-  numViajeros: 1,
+  viajeros: [viajeroVacio()],
   tipoViaje: "ejecutivo",
   origenCodigo: "",
   origenDesc: null,
@@ -65,35 +102,6 @@ const VACIO: Formulario = {
   trasladoAeropuerto: true,
   notas: "",
 };
-
-const TIPOS_VIAJE = [
-  { valor: "ejecutivo", texto: "Viaje de negocios" },
-  { valor: "incentivo", texto: "Viaje de incentivo" },
-  { valor: "convencion", texto: "Convención / MICE" },
-  { valor: "roadshow", texto: "Roadshow" },
-  { valor: "otro", texto: "Otro" },
-];
-
-const CLASES = [
-  { valor: "economy", texto: "Economy" },
-  { valor: "premium_economy", texto: "Premium Economy" },
-  { valor: "business", texto: "Business" },
-  { valor: "first", texto: "First" },
-];
-
-const CATEGORIAS = [
-  { valor: "3", texto: "3 estrellas" },
-  { valor: "4", texto: "4 estrellas" },
-  { valor: "5", texto: "5 estrellas" },
-  { valor: "boutique", texto: "Boutique / único" },
-];
-
-const COCHES = [
-  { valor: "sedan", texto: "Sedán ejecutivo" },
-  { valor: "suv", texto: "SUV" },
-  { valor: "van", texto: "Van / Sprinter" },
-  { valor: "lujo", texto: "Lujo" },
-];
 
 function inputClase(invalido?: boolean) {
   return `w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-[#0B2545] outline-none transition focus:border-[#14477E] focus:ring-2 focus:ring-[#14477E]/20 ${
@@ -113,20 +121,103 @@ function sectionTitle(icon: React.ReactNode, title: string) {
   );
 }
 
+function viajeroBloque(v: Viajero, num: number): string {
+  const partes = [`#${num} ${v.nombre} ${v.apellidos}`.trim()];
+  if (v.nacionalidad) partes.push(v.nacionalidad);
+  if (v.pasaporte) partes.push(v.pasaporte);
+  if (v.fechaNacimiento) partes.push(v.fechaNacimiento);
+  return partes.join(" · ");
+}
+
 export default function CorporativoWizard() {
   const { usuario } = useAuth();
+  const { t } = useI18n();
   const [paso, setPaso] = useState(1);
   const [f, setF] = useState<Formulario>(VACIO);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [itinerarioId, setItinerarioId] = useState<string | null>(null);
 
+  const numViajeros = f.viajeros.length;
+
+  const TIPOS_VIAJE = useMemo(
+    () => [
+      { valor: "ejecutivo", key: "corporate.travelTypeBusiness" },
+      { valor: "incentivo", key: "corporate.travelTypeIncentive" },
+      { valor: "convencion", key: "corporate.travelTypeConvention" },
+      { valor: "roadshow", key: "corporate.travelTypeRoadshow" },
+      { valor: "otro", key: "corporate.travelTypeOther" },
+    ],
+    [],
+  );
+
+  const CLASES = useMemo(
+    () => [
+      { valor: "economy", key: "common.economy" },
+      { valor: "premium_economy", key: "common.premium" },
+      { valor: "business", key: "common.business" },
+      { valor: "first", key: "common.first" },
+    ],
+    [],
+  );
+
+  const CATEGORIAS = useMemo(
+    () => [
+      { valor: "3", key: "corporate.hotel3" },
+      { valor: "4", key: "corporate.hotel4" },
+      { valor: "5", key: "corporate.hotel5" },
+      { valor: "boutique", key: "corporate.hotelBoutique" },
+    ],
+    [],
+  );
+
+  const COCHES = useMemo(
+    () => [
+      { valor: "sedan", key: "corporate.vehicleSedan" },
+      { valor: "suv", key: "corporate.vehicleSuv" },
+      { valor: "van", key: "corporate.vehicleVan" },
+      { valor: "lujo", key: "corporate.vehicleLuxury" },
+    ],
+    [],
+  );
+
   function actualizar<K extends keyof Formulario>(campo: K, valor: Formulario[K]) {
     setF((prev) => ({ ...prev, [campo]: valor } as Formulario));
   }
 
+  function actualizarViajero(id: string, campo: keyof Viajero, valor: string) {
+    setF((prev) => ({
+      ...prev,
+      viajeros: prev.viajeros.map((v) =>
+        v.id === id ? { ...v, [campo]: valor } : v,
+      ),
+    }));
+  }
+
+  function agregarViajero() {
+    setF((prev) => ({
+      ...prev,
+      viajeros: [...prev.viajeros, viajeroVacio()],
+    }));
+  }
+
+  function eliminarViajero(id: string) {
+    if (f.viajeros.length <= 1) return;
+    setF((prev) => ({
+      ...prev,
+      viajeros: prev.viajeros.filter((v) => v.id !== id),
+    }));
+  }
+
   function validarPaso1() {
-    return f.empresa.trim() && f.contacto.trim() && f.email.trim() && f.telefono.trim();
+    return (
+      f.empresa.trim() &&
+      f.contacto.trim() &&
+      f.email.trim() &&
+      f.telefono.trim() &&
+      f.viajeros.length > 0 &&
+      f.viajeros.every((v) => v.nombre.trim() && v.apellidos.trim())
+    );
   }
 
   function validarPaso2() {
@@ -136,11 +227,11 @@ export default function CorporativoWizard() {
   function continuar() {
     setError(null);
     if (paso === 1 && !validarPaso1()) {
-      setError("Completa los datos de empresa y contacto.");
+      setError(t("errors.completeCompany"));
       return;
     }
     if (paso === 2 && !validarPaso2()) {
-      setError("Completa origen, destino y fecha de salida.");
+      setError(t("errors.completeTrip"));
       return;
     }
     setPaso((p) => p + 1);
@@ -149,7 +240,7 @@ export default function CorporativoWizard() {
   async function guardar() {
     setError(null);
     if (!validarPaso1() || !validarPaso2()) {
-      setError("Revisa los datos obligatorios.");
+      setError(t("errors.reviewRequired"));
       return;
     }
     setGuardando(true);
@@ -158,23 +249,44 @@ export default function CorporativoWizard() {
     bloques.push({
       posicion: 0,
       tipo: "corporativo",
-      titulo: `Empresa: ${f.empresa}`,
+      titulo: `${t("common.company")}: ${f.empresa}`,
       fecha: f.fechaSalida || null,
       fecha_fin: f.fechaRegreso || null,
-      detalle: `${TIPOS_VIAJE.find((t) => t.valor === f.tipoViaje)?.texto} · ${f.numViajeros} viajero${f.numViajeros === 1 ? "" : "s"}`,
+      detalle: `${t(TIPOS_VIAJE.find((tOption) => tOption.valor === f.tipoViaje)?.key || "corporate.travelTypeBusiness")} · ${numViajeros} ${t("common.passengers")} · ${f.contacto}`,
       proveedor: null,
-      datos: { empresa: f.empresa, contacto: f.contacto, email: f.email, telefono: f.telefono, tipoViaje: f.tipoViaje, notas: f.notas },
+      datos: {
+        empresa: f.empresa,
+        contacto: f.contacto,
+        email: f.email,
+        telefono: f.telefono,
+        tipoViaje: f.tipoViaje,
+        notas: f.notas,
+        viajeros: f.viajeros,
+      },
+    });
+
+    f.viajeros.forEach((v, i) => {
+      bloques.push({
+        posicion: bloques.length,
+        tipo: "viajero",
+        titulo: `${t("common.passengers")} ${i + 1}`,
+        fecha: f.fechaSalida || null,
+        fecha_fin: f.fechaRegreso || null,
+        detalle: viajeroBloque(v, i + 1),
+        proveedor: null,
+        datos: v,
+      });
     });
 
     if (f.vueloNecesario) {
       bloques.push({
         posicion: bloques.length,
         tipo: "vuelo",
-        titulo: `Vuelo ${f.origenDesc || f.origenCodigo} → ${f.destinoDesc || f.destinoCodigo}`,
+        titulo: `${t("flights.flight")} ${f.origenDesc || f.origenCodigo} → ${f.destinoDesc || f.destinoCodigo}`,
         fecha: f.fechaSalida,
         fecha_fin: f.fechaRegreso || null,
-        detalle: `${f.numViajeros} pasajero${f.numViajeros === 1 ? "" : "s"} · ${CLASES.find((c) => c.valor === f.clasePreferida)?.texto}`,
-        proveedor: "Pendiente cotización",
+        detalle: `${numViajeros} ${t("common.passengers")} · ${t(CLASES.find((c) => c.valor === f.clasePreferida)?.key as string || t("common.business"))}`,
+        proveedor: t("corporate.pendingQuote"),
         datos: { origen: f.origenCodigo, destino: f.destinoCodigo, clase: f.clasePreferida },
       });
     }
@@ -183,26 +295,26 @@ export default function CorporativoWizard() {
       bloques.push({
         posicion: bloques.length,
         tipo: "hotel",
-        titulo: `Hotel en ${f.destinoDesc || f.destinoCodigo}`,
+        titulo: `${t("hotels.hotel")} ${t("common.in")} ${f.destinoDesc || f.destinoCodigo}`,
         fecha: f.fechaSalida,
         fecha_fin: f.fechaRegreso || null,
-        detalle: `${CATEGORIAS.find((c) => c.valor === f.categoriaHotel)?.texto} · ${f.numViajeros} huéspedes`,
-        proveedor: "Pendiente cotización",
+        detalle: `${t(CATEGORIAS.find((c) => c.valor === f.categoriaHotel)?.key as string || t("corporate.hotel4"))} · ${numViajeros} ${t("common.guests")}`,
+        proveedor: t("corporate.pendingQuote"),
         datos: { destino: f.destinoCodigo, categoria: f.categoriaHotel },
       });
     }
 
     if (f.cocheNecesario) {
-      const detalles: string[] = [COCHES.find((c) => c.valor === f.tipoCoche)?.texto ?? ""];
-      if (f.trasladoAeropuerto) detalles.push("traslado aeropuerto");
+      const detalles: string[] = [t(COCHES.find((c) => c.valor === f.tipoCoche)?.key as string || t("corporate.vehicleSedan"))];
+      if (f.trasladoAeropuerto) detalles.push(t("corporate.airportTransfer"));
       bloques.push({
         posicion: bloques.length,
         tipo: "coche",
-        titulo: `Traslado / renta de auto`,
+        titulo: t("corporate.transfers"),
         fecha: f.fechaSalida,
         fecha_fin: f.fechaRegreso || null,
         detalle: detalles.filter(Boolean).join(" · "),
-        proveedor: "Pendiente cotización",
+        proveedor: t("corporate.pendingQuote"),
         datos: { tipoCoche: f.tipoCoche, trasladoAeropuerto: f.trasladoAeropuerto },
       });
     }
@@ -212,9 +324,9 @@ export default function CorporativoWizard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          titulo: `Cotización corporativa · ${f.empresa} · ${f.destinoDesc || f.destinoCodigo || f.origenDesc || f.origenCodigo}`,
+          titulo: `${t("corporate.badge")} · ${f.empresa} · ${f.destinoDesc || f.destinoCodigo || f.origenDesc || f.origenCodigo}`,
           cliente: f.contacto,
-          resumen: `${f.email} · ${f.telefono} · ${f.empresa} · ${f.numViajeros} viajeros`,
+          resumen: `${f.email} · ${f.telefono} · ${f.empresa} · ${numViajeros} ${t("common.passengers")}`,
           moneda: "USD",
           estado: "borrador",
           bloques,
@@ -222,7 +334,7 @@ export default function CorporativoWizard() {
       });
       const cuerpo = (await respuesta.json()) as { id?: string; error?: string };
       if (!respuesta.ok || !cuerpo.id) {
-        throw new Error(cuerpo.error ?? "No se pudo guardar la cotización");
+        throw new Error(cuerpo.error ?? t("errors.saveFailed"));
       }
       setItinerarioId(cuerpo.id);
       setPaso(4);
@@ -233,6 +345,12 @@ export default function CorporativoWizard() {
     }
   }
 
+  const pasos = [
+    { n: 1, label: t("corporate.stepCompany"), icon: <Briefcase className="h-3.5 w-3.5" /> },
+    { n: 2, label: t("corporate.stepTrip"), icon: <Plane className="h-3.5 w-3.5" /> },
+    { n: 3, label: t("corporate.stepServices"), icon: <Car className="h-3.5 w-3.5" /> },
+  ];
+
   return (
     <div className="flex min-h-screen flex-col bg-[#F5F7FA]">
       <header className="bg-[#0B2545]">
@@ -241,9 +359,10 @@ export default function CorporativoWizard() {
             <img alt="IA Travel Planning" className="h-9" src="/logo.svg" />
           </Link>
           <nav className="flex items-center gap-4 text-sm text-white/80">
-            <Link className="hover:text-white" href="/">Vuelos / Hoteles</Link>
-            <Link className="hover:text-white" href="/admin/itinerarios">Itinerarios</Link>
+            <Link className="hover:text-white" href="/">{t("common.flights")} / {t("common.hotels")}</Link>
+            <Link className="hover:text-white" href="/admin/itinerarios">{t("common.itineraries")}</Link>
             {usuario && <span className="hidden sm:inline">{usuario.nombre ?? usuario.email}</span>}
+            <LanguageSwitcher />
           </nav>
         </div>
       </header>
@@ -252,12 +371,10 @@ export default function CorporativoWizard() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="max-w-3xl">
             <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium uppercase tracking-wide">
-              <Building2 className="h-3.5 w-3.5" /> Viajes corporativos
+              <Building2 className="h-3.5 w-3.5" /> {t("corporate.badge")}
             </div>
-            <h1 className="text-2xl font-semibold sm:text-3xl">Cotiza tu viaje de negocios o MICE</h1>
-            <p className="mt-2 text-sm text-white/70">
-              Viajes ejecutivos, incentivos, convenciones y roadshows. Armamos el paquete con vuelos, hoteles corporativos y traslados.
-            </p>
+            <h1 className="text-2xl font-semibold sm:text-3xl">{t("corporate.title")}</h1>
+            <p className="mt-2 text-sm text-white/70">{t("corporate.subtitle")}</p>
           </div>
         </div>
       </section>
@@ -271,10 +388,8 @@ export default function CorporativoWizard() {
           {paso === 4 ? (
             <div className="py-8 text-center">
               <CheckCircle2 className="mx-auto h-12 w-12 text-green-600" />
-              <h2 className="mt-4 text-xl font-semibold text-[#0B2545]">Cotización guardada</h2>
-              <p className="mt-1 text-sm text-[#5A6B80]">
-                Te contactaremos en menos de 2 horas hábiles. Puedes descargar el esquema.
-              </p>
+              <h2 className="mt-4 text-xl font-semibold text-[#0B2545]">{t("corporate.quoteSaved")}</h2>
+              <p className="mt-1 text-sm text-[#5A6B80]">{t("corporate.quoteSavedMessage")}</p>
               {itinerarioId && (
                 <div className="mt-6 flex justify-center gap-3">
                   <button
@@ -282,36 +397,40 @@ export default function CorporativoWizard() {
                     onClick={() => window.open(`/api/itinerarios/${itinerarioId}/pdf`, "_blank")}
                     type="button"
                   >
-                    <FileText className="h-4 w-4" /> Descargar esquema PDF
+                    <FileText className="h-4 w-4" /> {t("corporate.downloadPdf")}
                   </button>
                   <Link
                     className="inline-flex items-center gap-1.5 rounded-lg border border-[#14477E] px-5 py-2.5 text-sm font-semibold text-[#14477E]"
                     href="/"
                   >
-                    Volver al inicio
+                    {t("corporate.backHome")}
                   </Link>
                 </div>
               )}
             </div>
           ) : (
             <>
-              <div className="mb-6 flex items-center gap-2 text-sm font-medium text-[#5A6B80]">
-                <span className={`rounded-full px-3 py-1 ${paso >= 1 ? "bg-[#0B2545] text-white" : "bg-[#E4E8EE]"}`}>1</span>
-                <span className={paso >= 1 ? "text-[#0B2545]" : ""}>Empresa</span>
-                <span className="text-[#D7DDE5]">→</span>
-                <span className={`rounded-full px-3 py-1 ${paso >= 2 ? "bg-[#0B2545] text-white" : "bg-[#E4E8EE]"}`}>2</span>
-                <span className={paso >= 2 ? "text-[#0B2545]" : ""}>Viaje</span>
-                <span className="text-[#D7DDE5]">→</span>
-                <span className={`rounded-full px-3 py-1 ${paso >= 3 ? "bg-[#0B2545] text-white" : "bg-[#E4E8EE]"}`}>3</span>
-                <span className={paso >= 3 ? "text-[#0B2545]" : ""}>Servicios</span>
+              <div className="mb-6 flex items-center gap-2 text-sm font-medium text-[#5A6B80] flex-wrap">
+                {pasos.map((p, idx) => (
+                  <span key={p.n} className="inline-flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 ${
+                        paso >= p.n ? "bg-[#0B2545] text-white" : "bg-[#E4E8EE]"
+                      }`}
+                    >
+                      {p.icon} {p.label}
+                    </span>
+                    {idx < pasos.length - 1 && <span className="text-[#D7DDE5]">→</span>}
+                  </span>
+                ))}
               </div>
 
               {paso === 1 && (
-                <div className="space-y-4">
-                  {sectionTitle(<Users className="h-5 w-5" />, "Datos de la empresa y contacto")}
+                <div className="space-y-6">
+                  {sectionTitle(<Building2 className="h-5 w-5" />, t("corporate.companyTitle"))}
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <label className={labelClase()}>Empresa *</label>
+                      <label className={labelClase()}>{t("common.company")} *</label>
                       <input
                         className={inputClase()}
                         onChange={(e) => actualizar("empresa", e.target.value)}
@@ -320,7 +439,7 @@ export default function CorporativoWizard() {
                       />
                     </div>
                     <div>
-                      <label className={labelClase()}>Nombre del contacto *</label>
+                      <label className={labelClase()}>{t("corporate.contactName")} *</label>
                       <input
                         className={inputClase()}
                         onChange={(e) => actualizar("contacto", e.target.value)}
@@ -329,7 +448,7 @@ export default function CorporativoWizard() {
                       />
                     </div>
                     <div>
-                      <label className={labelClase()}>Correo *</label>
+                      <label className={labelClase()}>{t("common.email")} *</label>
                       <input
                         className={inputClase()}
                         onChange={(e) => actualizar("email", e.target.value)}
@@ -339,43 +458,130 @@ export default function CorporativoWizard() {
                     </div>
                     <div>
                       <SelectorTelefono
-                        etiqueta="Teléfono *"
+                        etiqueta={`${t("common.phone")} *`}
                         onChange={(v) => actualizar("telefono", v)}
                         value={f.telefono}
                       />
                     </div>
                     <div>
-                      <label className={labelClase()}>Número de viajeros</label>
-                      <input
-                        className={inputClase()}
-                        min={1}
-                        onChange={(e) => actualizar("numViajeros", Math.max(1, parseInt(e.target.value || "1", 10)))}
-                        type="number"
-                        value={f.numViajeros}
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClase()}>Tipo de viaje</label>
+                      <label className={labelClase()}>{t("common.tripType")}</label>
                       <select
                         className={inputClase()}
                         onChange={(e) => actualizar("tipoViaje", e.target.value)}
                         value={f.tipoViaje}
                       >
-                        {TIPOS_VIAJE.map((t) => (
-                          <option key={t.valor} value={t.valor}>{t.texto}</option>
+                        {TIPOS_VIAJE.map((tOption) => (
+                          <option key={tOption.valor} value={tOption.valor}>
+                            {t(tOption.key as string)}
+                          </option>
                         ))}
                       </select>
                     </div>
+                  </div>
+
+                  {sectionTitle(<Users className="h-5 w-5" />, `${t("corporate.travelersTitle")} (${numViajeros})`)}
+                  <div className="space-y-4">
+                    {f.viajeros.map((viajero, indice) => (
+                      <div
+                        key={viajero.id}
+                        className="rounded-xl border border-[#E4E8EE] p-4"
+                      >
+                        <div className="mb-3 flex items-center justify-between">
+                          <p className="text-sm font-semibold text-[#0B2545]">
+                            {t("common.passenger")} {indice + 1}
+                          </p>
+                          {f.viajeros.length > 1 && (
+                            <button
+                              className="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-700"
+                              onClick={() => eliminarViajero(viajero.id)}
+                              type="button"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> {t("common.remove")}
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                          <div>
+                            <label className={labelClase()}>{t("form.firstName")} *</label>
+                            <input
+                              className={inputClase()}
+                              onChange={(e) => actualizarViajero(viajero.id, "nombre", e.target.value)}
+                              type="text"
+                              value={viajero.nombre}
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClase()}>{t("form.lastName")} *</label>
+                            <input
+                              className={inputClase()}
+                              onChange={(e) => actualizarViajero(viajero.id, "apellidos", e.target.value)}
+                              type="text"
+                              value={viajero.apellidos}
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClase()}>{t("common.email")}</label>
+                            <input
+                              className={inputClase()}
+                              onChange={(e) => actualizarViajero(viajero.id, "email", e.target.value)}
+                              type="email"
+                              value={viajero.email}
+                            />
+                          </div>
+                          <div>
+                            <SelectorTelefono
+                              etiqueta={t("common.phone")}
+                              onChange={(v) => actualizarViajero(viajero.id, "telefono", v)}
+                              value={viajero.telefono}
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClase()}>{t("common.passport")}</label>
+                            <input
+                              className={inputClase()}
+                              onChange={(e) => actualizarViajero(viajero.id, "pasaporte", e.target.value)}
+                              type="text"
+                              value={viajero.pasaporte}
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClase()}>{t("common.nationality")}</label>
+                            <input
+                              className={inputClase()}
+                              onChange={(e) => actualizarViajero(viajero.id, "nacionalidad", e.target.value)}
+                              type="text"
+                              value={viajero.nacionalidad}
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClase()}>{t("common.birthday")}</label>
+                            <input
+                              className={inputClase()}
+                              onChange={(e) => actualizarViajero(viajero.id, "fechaNacimiento", e.target.value)}
+                              type="date"
+                              value={viajero.fechaNacimiento}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#14477E] px-4 py-2 text-sm font-semibold text-[#14477E]"
+                      onClick={agregarViajero}
+                      type="button"
+                    >
+                      <Plus className="h-4 w-4" /> {t("corporate.addTraveler")}
+                    </button>
                   </div>
                 </div>
               )}
 
               {paso === 2 && (
                 <div className="space-y-4">
-                  {sectionTitle(<Plane className="h-5 w-5" />, "Detalles del viaje")}
+                  {sectionTitle(<Plane className="h-5 w-5" />, t("corporate.tripTitle"))}
                   <div className="grid gap-4 sm:grid-cols-2">
                     <CampoAeropuerto
-                      etiqueta="Origen *"
+                      etiqueta={`${t("common.origin")} *`}
                       valor={f.origenCodigo}
                       descripcion={f.origenDesc}
                       onCambio={(codigo, desc) => {
@@ -384,7 +590,7 @@ export default function CorporativoWizard() {
                       }}
                     />
                     <CampoAeropuerto
-                      etiqueta="Destino *"
+                      etiqueta={`${t("common.destination")} *`}
                       valor={f.destinoCodigo}
                       descripcion={f.destinoDesc}
                       onCambio={(codigo, desc) => {
@@ -393,7 +599,7 @@ export default function CorporativoWizard() {
                       }}
                     />
                     <div>
-                      <label className={labelClase()}>Fecha de salida *</label>
+                      <label className={labelClase()}>{t("corporate.departureDate")} *</label>
                       <input
                         className={inputClase()}
                         onChange={(e) => actualizar("fechaSalida", e.target.value)}
@@ -402,7 +608,7 @@ export default function CorporativoWizard() {
                       />
                     </div>
                     <div>
-                      <label className={labelClase()}>Fecha de regreso</label>
+                      <label className={labelClase()}>{t("corporate.returnDate")}</label>
                       <input
                         className={inputClase()}
                         onChange={(e) => actualizar("fechaRegreso", e.target.value)}
@@ -416,7 +622,7 @@ export default function CorporativoWizard() {
 
               {paso === 3 && (
                 <div className="space-y-6">
-                  {sectionTitle(<Building2 className="h-5 w-5" />, "Servicios que necesitas")}
+                  {sectionTitle(<Car className="h-5 w-5" />, t("corporate.servicesTitle"))}
 
                   <div className="rounded-xl border border-[#E4E8EE] p-4">
                     <label className="flex cursor-pointer items-center gap-3">
@@ -426,18 +632,20 @@ export default function CorporativoWizard() {
                         onChange={(e) => actualizar("vueloNecesario", e.target.checked)}
                         type="checkbox"
                       />
-                      <span className="font-semibold text-[#0B2545]">Vuelos</span>
+                      <span className="font-semibold text-[#0B2545]">{t("common.flights")}</span>
                     </label>
                     {f.vueloNecesario && (
                       <div className="mt-3 pl-7">
-                        <label className={labelClase()}>Clase preferida</label>
+                        <label className={labelClase()}>{t("corporate.flightClass")}</label>
                         <select
                           className={`${inputClase()} max-w-xs`}
                           onChange={(e) => actualizar("clasePreferida", e.target.value)}
                           value={f.clasePreferida}
                         >
                           {CLASES.map((c) => (
-                            <option key={c.valor} value={c.valor}>{c.texto}</option>
+                            <option key={c.valor} value={c.valor}>
+                              {t(c.key as string)}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -452,18 +660,20 @@ export default function CorporativoWizard() {
                         onChange={(e) => actualizar("hotelNecesario", e.target.checked)}
                         type="checkbox"
                       />
-                      <span className="font-semibold text-[#0B2545]">Hotel</span>
+                      <span className="font-semibold text-[#0B2545]">{t("common.hotels")}</span>
                     </label>
                     {f.hotelNecesario && (
                       <div className="mt-3 pl-7">
-                        <label className={labelClase()}>Categoría preferida</label>
+                        <label className={labelClase()}>{t("corporate.hotelCategory")}</label>
                         <select
                           className={`${inputClase()} max-w-xs`}
                           onChange={(e) => actualizar("categoriaHotel", e.target.value)}
                           value={f.categoriaHotel}
                         >
                           {CATEGORIAS.map((c) => (
-                            <option key={c.valor} value={c.valor}>{c.texto}</option>
+                            <option key={c.valor} value={c.valor}>
+                              {t(c.key as string)}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -478,19 +688,21 @@ export default function CorporativoWizard() {
                         onChange={(e) => actualizar("cocheNecesario", e.target.checked)}
                         type="checkbox"
                       />
-                      <span className="font-semibold text-[#0B2545]">Traslados / Renta de auto</span>
+                      <span className="font-semibold text-[#0B2545]">{t("corporate.transfers")}</span>
                     </label>
                     {f.cocheNecesario && (
                       <div className="mt-3 space-y-3 pl-7">
                         <div>
-                          <label className={labelClase()}>Tipo de vehículo</label>
+                          <label className={labelClase()}>{t("corporate.vehicleType")}</label>
                           <select
                             className={`${inputClase()} max-w-xs`}
                             onChange={(e) => actualizar("tipoCoche", e.target.value)}
                             value={f.tipoCoche}
                           >
                             {COCHES.map((c) => (
-                              <option key={c.valor} value={c.valor}>{c.texto}</option>
+                              <option key={c.valor} value={c.valor}>
+                                {t(c.key as string)}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -501,18 +713,18 @@ export default function CorporativoWizard() {
                             onChange={(e) => actualizar("trasladoAeropuerto", e.target.checked)}
                             type="checkbox"
                           />
-                          Incluir traslado aeropuerto
+                          {t("corporate.airportTransfer")}
                         </label>
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <label className={labelClase()}>Notas adicionales</label>
+                    <label className={labelClase()}>{t("corporate.additionalNotes")}</label>
                     <textarea
                       className={`${inputClase()} min-h-[5rem]`}
                       onChange={(e) => actualizar("notas", e.target.value)}
-                      placeholder="Politicas de viaje, aerolínea preferida, requerimientos especiales..."
+                      placeholder={t("corporate.notesPlaceholder")}
                       value={f.notas}
                     />
                   </div>
@@ -526,7 +738,7 @@ export default function CorporativoWizard() {
                     onClick={() => setPaso((p) => p - 1)}
                     type="button"
                   >
-                    Atrás
+                    {t("common.back")}
                   </button>
                 ) : (
                   <div />
@@ -538,7 +750,7 @@ export default function CorporativoWizard() {
                     onClick={continuar}
                     type="button"
                   >
-                    Continuar <ArrowRight className="h-4 w-4" />
+                    {t("common.continue")} <ArrowRight className="h-4 w-4" />
                   </button>
                 ) : (
                   <button
@@ -547,7 +759,7 @@ export default function CorporativoWizard() {
                     onClick={guardar}
                     type="button"
                   >
-                    {guardando ? "Guardando..." : "Guardar cotización"}
+                    {guardando ? t("common.loading") : t("corporate.saveQuote")}
                   </button>
                 )}
               </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { ChevronDown, History, Trash2 } from "lucide-react";
 import { TextoConBandera } from "@/components/Bandera";
 import type { ParametrosFormulario } from "@/components/Buscador";
 import type { BusquedaGuardada } from "@/lib/historial";
@@ -46,23 +48,35 @@ export default function HistorialBusquedas({
   onRepetir,
   onBorrar,
 }: Props) {
+  const [abierto, setAbierto] = useState(false);
+
   if (historial.length === 0) return null;
 
   return (
-    <section className="mt-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-[#0B2545]">
-          Tus búsquedas recientes
-        </h2>
-        <button
-          className="text-xs text-[#14477E] underline"
-          onClick={onBorrar}
-          type="button"
-        >
-          Borrar historial
-        </button>
-      </div>
-      <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+    <section className="mt-4 rounded-xl border border-[#E4E8EE] bg-white">
+      <button
+        className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-[#0B2545]"
+        onClick={() => setAbierto((a) => !a)}
+        type="button"
+      >
+        <span className="inline-flex items-center gap-2">
+          <History className="h-4 w-4" /> Tus búsquedas recientes
+        </span>
+        <ChevronDown className={`h-4 w-4 transition ${abierto ? "rotate-180" : ""}`} />
+      </button>
+      {abierto && (
+        <div className="border-t border-[#E4E8EE] px-4 pb-4 pt-2">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs text-[#5A6B80]">{historial.length} guardada{historial.length === 1 ? "" : "s"}</span>
+            <button
+              className="inline-flex items-center gap-1 text-xs text-[#B4451F] hover:text-[#96381A]"
+              onClick={onBorrar}
+              type="button"
+            >
+              <Trash2 className="h-3 w-3" /> Borrar historial
+            </button>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
         {historial.map((guardada) => {
           const p = guardada.parametros;
           return (
@@ -103,7 +117,9 @@ export default function HistorialBusquedas({
             </button>
           );
         })}
-      </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

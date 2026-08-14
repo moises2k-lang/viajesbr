@@ -154,7 +154,10 @@ export async function buscarHoteles(
       ],
       placeId: p.placeId,
       limit: p.limite,
-      hotelInfo: true,
+      includeHotelData: true,
+      roomMapping: true,
+      maxRatesPerHotel: 5,
+      timeout: 15,
     }),
   });
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import SelectorConBandera from "@/components/SelectorConBandera";
 import BanderaIso from "@/components/BanderaIso";
+import { useI18n } from "@/lib/i18n";
 import { PAISES_TELEFONO } from "@/lib/telefonos";
 
 interface Props {
@@ -43,6 +44,7 @@ export default function SelectorTelefono({
   className,
   required = false,
 }: Props) {
+  const { t } = useI18n();
   const inicial = useMemo(() => parsear(value), [value]);
   const [iso, setIso] = useState(inicial.iso);
   const [numero, setNumero] = useState(inicial.numero);
@@ -101,7 +103,7 @@ export default function SelectorTelefono({
           items={items}
           listaClassName="w-64"
           placeholder="+"
-          placeholderBusqueda="Buscar país..."
+          placeholderBusqueda={t("search.searchCountry")}
           renderEtiqueta={(item) => {
             const pais = PAISES_TELEFONO.find((p) => p.iso === item.valor);
             if (!pais) return item.etiqueta;
@@ -118,7 +120,7 @@ export default function SelectorTelefono({
         <input
           className="min-w-0 flex-1 rounded-r-md border border-neutral-300 px-3 py-2 text-sm text-[#0B2545] focus:border-[#14477E] focus:outline-none"
           onChange={(e) => cambiarNumero(e.target.value)}
-          placeholder="Número"
+          placeholder={t("common.phoneNumber")}
           required={required}
           type="tel"
           value={numero}

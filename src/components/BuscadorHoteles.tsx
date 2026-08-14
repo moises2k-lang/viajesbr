@@ -6,6 +6,7 @@ import CampoCiudad from "@/components/CampoCiudad";
 import RangoFechas from "@/components/RangoFechas";
 import SelectorPasajeros, { type Pasajeros } from "@/components/SelectorPasajeros";
 import { useMoneda } from "@/components/MonedaContext";
+import { useI18n } from "@/lib/i18n";
 
 export interface ParametrosHotel {
   placeId: string;
@@ -46,6 +47,7 @@ interface Props {
 }
 
 export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }: Props) {
+  const { t } = useI18n();
   const { moneda } = useMoneda();
   const [datos, setDatos] = useState<ParametrosHotel>(valoresIniciales ?? VACIO);
 
@@ -56,9 +58,9 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
   const pasajeros: Pasajeros = { adultos: datos.adultos, menores: datos.menores, bebes: 0 };
   const totalNoches = noches(datos.entrada, datos.salida);
   const falta = !datos.placeId
-    ? "Elige un destino de la lista"
+    ? t("search.chooseHotelDestination")
     : totalNoches === null
-      ? "Elige las fechas de entrada y salida"
+      ? t("search.chooseHotelDates")
       : null;
 
   function enviar(evento: React.FormEvent) {
@@ -73,7 +75,7 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
         <div className="lg:col-span-4">
           <CampoCiudad
             descripcion={datos.destino || null}
-            etiqueta="Destino"
+            etiqueta={t("common.destination")}
             onCambio={(opcion: OpcionCiudad | null) =>
               setDatos({
                 ...datos,
@@ -89,8 +91,8 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
           <RangoFechas
             conRegreso
             desde={datos.entrada}
-            etiquetaDesde="Entrada"
-            etiquetaHasta="Salida"
+            etiquetaDesde={t("search.checkIn")}
+            etiquetaHasta={t("search.checkOut")}
             hasta={datos.salida}
             onCambio={(entrada, salida) => setDatos({ ...datos, entrada, salida })}
           />
@@ -98,7 +100,7 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
 
         <div className="lg:col-span-4">
           <SelectorPasajeros
-            etiqueta="Huéspedes"
+            etiqueta={t("common.guests")}
             onCambio={(p) => setDatos({ ...datos, adultos: p.adultos, menores: p.menores })}
             sinBebes
             valor={pasajeros}
@@ -113,13 +115,11 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
           disabled={cargando || falta !== null}
           type="submit"
         >
-          {cargando ? "Buscando hoteles…" : "Buscar hoteles"}
+          {cargando ? t("search.searchingHotels") : t("search.searchHotels")}
         </button>
         <p className="text-xs text-[#5A6B80]">
           {falta ??
-            `${totalNoches} noche${totalNoches === 1 ? "" : "s"} · ${datos.adultos} adulto${
-              datos.adultos === 1 ? "" : "s"
-            }${datos.menores.length > 0 ? ` · ${datos.menores.length} menor${datos.menores.length === 1 ? "" : "es"}` : ""} · precios en ${datos.moneda}`}
+            `${totalNoches} ${totalNoches === 1 ? t("common.night") : t("common.nights")} · ${datos.adultos} ${datos.adultos === 1 ? t("common.adult") : t("common.adults")}${datos.menores.length > 0 ? ` · ${datos.menores.length} ${datos.menores.length === 1 ? t("common.child") : t("common.children")}` : ""} · ${t("search.pricesInCurrency", { currency: datos.moneda })}`}
         </p>
       </div>
     </form>

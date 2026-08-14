@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { OpcionLugar } from "@/app/api/lugares/route";
 import Bandera from "@/components/Bandera";
+import { useI18n } from "@/lib/i18n";
 import { separarBandera } from "@/lib/paises";
 
 interface Props {
@@ -23,6 +24,7 @@ export default function CampoAeropuerto({
   descripcion,
   onCambio,
 }: Props) {
+  const { t } = useI18n();
   const inicial = separarBandera(descripcion ?? "");
   const elegida = inicial.resto ? `${inicial.resto} (${valor})` : valor;
   const [texto, setTexto] = useState(elegida);
@@ -176,7 +178,7 @@ export default function CampoAeropuerto({
           onClick={abrir}
           onFocus={abrir}
           onKeyDown={teclas}
-          placeholder="Ciudad, aeropuerto o código"
+          placeholder={t("common.searchPlaceholder")}
           ref={campo}
           required
           value={texto}
@@ -188,7 +190,7 @@ export default function CampoAeropuerto({
         )}
         {texto !== "" && (
           <button
-            aria-label={`Limpiar ${etiqueta.toLowerCase()}`}
+            aria-label={`${t("common.clear")} ${etiqueta}`}
             className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-[#5A6B80] hover:bg-[#F5F7FA]"
             onClick={() => {
               anterior.current = "";
@@ -224,7 +226,7 @@ export default function CampoAeropuerto({
                     <span className="block text-xs text-[#5A6B80]">
                       {[
                         opcion.tipo === "ciudad"
-                          ? "Todos los aeropuertos"
+                          ? t("search.allAirports")
                           : opcion.ciudad,
                         opcion.pais,
                       ]
@@ -242,8 +244,8 @@ export default function CampoAeropuerto({
           {sugerencias.length === 0 && (
             <li className="px-3 py-2 text-sm text-[#5A6B80]">
               {buscando
-                ? "Buscando aeropuertos…"
-                : "Sin aeropuertos con ese nombre"}
+                ? t("common.loading")
+                : t("search.noAirports")}
             </li>
           )}
         </ul>

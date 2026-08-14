@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 export interface Pasajeros {
   adultos: number;
@@ -17,17 +18,6 @@ interface Props {
 }
 
 const EDADES_MENORES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
-
-function resumen(p: Pasajeros): string {
-  const partes = [`${p.adultos} adulto${p.adultos === 1 ? "" : "s"}`];
-  if (p.menores.length > 0) {
-    partes.push(`${p.menores.length} menor${p.menores.length === 1 ? "" : "es"}`);
-  }
-  if (p.bebes > 0) {
-    partes.push(`${p.bebes} bebé${p.bebes === 1 ? "" : "s"} en brazos`);
-  }
-  return partes.join(" · ");
-}
 
 function Contador({
   etiqueta,
@@ -75,10 +65,12 @@ function Contador({
 
 export default function SelectorPasajeros({
   valor,
-  etiqueta = "Pasajeros",
+  etiqueta,
   sinBebes = false,
   onCambio,
 }: Props) {
+  const { t } = useI18n();
+  const etiquetaFinal = etiqueta ?? t("common.passengers");
   const [abierto, setAbierto] = useState(false);
   const contenedor = useRef<HTMLDivElement>(null);
 
@@ -99,10 +91,21 @@ export default function SelectorPasajeros({
     onCambio({ ...valor, menores });
   }
 
+  const totalAdultos = valor.adultos;
+  const totalMenores = valor.menores.length;
+  const totalBebes = valor.bebes;
+  const partes = [`${totalAdultos} ${totalAdultos === 1 ? t("common.adult") : t("common.adults")}`];
+  if (totalMenores > 0) {
+    partes.push(`${totalMenores} ${totalMenores === 1 ? t("common.child") : t("common.children")}`);
+  }
+  if (!sinBebes && totalBebes > 0) {
+    partes.push(`${totalBebes} ${totalBebes === 1 ? t("common.infant") : t("common.infants")} ${t("common.inArms")}`);
+  }
+
   return (
     <div className="relative" ref={contenedor}>
       <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
-        {etiqueta}
+        {etiquetaFinal}
       </span>
       <button
         aria-expanded={abierto}
@@ -110,23 +113,23 @@ export default function SelectorPasajeros({
         onClick={() => setAbierto((v) => !v)}
         type="button"
       >
-        <span className="truncate">{resumen(valor)}</span>
+        <span className="truncate">{partes.join(" · ")}</span>
         <span className="text-xs text-[#5A6B80]">{abierto ? "▲" : "▼"}</span>
       </button>
 
       {abierto && (
         <div className="absolute z-30 mt-1 w-[22rem] max-w-[calc(100vw-2rem)] rounded-lg border border-[#E4E8EE] bg-white p-4 shadow-lg">
           <Contador
-            detalle="12 años o más"
-            etiqueta="Adultos"
+            detalle={t("form.adultDetail")}
+            etiqueta={t("common.adults")}
             maximo={9}
             minimo={1}
             onCambio={(v) => onCambio({ ...valor, adultos: v })}
             valor={valor.adultos}
           />
           <Contador
-            detalle={sinBebes ? "0 a 17 años" : "2 a 11 años, con asiento"}
-            etiqueta={sinBebes ? "Menores" : "Menores con asiento"}
+            detalle={sinBebes ? t("form.childrenDetailAll") : t("form.childrenDetailFlight")}
+            etiqueta={sinBebes ? t("common.children") : t("form.childrenWithSeat")}
             maximo={8}
             minimo={0}
             onCambio={cambiarMenores}
@@ -136,7 +139,7 @@ export default function SelectorPasajeros({
             <div className="mt-2 grid grid-cols-3 gap-2 border-t border-[#E4E8EE] pt-3">
               {valor.menores.map((edad, indice) => (
                 <label className="text-xs text-[#5A6B80]" key={`menor-${indice}`}>
-                  Edad {indice + 1}
+                  {t("common.age")} {indice + 1}
                   <select
                     className="mt-1 w-full rounded border border-[#E4E8EE] px-1 py-1 text-sm text-[#0B2545]"
                     onChange={(evento) => {
@@ -148,7 +151,7 @@ export default function SelectorPasajeros({
                   >
                     {(sinBebes ? EDADES_MENORES : EDADES_MENORES.slice(2, 12)).map((opcion) => (
                       <option key={opcion} value={opcion}>
-                        {opcion} años
+                        {opcion} {t("common.years")}
                       </option>
                     ))}
                   </select>
@@ -159,8 +162,8 @@ export default function SelectorPasajeros({
           {!sinBebes && (
             <div className="mt-2 border-t border-[#E4E8EE] pt-1">
               <Contador
-                detalle="Menos de 2 años, sin asiento"
-                etiqueta="Bebés en brazos"
+                detalle={t("form.infantDetail")}
+                etiqueta={t("form.infantsInArms")}
                 maximo={Math.max(1, valor.adultos)}
                 minimo={0}
                 onCambio={(v) => onCambio({ ...valor, bebes: v })}
@@ -170,16 +173,14 @@ export default function SelectorPasajeros({
           )}
           <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#E4E8EE] pt-3">
             <p className="text-xs text-[#5A6B80]">
-              {sinBebes
-                ? "La edad del menor decide si el hotel cobra extra por él."
-                : "La edad es la que tendrá el menor el día del vuelo; la aerolínea la valida contra el pasaporte."}
+              {sinBebes ? t("form.hotelAgePolicy") : t("form.flightAgePolicy")}
             </p>
             <button
               className="shrink-0 rounded-lg bg-[#0B2545] px-3 py-1.5 text-xs font-semibold text-white"
               onClick={() => setAbierto(false)}
               type="button"
             >
-              Listo
+              {t("common.done")}
             </button>
           </div>
         </div>

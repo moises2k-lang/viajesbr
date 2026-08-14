@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { detalleHotel, resenasHotel } from "@/lib/liteapi";
+import {
+  detalleHotel,
+  esAmbientePruebaHoteles,
+  resenasHotel,
+} from "@/lib/liteapi";
 import { bandera, nombrePais } from "@/lib/paises";
 
 export const runtime = "nodejs";
@@ -71,6 +75,58 @@ function aTexto(html: string | undefined): string | null {
   return texto === "" ? null : texto;
 }
 
+function fichaDemo(hotelId: string, pais: string | null): FichaHotel {
+  const partes = hotelId.split("-");
+  const idx = Number(partes[partes.length - 1] ?? 0);
+  const zonas = ["Zona Centro", "Zona Hotelera", "Ejecutivo"];
+  const zona = zonas[idx] ?? "Demo";
+  const nombre = `Hotel Demo ${zona}`;
+  const paisCodigo = pais?.toUpperCase() ?? "MX";
+  const habitacion: HabitacionCatalogo = {
+    nombre: "Habitación estándar - Solo hospedaje",
+    descripcion: "Habitación de demostración para pruebas en sandbox.",
+    metros: 22,
+    ocupacionMaxima: 2,
+    camas: ["1 cama queen"],
+    servicios: ["WiFi", "Desayuno", "Aire acondicionado"],
+    fotos: [],
+  };
+  return {
+    hotelId,
+    nombre,
+    descripcion: "Hotel de demostración generado automáticamente para pruebas en el ambiente sandbox de LiteAPI. No es una reserva real.",
+    informacionImportante: "Este hotel es ficticio y solo sirve para probar el flujo de paquetes en sandbox.",
+    entrada: "15:00",
+    salida: "12:00",
+    estrellas: 3 + (idx % 3),
+    calificacion: 7.5 + (idx % 3) * 0.4,
+    resenas: 42 + idx * 30,
+    direccion: `Calle demo, ${zona}`,
+    ciudad: "Demo",
+    pais: paisCodigo ? nombrePais(paisCodigo) : null,
+    bandera: paisCodigo ? bandera(paisCodigo) : null,
+    telefono: null,
+    cadena: null,
+    tipo: "Hotel",
+    estacionamiento: null,
+    admiteMenores: true,
+    admiteMascotas: false,
+    latitud: null,
+    longitud: null,
+    fotos: [],
+    fotosHabitaciones: [],
+    servicios: ["WiFi", "Desayuno", "Piscina", "Gimnasio"],
+    habitaciones: [habitacion],
+    puntosFuertes: ["Buena ubicación", "Precio accesible"],
+    puntosDebiles: ["Hotel ficticio"],
+    categorias: [
+      { nombre: "Limpieza", calificacion: 8 },
+      { nombre: "Servicio", calificacion: 8 },
+    ],
+    opiniones: [],
+  };
+}
+
 export async function GET(
   _peticion: Request,
   { params }: { params: Promise<{ hotelId: string }> },
@@ -81,6 +137,10 @@ export async function GET(
       { error: "Identificador de hotel inválido" },
       { status: 400 },
     );
+  }
+
+  if (hotelId.startsWith("demo-") && esAmbientePruebaHoteles()) {
+    return NextResponse.json(fichaDemo(hotelId, hotelId.split("-")[1]?.toUpperCase() ?? null));
   }
 
   try {

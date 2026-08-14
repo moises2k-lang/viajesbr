@@ -200,6 +200,62 @@ export async function POST(request: Request) {
   hoteles.sort((a, b) => a.desde - b.desde);
   const ambiente = esAmbientePruebaHoteles() ? "sandbox" : "live";
 
+  if (hoteles.length === 0 && ambiente === "sandbox") {
+    const paisHotel = p.pais?.toUpperCase() ?? "MX";
+    const ciudad = p.destino;
+    const precios = [120, 185, 245];
+    for (let i = 0; i < precios.length; i += 1) {
+      const costo = precios[i];
+      const precio = calcularPrecio(
+        costo,
+        {
+          aerolineaIata: "",
+          origen: "",
+          destino: p.destino.toUpperCase(),
+          moneda: p.moneda.toUpperCase(),
+        },
+        reglas,
+      );
+      const ofertaId = `demo-${paisHotel.toLowerCase()}-${Date.now()}-${i}`;
+      const habitacion: HabitacionConPrecio = {
+        ofertaId,
+        habitacion: "Habitación estándar - Solo hospedaje",
+        regimen: "RO",
+        reembolsable: false,
+        cancelaAntesDe: null,
+        costoNeto: precio.costoNeto,
+        markup: precio.markup,
+        precioVenta: precio.precioVenta,
+        precioReferencia: costo,
+        fuenteReferencia: "sandbox",
+        impuestosNoIncluidos: [],
+      };
+      const nombre = i === 0
+        ? `Hotel Demo ${ciudad} - Zona Centro`
+        : i === 1
+          ? `Hotel Demo ${ciudad} - Zona Hotelera`
+          : `Hotel Demo ${ciudad} - Ejecutivo`;
+      hoteles.push({
+        hotelId: `demo-${paisHotel.toLowerCase()}-${i}`,
+        nombre,
+        direccion: `Calle demo, ${ciudad}`,
+        ciudad,
+        pais: paisHotel ? nombrePais(paisHotel) : null,
+        bandera: paisHotel ? bandera(paisHotel) : null,
+        estrellas: 3 + i,
+        calificacion: 7.5 + i * 0.4,
+        resenas: 42 + i * 30,
+        foto: null,
+        latitud: null,
+        longitud: null,
+        noches: totalNoches,
+        moneda: p.moneda.toUpperCase(),
+        desde: habitacion.precioVenta,
+        habitaciones: [habitacion],
+      });
+    }
+  }
+
   const [busqueda] = await query<{ id: string }>(
     `INSERT INTO hoteles_busquedas (ciudad, pais, place_id, entrada, salida, adultos, menores,
                                     moneda, hoteles_encontrados, ambiente)

@@ -8,6 +8,7 @@ import RangoFechas from "@/components/RangoFechas";
 import SelectorPasajeros, {
   type Pasajeros,
 } from "@/components/SelectorPasajeros";
+import { useI18n } from "@/lib/i18n";
 
 export interface TramoFormulario {
   origen: string;
@@ -68,12 +69,12 @@ function tramoVacio(fecha = ""): TramoFormulario {
 
 const CABINAS: {
   valor: NonNullable<ParametrosFormulario["cabina"]>;
-  texto: string;
+  clave: string;
 }[] = [
-  { valor: "economy", texto: "Turista" },
-  { valor: "premium_economy", texto: "Premium" },
-  { valor: "business", texto: "Business" },
-  { valor: "first", texto: "Primera" },
+  { valor: "economy", clave: "common.economy" },
+  { valor: "premium_economy", clave: "common.premium" },
+  { valor: "business", clave: "common.business" },
+  { valor: "first", clave: "common.first" },
 ];
 
 interface Props {
@@ -87,6 +88,7 @@ export default function Buscador({
   valoresIniciales,
   onBuscar,
 }: Props) {
+  const { t } = useI18n();
   const [datos, setDatos] = useState<ParametrosFormulario>(
     valoresIniciales ?? VACIO,
   );
@@ -160,16 +162,20 @@ export default function Buscador({
     for (let i = 0; i < tramos.length; i += 1) {
       const tramo = tramos[i];
       if (tramo.origen.trim().length !== 3)
-        return `Elige el origen del tramo ${i + 1}`;
+        return t("search.segmentOriginRequired", { segment: i + 1 });
       if (tramo.destino.trim().length !== 3)
-        return `Elige el destino del tramo ${i + 1}`;
+        return t("search.segmentDestinationRequired", { segment: i + 1 });
       if (
         tramo.origen.trim().toUpperCase() === tramo.destino.trim().toUpperCase()
       )
-        return `El tramo ${i + 1} tiene el mismo origen y destino`;
-      if (tramo.fecha === "") return `Elige la fecha del tramo ${i + 1}`;
+        return t("search.segmentSameOriginDestination", { segment: i + 1 });
+      if (tramo.fecha === "")
+        return t("search.segmentDateRequired", { segment: i + 1 });
       if (i > 0 && tramo.fecha < tramos[i - 1].fecha)
-        return `La fecha del tramo ${i + 1} no puede ser antes que la del tramo ${i}`;
+        return t("search.segmentDateBeforePrevious", {
+          segment: i + 1,
+          previous: i,
+        });
     }
     return null;
   })();
@@ -239,16 +245,16 @@ export default function Buscador({
 
   const faltaSimple =
     datos.origen.trim().length !== 3
-      ? "Elige el aeropuerto de origen"
+      ? t("search.originRequired")
       : datos.destino.trim().length !== 3
-        ? "Elige el aeropuerto de destino"
+        ? t("search.destinationRequired")
         : datos.origen.trim().toUpperCase() ===
             datos.destino.trim().toUpperCase()
-          ? "El origen y el destino no pueden ser el mismo"
+          ? t("search.sameOriginDestination")
           : datos.fechaSalida === ""
-            ? "Elige la fecha de salida"
+            ? t("search.chooseDepartureDate")
             : redondo && datos.fechaRegreso === null
-              ? "Elige la fecha de regreso"
+              ? t("search.chooseReturnDate")
               : null;
   const falta = multiciudad ? faltaMulticiudad : faltaSimple;
   const completo = falta === null;
@@ -314,21 +320,21 @@ export default function Buscador({
             onClick={() => setTipo("redondo")}
             type="button"
           >
-            <ArrowLeftRight className="h-4 w-4" /> Redondo
+            <ArrowLeftRight className="h-4 w-4" /> {t("common.roundTrip")}
           </button>
           <button
             className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 font-medium ${tipo === "ida" ? "bg-white text-[#0B2545] shadow" : "text-[#5A6B80]"}`}
             onClick={() => setTipo("ida")}
             type="button"
           >
-            <ArrowRight className="h-4 w-4" /> Sólo ida
+            <ArrowRight className="h-4 w-4" /> {t("common.oneWay")}
           </button>
           <button
             className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 font-medium ${tipo === "multiciudad" ? "bg-white text-[#0B2545] shadow" : "text-[#5A6B80]"}`}
             onClick={activarMulticiudad}
             type="button"
           >
-            <Map className="h-4 w-4" /> Multiciudad
+            <Map className="h-4 w-4" /> {t("common.multiCity")}
           </button>
         </div>
         <div className="flex rounded-full bg-[#E4E8EE] p-1 text-sm">
@@ -343,7 +349,7 @@ export default function Buscador({
               onClick={() => setDatos({ ...datos, cabina: cabina.valor })}
               type="button"
             >
-              {cabina.texto}
+              {t(cabina.clave)}
             </button>
           ))}
         </div>
@@ -357,12 +363,12 @@ export default function Buscador({
               key={`tramo-${indice}`}
             >
               <p className="text-xs font-semibold uppercase tracking-wide text-[#14477E] lg:col-span-12">
-                Tramo {indice + 1}
+                {t("search.segment")} {indice + 1}
               </p>
               <div className="lg:col-span-4">
                 <CampoAeropuerto
                   descripcion={tramo.origenNombre}
-                  etiqueta="Origen"
+                  etiqueta={t("common.origin")}
                   key={`tramo-origen-${indice}-${rellenos[indice] ?? 0}`}
                   onCambio={(codigo, nombre) =>
                     cambiarTramo(indice, {
@@ -376,7 +382,7 @@ export default function Buscador({
               <div className="lg:col-span-4">
                 <CampoAeropuerto
                   descripcion={tramo.destinoNombre}
-                  etiqueta="Destino"
+                  etiqueta={t("common.destination")}
                   key={`tramo-destino-${indice}-${rellenos[indice] ?? 0}`}
                   onCambio={(codigo, nombre) => {
                     cambiarTramo(indice, {
@@ -402,7 +408,7 @@ export default function Buscador({
                 <RangoFechas
                   conRegreso={false}
                   desde={tramo.fecha}
-                  etiquetaDesde="Fecha"
+                  etiquetaDesde={t("common.date")}
                   hasta={null}
                   onCambio={(fecha) => cambiarTramo(indice, { fecha })}
                   unica
@@ -423,7 +429,7 @@ export default function Buscador({
                     }}
                     type="button"
                   >
-                    Quitar
+                    {t("common.remove")}
                   </button>
                 )}
               </div>
@@ -447,7 +453,7 @@ export default function Buscador({
                 }}
                 type="button"
               >
-                + Agregar tramo
+                + {t("search.addSegment")}
               </button>
             )}
             <div className="w-full sm:w-56">
@@ -463,7 +469,7 @@ export default function Buscador({
           <div className="relative lg:col-span-3">
             <CampoAeropuerto
               descripcion={datos.origenNombre ?? null}
-              etiqueta="Origen"
+              etiqueta={t("common.origin")}
               key={`origen-${inversiones}-${origenDetectado?.codigo ?? "manual"}`}
               onCambio={(codigo, nombre, ciudad, pais) =>
                 setDatos({ ...datos, origen: codigo, origenNombre: nombre, origenCiudad: ciudad, origenPais: pais })
@@ -472,15 +478,15 @@ export default function Buscador({
             />
             {origenDetectado && datos.origen === origenDetectado.codigo && (
               <p className="mt-1 text-[11px] text-[#5A6B80]">
-                Detectado por tu ubicación (
-                {origenDetectado.ciudad ?? origenDetectado.codigo}) — cámbialo
-                si no sales de ahí
+                {t("search.detectedLocation", {
+                  city: origenDetectado.ciudad ?? origenDetectado.codigo,
+                })}
               </p>
             )}
             <button
-              aria-label="Invertir origen y destino"
+              aria-label={t("search.swapOriginDestination")}
               className="absolute -bottom-4 right-5 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-[#E4E8EE] bg-white text-xs text-[#14477E] shadow lg:-right-3 lg:bottom-auto lg:top-8"
-              title="Invertir origen y destino"
+              title={t("search.swapOriginDestination")}
               onClick={invertir}
               type="button"
             >
@@ -491,7 +497,7 @@ export default function Buscador({
           <div className="lg:col-span-3">
             <CampoAeropuerto
               descripcion={datos.destinoNombre ?? null}
-              etiqueta="Destino"
+              etiqueta={t("common.destination")}
               key={`destino-${inversiones}`}
               onCambio={(codigo, nombre, ciudad, pais) =>
                 setDatos({ ...datos, destino: codigo, destinoNombre: nombre, destinoCiudad: ciudad, destinoPais: pais })
@@ -526,22 +532,22 @@ export default function Buscador({
           disabled={cargando || !completo}
           type="submit"
         >
-          {cargando ? "Buscando tarifas…" : "Buscar vuelos"}
+          {cargando ? t("search.searching") : t("search.searchFlights")}
         </button>
         <p className="text-xs text-[#5A6B80]">
           {falta ??
-            `${datos.adultos + datos.menores.length + datos.bebes} pasajero${
+            `${datos.adultos + datos.menores.length + datos.bebes} ${
               datos.adultos + datos.menores.length + datos.bebes === 1
-                ? ""
-                : "s"
+                ? t("common.passenger")
+                : t("common.passengers")
             } · ${
               multiciudad
-                ? `multiciudad (${tramos.length} tramos)`
+                ? `${t("common.multiCity")} (${tramos.length} ${tramos.length === 1 ? t("search.segment") : t("search.segments")})`
                 : redondo
-                  ? "viaje redondo"
-                  : "sólo ida"
+                  ? t("common.roundTrip")
+                  : t("common.oneWay")
             } · ${
-              CABINAS.find((c) => c.valor === datos.cabina)?.texto ?? "Turista"
+              t(CABINAS.find((c) => c.valor === datos.cabina)?.clave ?? "common.economy")
             }`}
         </p>
       </div>

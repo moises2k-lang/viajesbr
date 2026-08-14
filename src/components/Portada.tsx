@@ -35,6 +35,8 @@ import Precio from "@/components/Precio";
 import { useMoneda } from "@/components/MonedaContext";
 import { useAuth } from "@/components/AuthContext";
 import AuthModal from "@/components/AuthModal";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useI18n } from "@/lib/i18n";
 import { TicketsPlane, Building2, Briefcase, User, LogOut, Users } from "lucide-react";
 import {
   borrarHistorial,
@@ -77,6 +79,7 @@ type Paquete =
   | { paso: 3; vuelo: OfertaConPrecio; hotel: HotelConPrecio; habitacion: HabitacionConPrecio };
 
 export default function Portada({ modoInterno }: { modoInterno: boolean }) {
+  const { t } = useI18n();
   const { moneda, setMoneda } = useMoneda();
   const { usuario, cargando: cargandoAuth, cerrarSesion } = useAuth();
   const [modalAuth, setModalAuth] = useState(false);
@@ -326,27 +329,28 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
               valor={moneda}
               onCambio={(nuevo) => setMoneda(nuevo ?? "USD")}
             />
+            <LanguageSwitcher />
             <nav className="flex items-center gap-4 text-sm text-white/80">
               <Link
                 className="hover:text-white"
                 href="/corporativo"
                 prefetch={false}
               >
-                Corporativos
+                {t("common.corporate")}
               </Link>
               <Link
                 className="hover:text-white"
                 href="/admin/itinerarios"
                 prefetch={false}
               >
-                Itinerarios
+                {t("common.itineraries")}
               </Link>
               <Link
                 className="hover:text-white"
                 href="/admin/markup"
                 prefetch={false}
               >
-                Markup
+                {t("common.markup")}
               </Link>
               {!cargandoAuth &&
                 (usuario ? (
@@ -369,7 +373,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
                     onClick={() => setModalAuth(true)}
                     type="button"
                   >
-                    <User className="h-4 w-4" /> Entrar
+                    <User className="h-4 w-4" /> {t("common.login")}
                   </button>
                 ))}
             </nav>
@@ -381,18 +385,14 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div>
             <h1 className="text-2xl font-semibold sm:text-3xl">
-              {pestana === "vuelos"
-                ? "Vuelos con tarifas en tiempo real"
-                : pestana === "hoteles"
-                  ? "Hoteles con tarifas en tiempo real"
-                  : "Paquetes vuelo + hotel"}
+              {t("home.title")}
             </h1>
             <p className="mt-1 text-sm text-white/70">
               {pestana === "vuelos"
-                ? "Más de 300 aerolíneas · precio final con impuestos · sin cargos escondidos"
+                ? t("home.subtitleFlights")
                 : pestana === "hoteles"
-                  ? "Inventario de liteAPI · precio por estancia completa · políticas de cancelación reales"
-                  : "Combina tu vuelo y hotel en una sola búsqueda"}
+                  ? t("home.subtitleHotels")
+                  : t("home.subtitlePackages")}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {(["vuelos", "hoteles", "paquetes"] as const).map((opcion) => (
@@ -411,15 +411,15 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
                 >
                   {opcion === "vuelos" ? (
                     <>
-                      <TicketsPlane className="h-4 w-4" /> Vuelos
+                      <TicketsPlane className="h-4 w-4" /> {t("common.flights")}
                     </>
                   ) : opcion === "hoteles" ? (
                     <>
-                      <Building2 className="h-4 w-4" /> Hoteles
+                      <Building2 className="h-4 w-4" /> {t("common.hotels")}
                     </>
                   ) : (
                     <>
-                      <Briefcase className="h-4 w-4" /> Paquetes
+                      <Briefcase className="h-4 w-4" /> {t("common.packages")}
                     </>
                   )}
                 </button>
@@ -429,7 +429,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
                 href="/corporativo"
                 prefetch={false}
               >
-                <Users className="h-4 w-4" /> Corporativos
+                <Users className="h-4 w-4" /> {t("common.corporate")}
               </Link>
             </div>
           </div>
