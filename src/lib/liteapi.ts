@@ -70,12 +70,25 @@ export interface TarifaLiteApi {
   childCount?: number;
   cancellationPolicies?: {
     refundableTag?: string;
-    cancelPolicyInfos?: { cancelTime?: string; amount?: number; currency?: string }[];
+    cancelPolicyInfos?: {
+      cancelTime?: string;
+      amount?: number;
+      currency?: string;
+    }[];
   };
   retailRate?: {
     total?: { amount: number; currency: string }[];
-    suggestedSellingPrice?: { amount: number; currency: string; source?: string }[];
-    taxesAndFees?: { included: boolean; description: string; amount: number; currency: string }[];
+    suggestedSellingPrice?: {
+      amount: number;
+      currency: string;
+      source?: string;
+    }[];
+    taxesAndFees?: {
+      included: boolean;
+      description: string;
+      amount: number;
+      currency: string;
+    }[];
   };
 }
 
@@ -102,7 +115,9 @@ export interface LugarLiteApi {
 }
 
 /** Autocompletado de destinos de liteAPI; el placeId sirve directo para buscar tarifas. */
-export async function sugerirCiudades(consulta: string): Promise<LugarLiteApi[]> {
+export async function sugerirCiudades(
+  consulta: string,
+): Promise<LugarLiteApi[]> {
   const cuerpo = await llamar<{ data: LugarLiteApi[] }>(
     `/data/places?textQuery=${encodeURIComponent(consulta)}&language=es`,
   );
@@ -120,7 +135,9 @@ export interface ParametrosHoteles {
   limite: number;
 }
 
-export async function buscarHoteles(p: ParametrosHoteles): Promise<RespuestaTarifas> {
+export async function buscarHoteles(
+  p: ParametrosHoteles,
+): Promise<RespuestaTarifas> {
   return llamar<RespuestaTarifas>("/hotels/rates", {
     method: "POST",
     body: JSON.stringify({
@@ -215,4 +232,96 @@ export async function reservarHotel(args: {
       clientReference: args.referencia,
     }),
   });
+}
+
+export interface FotoHabitacionLiteApi {
+  url: string;
+  hd_url?: string;
+  imageDescription?: string;
+  mainPhoto?: boolean;
+}
+
+export interface HabitacionCatalogoLiteApi {
+  id: number;
+  roomName: string;
+  description?: string;
+  roomSizeSquare?: number;
+  roomSizeUnit?: string;
+  maxOccupancy?: number;
+  maxAdults?: number;
+  maxChildren?: number;
+  bedTypes?: { quantity?: number; bedType?: string; bedSize?: string }[];
+  roomAmenities?: { name: string }[];
+  photos?: FotoHabitacionLiteApi[];
+}
+
+export interface DetalleHotelLiteApi {
+  id: string;
+  name: string;
+  hotelDescription?: string;
+  hotelImportantInformation?: string;
+  checkinCheckoutTimes?: {
+    checkin_start?: string;
+    checkin_end?: string;
+    checkout?: string;
+  };
+  hotelImages?: {
+    url: string;
+    urlHd?: string;
+    caption?: string;
+    defaultImage?: boolean;
+  }[];
+  main_photo?: string;
+  country?: string;
+  city?: string;
+  starRating?: number;
+  location?: { latitude?: number; longitude?: number };
+  address?: string;
+  zip?: string;
+  chain?: string;
+  hotelFacilities?: string[];
+  rooms?: HabitacionCatalogoLiteApi[];
+  phone?: string;
+  hotelType?: string;
+  rating?: number;
+  reviewCount?: number;
+  parking?: string;
+  childAllowed?: boolean;
+  petsAllowed?: boolean;
+  sentiment_analysis?: {
+    pros?: string[];
+    cons?: string[];
+    categories?: { name: string; rating: number; description?: string }[];
+  };
+}
+
+/** Ficha completa del hotel: fotos, servicios, habitaciones del catálogo y ubicación. */
+export async function detalleHotel(
+  hotelId: string,
+): Promise<DetalleHotelLiteApi> {
+  const cuerpo = await llamar<{ data: DetalleHotelLiteApi }>(
+    `/data/hotel?hotelId=${encodeURIComponent(hotelId)}`,
+  );
+  return cuerpo.data;
+}
+
+export interface ResenaLiteApi {
+  averageScore?: number;
+  country?: string;
+  type?: string;
+  name?: string;
+  date?: string;
+  headline?: string;
+  pros?: string;
+  cons?: string;
+}
+
+export async function resenasHotel(
+  hotelId: string,
+  limite = 8,
+): Promise<ResenaLiteApi[]> {
+  const cuerpo = await llamar<{ data: ResenaLiteApi[] }>(
+    `/data/reviews?hotelId=${encodeURIComponent(hotelId)}&limit=${limite}&timeout=5`,
+  );
+  return cuerpo.data ?? [];
 }

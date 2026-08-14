@@ -40,6 +40,12 @@ export function condicionesTexto(oferta: OfertaConPrecio): string {
   return `${cambios} · ${reembolso}`;
 }
 
+function nombreTramo(total: number, indice: number): string {
+  if (indice === 0) return "Ida";
+  if (total === 2) return "Regreso";
+  return `Tramo ${indice + 1}`;
+}
+
 function nombrePasajero(
   pasajero: { tipo: string; edad: number | null },
   indice: number,
@@ -49,52 +55,87 @@ function nombrePasajero(
   return `Adulto ${indice + 1}`;
 }
 
-/** Detalle vuelo por vuelo: números, horarios, avión, cabina y esperas de conexión. */
+/** Detalle vuelo por vuelo, como línea de tiempo: hora a la izquierda, aeropuerto a la derecha. */
 export function DetalleTramos({ oferta }: { oferta: OfertaConPrecio }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {oferta.tramos.map((tramo, indice) => (
-        <div key={`detalle-${indice}`}>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#5A6B80]">
-            {oferta.tramos.length === 2 && indice === 1
-              ? "Regreso"
-              : indice === 0
-                ? "Ida"
-                : `Tramo ${indice + 1}`}{" "}
-            · {tramo.origenBandera} {tramo.origenNombre} ({tramo.origen}) –{" "}
-            {tramo.destinoBandera} {tramo.destinoNombre} ({tramo.destino})
-          </p>
-          {tramo.segmentos.map((segmento) => (
-            <div
-              className="mt-1 text-xs text-[#0B2545]"
-              key={segmento.vuelo + segmento.sale}
-            >
-              {segmento.esperaMinutos !== null && (
-                <p className="my-1 text-[#5A6B80]">
-                  Espera en {segmento.origenNombre} ({segmento.origen}):{" "}
-                  {minutosATexto(segmento.esperaMinutos)}
-                </p>
-              )}
-              <p>
-                <span className="font-mono">{segmento.vuelo}</span> ·{" "}
-                {segmento.origenBandera} {segmento.origenNombre} (
-                {segmento.origen}) {fechaCorta(segmento.sale)}{" "}
-                {horaCorta(segmento.sale)} → {segmento.destinoBandera}{" "}
-                {segmento.destinoNombre} ({segmento.destino}){" "}
-                {fechaCorta(segmento.llega)} {horaCorta(segmento.llega)} ·{" "}
-                {minutosATexto(segmento.minutos)}
-              </p>
-              <p className="text-[#5A6B80]">
-                {segmento.aerolinea}
-                {segmento.cabina ? ` · ${segmento.cabina}` : ""}
-                {segmento.avion ? ` · ${segmento.avion}` : ""}
-              </p>
-            </div>
-          ))}
-          <p className="mt-1 text-xs text-[#5A6B80]">
-            Equipaje incluido: {equipajeTexto(tramo.equipaje)}
-            {tramo.marcaTarifa ? ` · tarifa ${tramo.marcaTarifa}` : ""}
-          </p>
+        <div
+          className="overflow-hidden rounded-lg border border-[#E4E8EE] bg-white"
+          key={`detalle-${indice}`}
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 bg-[#0B2545] px-3 py-2 text-white">
+            <p className="text-sm font-semibold">
+              {nombreTramo(oferta.tramos.length, indice)} · {tramo.origen} →{" "}
+              {tramo.destino}
+            </p>
+            <p className="text-xs text-white/70">
+              {fechaCorta(tramo.segmentos[0].sale)} ·{" "}
+              {minutosATexto(tramo.minutos)} ·{" "}
+              {tramo.escalas === 0
+                ? "directo"
+                : `${tramo.escalas} escala${tramo.escalas === 1 ? "" : "s"}`}
+            </p>
+          </div>
+
+          <div className="px-3 py-3">
+            {tramo.segmentos.map((segmento) => (
+              <div key={segmento.vuelo + segmento.sale}>
+                {segmento.esperaMinutos !== null && (
+                  <p className="my-2 rounded-md bg-[#FFF6E0] px-2 py-1.5 text-xs font-medium text-[#8A6A00]">
+                    Escala de {minutosATexto(segmento.esperaMinutos)} en{" "}
+                    {segmento.origen} · {segmento.origenNombre}
+                  </p>
+                )}
+
+                <div className="flex gap-3">
+                  <div className="w-14 shrink-0 pt-0.5 text-right">
+                    <p className="text-sm font-semibold tabular-nums text-[#0B2545]">
+                      {horaCorta(segmento.sale)}
+                    </p>
+                  </div>
+                  <div className="relative flex w-3 shrink-0 justify-center">
+                    <span className="absolute top-1.5 h-2 w-2 rounded-full border-2 border-[#14477E] bg-white" />
+                    <span className="absolute top-3.5 bottom-3.5 w-px bg-[#E4E8EE]" />
+                    <span className="absolute bottom-1.5 h-2 w-2 rounded-full bg-[#14477E]" />
+                  </div>
+                  <div className="min-w-0 flex-1 pb-3">
+                    <p className="text-sm font-medium text-[#0B2545]">
+                      {segmento.origenBandera} {segmento.origen} ·{" "}
+                      {segmento.origenNombre}
+                    </p>
+                    <p className="mt-1 text-xs text-[#5A6B80]">
+                      <span className="font-mono text-[#14477E]">
+                        {segmento.vuelo}
+                      </span>{" "}
+                      · {segmento.aerolinea} · {minutosATexto(segmento.minutos)}{" "}
+                      de vuelo
+                      {segmento.cabina ? ` · ${segmento.cabina}` : ""}
+                      {segmento.avion ? ` · ${segmento.avion}` : ""}
+                    </p>
+                    <p className="mt-2 text-sm font-medium text-[#0B2545]">
+                      {segmento.destinoBandera} {segmento.destino} ·{" "}
+                      {segmento.destinoNombre}
+                    </p>
+                  </div>
+                  <div className="w-14 shrink-0 self-end pb-3 text-right">
+                    <p className="text-sm font-semibold tabular-nums text-[#0B2545]">
+                      {horaCorta(segmento.llega)}
+                    </p>
+                    {fechaCorta(segmento.llega) !==
+                      fechaCorta(segmento.sale) && (
+                      <p className="text-[10px] text-[#B4451F]">+1 día</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <p className="border-t border-[#E4E8EE] pt-2 text-xs text-[#5A6B80]">
+              Equipaje incluido: {equipajeTexto(tramo.equipaje)}
+              {tramo.marcaTarifa ? ` · tarifa ${tramo.marcaTarifa}` : ""}
+            </p>
+          </div>
         </div>
       ))}
       <p className="text-xs text-[#5A6B80]">{condicionesTexto(oferta)}</p>

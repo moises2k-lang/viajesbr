@@ -53,8 +53,14 @@ export interface Oferta {
   slices: RebanadaOferta[];
   passengers: { id: string; type?: TipoPasajero; age?: number }[];
   conditions?: {
-    change_before_departure?: { allowed: boolean; penalty_amount?: string | null } | null;
-    refund_before_departure?: { allowed: boolean; penalty_amount?: string | null } | null;
+    change_before_departure?: {
+      allowed: boolean;
+      penalty_amount?: string | null;
+    } | null;
+    refund_before_departure?: {
+      allowed: boolean;
+      penalty_amount?: string | null;
+    } | null;
   };
 }
 
@@ -121,7 +127,8 @@ async function llamarCrudo<T>(ruta: string, init?: RequestInit): Promise<T> {
     try {
       const cuerpo = JSON.parse(texto) as ErrorDuffel;
       const primero = cuerpo.errors?.[0];
-      if (primero) detalle = [primero.title, primero.message].filter(Boolean).join(": ");
+      if (primero)
+        detalle = [primero.title, primero.message].filter(Boolean).join(": ");
     } catch {
       // se queda el texto crudo
     }
@@ -146,35 +153,46 @@ export interface ParametrosBusqueda {
   cabina?: string | null;
 }
 
-export async function buscarOfertas(p: ParametrosBusqueda): Promise<SolicitudOfertas> {
+export async function buscarOfertas(
+  p: ParametrosBusqueda,
+): Promise<SolicitudOfertas> {
   const slices = [
     { origin: p.origen, destination: p.destino, departure_date: p.fechaSalida },
   ];
   if (p.fechaRegreso) {
-    slices.push({ origin: p.destino, destination: p.origen, departure_date: p.fechaRegreso });
+    slices.push({
+      origin: p.destino,
+      destination: p.origen,
+      departure_date: p.fechaRegreso,
+    });
   }
 
   const passengers: PasajeroSolicitud[] = [];
   for (let i = 0; i < p.adultos; i += 1) passengers.push({ type: "adult" });
   for (const edad of p.menores) passengers.push({ age: edad });
-  for (let i = 0; i < p.bebes; i += 1) passengers.push({ type: "infant_without_seat" });
+  for (let i = 0; i < p.bebes; i += 1)
+    passengers.push({ type: "infant_without_seat" });
 
-  return llamar<SolicitudOfertas>("/air/offer_requests?return_offers=true&supplier_timeout=20000", {
-    method: "POST",
-    body: JSON.stringify({
-      data: {
-        slices,
-        passengers,
-        ...(p.cabina ? { cabin_class: p.cabina } : {}),
-      },
-    }),
-  });
+  return llamar<SolicitudOfertas>(
+    "/air/offer_requests?return_offers=true&supplier_timeout=20000",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        data: {
+          slices,
+          passengers,
+          ...(p.cabina ? { cabin_class: p.cabina } : {}),
+        },
+      }),
+    },
+  );
 }
 
 export interface AeropuertoSugerido {
   id: string;
   name: string;
   iata_code: string | null;
+  iata_city_code?: string | null;
   city_name?: string | null;
   iata_country_code?: string | null;
   latitude?: number | null;
@@ -200,14 +218,17 @@ interface PaginaAeropuertos {
 }
 
 /** Aeropuertos de un país con sus coordenadas, tal como los publica Duffel. */
-export async function aeropuertosDelPais(codigoPais: string): Promise<AeropuertoSugerido[]> {
+export async function aeropuertosDelPais(
+  codigoPais: string,
+): Promise<AeropuertoSugerido[]> {
   const aeropuertos: AeropuertoSugerido[] = [];
   let after: string | null = null;
   for (let pagina = 0; pagina < 10; pagina += 1) {
     const ruta: string =
       `/air/airports?iata_country_code=${encodeURIComponent(codigoPais)}&limit=200` +
       (after ? `&after=${encodeURIComponent(after)}` : "");
-    const cuerpo: PaginaAeropuertos = await llamarCrudo<PaginaAeropuertos>(ruta);
+    const cuerpo: PaginaAeropuertos =
+      await llamarCrudo<PaginaAeropuertos>(ruta);
     aeropuertos.push(...cuerpo.data);
     after = cuerpo.meta.after ?? null;
     if (!after) break;
@@ -215,12 +236,18 @@ export async function aeropuertosDelPais(codigoPais: string): Promise<Aeropuerto
   return aeropuertos;
 }
 
-export async function sugerirLugares(consulta: string): Promise<LugarSugerido[]> {
-  return llamar<LugarSugerido[]>(`/places/suggestions?query=${encodeURIComponent(consulta)}`);
+export async function sugerirLugares(
+  consulta: string,
+): Promise<LugarSugerido[]> {
+  return llamar<LugarSugerido[]>(
+    `/places/suggestions?query=${encodeURIComponent(consulta)}`,
+  );
 }
 
 export async function obtenerOferta(offerId: string): Promise<Oferta> {
-  return llamar<Oferta>(`/air/offers/${offerId}?return_available_services=false`);
+  return llamar<Oferta>(
+    `/air/offers/${offerId}?return_available_services=false`,
+  );
 }
 
 export async function crearOrden(args: {
@@ -236,7 +263,9 @@ export async function crearOrden(args: {
         type: "instant",
         selected_offers: [args.offerId],
         passengers: args.pasajeros,
-        payments: [{ type: "balance", currency: args.moneda, amount: args.monto }],
+        payments: [
+          { type: "balance", currency: args.moneda, amount: args.monto },
+        ],
       },
     }),
   });

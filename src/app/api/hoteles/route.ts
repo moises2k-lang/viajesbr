@@ -13,8 +13,8 @@ import { bandera, nombrePais } from "@/lib/paises";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MAXIMO_HOTELES = 60;
-const MAXIMO_TARIFAS_POR_HOTEL = 12;
+const MAXIMO_HOTELES = 150;
+const MAXIMO_TARIFAS_POR_HOTEL = 25;
 
 const esquema = z.object({
   placeId: z.string().trim().min(5),
