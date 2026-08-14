@@ -414,10 +414,10 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
             )}
 
             {pestana === "paquetes" && estado.fase === "resultados" && (
-              <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <div className="mt-6 grid grid-cols-1 gap-8">
                 <div className="space-y-4">
                   <h2 className="text-lg font-semibold text-[#0B2545]">
-                    Vuelos
+                    ✈️ Vuelos
                   </h2>
                   <ListaOfertas
                     aerolineasCombinaciones={estado.aerolineasCombinaciones}
@@ -435,7 +435,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
 
                 <div className="space-y-4">
                   <h2 className="text-lg font-semibold text-[#0B2545]">
-                    Hoteles en tu destino
+                    🏨 Hoteles en tu destino
                   </h2>
                   {estadoHoteles.fase === "inicio" && ultimaBusqueda?.destino && (
                     <p className="text-sm text-[#5A6B80]">
