@@ -96,10 +96,12 @@ export default function SelectorTelefono({
       <div className="flex">
         <SelectorConBandera
           botonClassName="rounded-r-none border-r-0"
+          buscable
           className="shrink-0"
           items={items}
           listaClassName="w-64"
           placeholder="+"
+          placeholderBusqueda="Buscar país..."
           renderEtiqueta={(item) => {
             const pais = PAISES_TELEFONO.find((p) => p.iso === item.valor);
             if (!pais) return item.etiqueta;

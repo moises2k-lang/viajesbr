@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthContext";
 import SelectorTelefono from "@/components/SelectorTelefono";
+import CampoAeropuerto from "@/components/CampoAeropuerto";
 import { Building2, Plane, Hotel, Car, FileText, Users, ArrowRight, CheckCircle2 } from "lucide-react";
 
 interface Bloque {
@@ -26,8 +27,10 @@ interface Formulario {
   telefono: string;
   numViajeros: number;
   tipoViaje: string;
-  origen: string;
-  destino: string;
+  origenCodigo: string;
+  origenDesc: string | null;
+  destinoCodigo: string;
+  destinoDesc: string | null;
   fechaSalida: string;
   fechaRegreso: string;
   vueloNecesario: boolean;
@@ -47,8 +50,10 @@ const VACIO: Formulario = {
   telefono: "",
   numViajeros: 1,
   tipoViaje: "ejecutivo",
-  origen: "",
-  destino: "",
+  origenCodigo: "",
+  origenDesc: null,
+  destinoCodigo: "",
+  destinoDesc: null,
   fechaSalida: "",
   fechaRegreso: "",
   vueloNecesario: true,
@@ -125,7 +130,7 @@ export default function CorporativoWizard() {
   }
 
   function validarPaso2() {
-    return f.origen.trim() && f.destino.trim() && f.fechaSalida;
+    return f.origenCodigo.trim() && f.destinoCodigo.trim() && f.fechaSalida;
   }
 
   function continuar() {
@@ -165,12 +170,12 @@ export default function CorporativoWizard() {
       bloques.push({
         posicion: bloques.length,
         tipo: "vuelo",
-        titulo: `Vuelo ${f.origen} → ${f.destino}`,
+        titulo: `Vuelo ${f.origenDesc || f.origenCodigo} → ${f.destinoDesc || f.destinoCodigo}`,
         fecha: f.fechaSalida,
         fecha_fin: f.fechaRegreso || null,
         detalle: `${f.numViajeros} pasajero${f.numViajeros === 1 ? "" : "s"} · ${CLASES.find((c) => c.valor === f.clasePreferida)?.texto}`,
         proveedor: "Pendiente cotización",
-        datos: { origen: f.origen, destino: f.destino, clase: f.clasePreferida },
+        datos: { origen: f.origenCodigo, destino: f.destinoCodigo, clase: f.clasePreferida },
       });
     }
 
@@ -178,12 +183,12 @@ export default function CorporativoWizard() {
       bloques.push({
         posicion: bloques.length,
         tipo: "hotel",
-        titulo: `Hotel en ${f.destino}`,
+        titulo: `Hotel en ${f.destinoDesc || f.destinoCodigo}`,
         fecha: f.fechaSalida,
         fecha_fin: f.fechaRegreso || null,
         detalle: `${CATEGORIAS.find((c) => c.valor === f.categoriaHotel)?.texto} · ${f.numViajeros} huéspedes`,
         proveedor: "Pendiente cotización",
-        datos: { destino: f.destino, categoria: f.categoriaHotel },
+        datos: { destino: f.destinoCodigo, categoria: f.categoriaHotel },
       });
     }
 
@@ -207,7 +212,7 @@ export default function CorporativoWizard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          titulo: `Cotización corporativa · ${f.empresa} · ${f.destino || f.origen}`,
+          titulo: `Cotización corporativa · ${f.empresa} · ${f.destinoDesc || f.destinoCodigo || f.origenDesc || f.origenCodigo}`,
           cliente: f.contacto,
           resumen: `${f.email} · ${f.telefono} · ${f.empresa} · ${f.numViajeros} viajeros`,
           moneda: "USD",
@@ -369,26 +374,24 @@ export default function CorporativoWizard() {
                 <div className="space-y-4">
                   {sectionTitle(<Plane className="h-5 w-5" />, "Detalles del viaje")}
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className={labelClase()}>Origen *</label>
-                      <input
-                        className={inputClase()}
-                        onChange={(e) => actualizar("origen", e.target.value)}
-                        placeholder="Ciudad o aeropuerto"
-                        type="text"
-                        value={f.origen}
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClase()}>Destino *</label>
-                      <input
-                        className={inputClase()}
-                        onChange={(e) => actualizar("destino", e.target.value)}
-                        placeholder="Ciudad o aeropuerto"
-                        type="text"
-                        value={f.destino}
-                      />
-                    </div>
+                    <CampoAeropuerto
+                      etiqueta="Origen *"
+                      valor={f.origenCodigo}
+                      descripcion={f.origenDesc}
+                      onCambio={(codigo, desc) => {
+                        actualizar("origenCodigo", codigo);
+                        actualizar("origenDesc", desc);
+                      }}
+                    />
+                    <CampoAeropuerto
+                      etiqueta="Destino *"
+                      valor={f.destinoCodigo}
+                      descripcion={f.destinoDesc}
+                      onCambio={(codigo, desc) => {
+                        actualizar("destinoCodigo", codigo);
+                        actualizar("destinoDesc", desc);
+                      }}
+                    />
                     <div>
                       <label className={labelClase()}>Fecha de salida *</label>
                       <input
