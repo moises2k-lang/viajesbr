@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { buscarOfertas, type Oferta } from "@/lib/duffel";
+import { buscarOfertas } from "@/lib/duffel";
 import { calcularPrecio, reglasActivas } from "@/lib/markup";
-import { bandera, nombrePais } from "@/lib/paises";
+import { armarOpcionesPorTramo, normalizarOferta } from "@/lib/ofertas";
 import { query } from "@/lib/db";
+
+export type {
+  OfertaConPrecio,
+  OpcionTramo,
+  CombinacionTramos,
+  AerolineaResumen,
+} from "@/lib/ofertas";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -34,144 +41,6 @@ const esquema = z.object({
 });
 
 const MAXIMO_OFERTAS = 150;
-
-function minutosEntre(desde: string, hasta: string): number {
-  return Math.round(
-    (new Date(hasta).getTime() - new Date(desde).getTime()) / 60000,
-  );
-}
-
-export interface OfertaConPrecio {
-  ofertaId: string;
-  cotizacionId?: string | null;
-  aerolinea: string;
-  aerolineaIata: string;
-  logo: string | null;
-  moneda: string;
-  costoNeto: number;
-  markup: number;
-  precioVenta: number;
-  expiraEn: string;
-  cambiosPermitidos: boolean | null;
-  reembolsoPermitido: boolean | null;
-  pasajeros: { tipo: string; edad: number | null }[];
-  tramos: {
-    origen: string;
-    destino: string;
-    origenNombre: string;
-    destinoNombre: string;
-    origenCiudad: string | null;
-    destinoCiudad: string | null;
-    origenPais: string | null;
-    destinoPais: string | null;
-    origenBandera: string | null;
-    destinoBandera: string | null;
-    duracion: string | null;
-    minutos: number;
-    escalas: number;
-    marcaTarifa: string | null;
-    equipaje: { tipo: string; cantidad: number }[];
-    segmentos: {
-      vuelo: string;
-      origen: string;
-      destino: string;
-      origenNombre: string;
-      destinoNombre: string;
-      origenBandera: string | null;
-      destinoBandera: string | null;
-      sale: string;
-      llega: string;
-      minutos: number;
-      esperaMinutos: number | null;
-      cabina: string | null;
-      aerolinea: string;
-      avion: string | null;
-    }[];
-  }[];
-}
-
-function normalizarOferta(
-  oferta: Oferta,
-  precio: { costoNeto: number; markup: number; precioVenta: number },
-): OfertaConPrecio {
-  return {
-    ofertaId: oferta.id,
-    aerolinea: oferta.owner.name,
-    aerolineaIata: oferta.owner.iata_code,
-    logo: oferta.owner.logo_symbol_url ?? null,
-    moneda: oferta.total_currency,
-    costoNeto: precio.costoNeto,
-    markup: precio.markup,
-    precioVenta: precio.precioVenta,
-    expiraEn: oferta.expires_at,
-    cambiosPermitidos:
-      oferta.conditions?.change_before_departure?.allowed ?? null,
-    reembolsoPermitido:
-      oferta.conditions?.refund_before_departure?.allowed ?? null,
-    pasajeros: oferta.passengers.map((p) => ({
-      tipo: p.type ?? (typeof p.age === "number" ? "child" : "adult"),
-      edad: typeof p.age === "number" ? p.age : null,
-    })),
-    tramos: oferta.slices.map((tramo) => ({
-      origen: tramo.origin.iata_code,
-      destino: tramo.destination.iata_code,
-      origenNombre: tramo.origin.name,
-      destinoNombre: tramo.destination.name,
-      origenCiudad: tramo.origin.city_name ?? null,
-      destinoCiudad: tramo.destination.city_name ?? null,
-      origenPais: tramo.origin.iata_country_code
-        ? nombrePais(tramo.origin.iata_country_code)
-        : null,
-      destinoPais: tramo.destination.iata_country_code
-        ? nombrePais(tramo.destination.iata_country_code)
-        : null,
-      origenBandera: tramo.origin.iata_country_code
-        ? bandera(tramo.origin.iata_country_code)
-        : null,
-      destinoBandera: tramo.destination.iata_country_code
-        ? bandera(tramo.destination.iata_country_code)
-        : null,
-      duracion: tramo.duration ?? null,
-      minutos: minutosEntre(
-        tramo.segments[0].departing_at,
-        tramo.segments[tramo.segments.length - 1].arriving_at,
-      ),
-      escalas: tramo.segments.length - 1,
-      marcaTarifa: tramo.fare_brand_name ?? null,
-      equipaje:
-        tramo.segments[0]?.passengers?.[0]?.baggages?.map((b) => ({
-          tipo: b.type,
-          cantidad: b.quantity,
-        })) ?? [],
-      segmentos: tramo.segments.map((segmento, indice) => ({
-        vuelo: `${segmento.marketing_carrier.iata_code}${segmento.marketing_carrier_flight_number}`,
-        origen: segmento.origin.iata_code,
-        destino: segmento.destination.iata_code,
-        origenNombre: segmento.origin.name,
-        destinoNombre: segmento.destination.name,
-        origenBandera: segmento.origin.iata_country_code
-          ? bandera(segmento.origin.iata_country_code)
-          : null,
-        destinoBandera: segmento.destination.iata_country_code
-          ? bandera(segmento.destination.iata_country_code)
-          : null,
-        sale: segmento.departing_at,
-        llega: segmento.arriving_at,
-        minutos: minutosEntre(segmento.departing_at, segmento.arriving_at),
-        esperaMinutos:
-          indice === 0
-            ? null
-            : minutosEntre(
-                tramo.segments[indice - 1].arriving_at,
-                segmento.departing_at,
-              ),
-        cabina: segmento.passengers?.[0]?.cabin_class_marketing_name ?? null,
-        aerolinea: segmento.marketing_carrier.name,
-        avion: segmento.aircraft?.name ?? null,
-      })),
-    })),
-  };
-}
 
 export async function POST(request: Request) {
   let cuerpo: unknown;
@@ -294,10 +163,18 @@ export async function POST(request: Request) {
     : [];
   const porOferta = new Map(cotizaciones.map((c) => [c.duffel_offer_id, c.id]));
 
+  /** Para armar el viaje eligiendo ida y regreso por separado se usan todas las ofertas. */
+  const porTramo = armarOpcionesPorTramo(ofertas);
+
   return NextResponse.json({
     busquedaId: busqueda.id,
     solicitudId: solicitud.id,
     total: ofertas.length,
+    tramosBuscados: multiciudad ? multiciudad.length : p.fechaRegreso ? 2 : 1,
+    opcionesTramo: porTramo.opciones,
+    combinaciones: porTramo.combinaciones,
+    aerolineasCombinaciones: porTramo.aerolineas,
+    moneda: ofertas[0]?.oferta.total_currency ?? "USD",
     ofertas: mostradas.map(({ oferta, precio }) => ({
       ...normalizarOferta(oferta, precio),
       cotizacionId: porOferta.get(oferta.id) ?? null,

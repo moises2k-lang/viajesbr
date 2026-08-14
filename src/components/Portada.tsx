@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
-import type { OfertaConPrecio } from "@/app/api/buscar/route";
+import type {
+  AerolineaResumen,
+  CombinacionTramos,
+  OfertaConPrecio,
+  OpcionTramo,
+} from "@/app/api/buscar/route";
 import type { HotelConPrecio } from "@/app/api/hoteles/route";
 import Buscador, { type ParametrosFormulario } from "@/components/Buscador";
 import BuscadorHoteles, {
@@ -25,7 +30,16 @@ import {
 type Estado =
   | { fase: "inicio" }
   | { fase: "buscando" }
-  | { fase: "resultados"; ofertas: OfertaConPrecio[]; total: number }
+  | {
+      fase: "resultados";
+      ofertas: OfertaConPrecio[];
+      total: number;
+      busquedaId: string | null;
+      tramosBuscados: number;
+      opcionesTramo: OpcionTramo[];
+      combinaciones: CombinacionTramos[];
+      aerolineasCombinaciones: Record<string, AerolineaResumen>;
+    }
   | { fase: "reservando"; oferta: OfertaConPrecio }
   | { fase: "confirmada"; resultado: ResultadoReserva };
 
@@ -47,6 +61,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
   });
   const [ultimoHotel, setUltimoHotel] = useState<ParametrosHotel | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resolviendo, setResolviendo] = useState(false);
   const [ultimaBusqueda, setUltimaBusqueda] =
     useState<ParametrosFormulario | null>(null);
   // Cada búsqueda aplicada remonta el formulario, incluso si repite los mismos datos.
@@ -79,10 +94,39 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
         fase: "resultados",
         ofertas: cuerpo.ofertas,
         total: cuerpo.total,
+        busquedaId: cuerpo.busquedaId ?? null,
+        tramosBuscados: cuerpo.tramosBuscados ?? 1,
+        opcionesTramo: cuerpo.opcionesTramo ?? [],
+        combinaciones: cuerpo.combinaciones ?? [],
+        aerolineasCombinaciones: cuerpo.aerolineasCombinaciones ?? {},
       });
     } catch (e) {
       setError((e as Error).message);
       setEstado({ fase: "inicio" });
+    }
+  }
+
+  /** El viaje armado tramo por tramo puede caer en una oferta que no se mostró: se resuelve aquí. */
+  async function elegirCombinacion(ofertaId: string) {
+    if (estado.fase !== "resultados") return;
+    setError(null);
+    setResolviendo(true);
+    try {
+      const respuesta = await fetch("/api/oferta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ofertaId, busquedaId: estado.busquedaId }),
+      });
+      const cuerpo = await respuesta.json();
+      if (!respuesta.ok) {
+        setError(cuerpo.error ?? "No se pudo tomar esa combinación");
+        return;
+      }
+      setEstado({ fase: "reservando", oferta: cuerpo.oferta });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setResolviendo(false);
     }
   }
 
@@ -265,10 +309,16 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
 
         {pestana === "vuelos" && estado.fase === "resultados" && (
           <ListaOfertas
+            aerolineasCombinaciones={estado.aerolineasCombinaciones}
+            combinaciones={estado.combinaciones}
             mostrarMargen={modoInterno}
             ofertas={estado.ofertas}
+            opcionesTramo={estado.opcionesTramo}
+            resolviendo={resolviendo}
             total={estado.total}
+            tramosBuscados={estado.tramosBuscados}
             onElegir={(oferta) => setEstado({ fase: "reservando", oferta })}
+            onElegirCombinacion={elegirCombinacion}
           />
         )}
 
