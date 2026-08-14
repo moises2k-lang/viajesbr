@@ -1,3 +1,5 @@
+import { dinero } from "@/lib/dinero";
+
 export const MARCA = {
   nombre: "IA Travel Planning",
   sitio: "viajes.sistemas-e.com",
@@ -11,11 +13,7 @@ export const MARCA = {
 } as const;
 
 export function formatoMoneda(monto: number, moneda: string): string {
-  return new Intl.NumberFormat("es-MX", {
-    style: "currency",
-    currency: moneda,
-    maximumFractionDigits: 2,
-  }).format(monto);
+  return dinero(monto, moneda);
 }
 
 export function formatoFecha(valor: string | Date | null): string {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { dinero } from "@/lib/dinero";
 import { reglasActivas } from "@/lib/markup";
 import FormularioRegla from "@/components/FormularioRegla";
 import BotonDesactivar from "@/components/BotonDesactivar";
@@ -18,12 +19,15 @@ export default async function AdminMarkup() {
       </header>
 
       <p className="mb-6 text-sm text-neutral-600">
-        Se aplica la primera regla activa que coincida, ordenada por prioridad (menor primero). El
-        markup es porcentaje + monto fijo, con un mínimo garantizado.
+        Se aplica la primera regla activa que coincida, ordenada por prioridad
+        (menor primero). El markup es porcentaje + monto fijo, con un mínimo
+        garantizado.
       </p>
 
       {reglas.length === 0 ? (
-        <p className="text-sm text-neutral-500">No hay reglas activas: se vende a costo neto.</p>
+        <p className="text-sm text-neutral-500">
+          No hay reglas activas: se vende a costo neto.
+        </p>
       ) : (
         <table className="w-full border-collapse text-sm">
           <thead>
@@ -49,9 +53,15 @@ export default async function AdminMarkup() {
                   {regla.origen ?? "*"} → {regla.destino ?? "*"}
                 </td>
                 <td className="py-2">{regla.moneda ?? "todas"}</td>
-                <td className="py-2 text-right">{Number(regla.porcentaje).toFixed(2)}</td>
-                <td className="py-2 text-right">{Number(regla.monto_fijo).toFixed(2)}</td>
-                <td className="py-2 text-right">{Number(regla.monto_minimo).toFixed(2)}</td>
+                <td className="py-2 text-right">
+                  {Number(regla.porcentaje).toFixed(2)}%
+                </td>
+                <td className="py-2 text-right">
+                  {dinero(Number(regla.monto_fijo))}
+                </td>
+                <td className="py-2 text-right">
+                  {dinero(Number(regla.monto_minimo))}
+                </td>
                 <td className="py-2 text-right">
                   <BotonDesactivar id={regla.id} />
                 </td>

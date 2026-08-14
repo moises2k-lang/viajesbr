@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { OfertaConPrecio } from "@/app/api/buscar/route";
 import Bandera from "@/components/Bandera";
+import LogoAerolinea from "@/components/LogoAerolinea";
+import { dinero } from "@/lib/dinero";
 import {
   fechaCorta,
   horaCorta,
@@ -106,7 +108,12 @@ export function DetalleTramos({ oferta }: { oferta: OfertaConPrecio }) {
                       <Bandera bandera={segmento.origenBandera} />{" "}
                       {segmento.origen} · {segmento.origenNombre}
                     </p>
-                    <p className="mt-1 text-xs text-[#5A6B80]">
+                    <p className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-[#5A6B80]">
+                      <LogoAerolinea
+                        className="h-4 w-4"
+                        iata={segmento.aerolineaIata}
+                        nombre={segmento.aerolinea}
+                      />
                       <span className="font-mono text-[#14477E]">
                         {segmento.vuelo}
                       </span>{" "}
@@ -159,18 +166,11 @@ export default function ResumenVuelo({ oferta, mostrarMargen }: Props) {
     <section className="rounded-xl border border-[#E4E8EE] bg-white p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          {oferta.logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              alt={oferta.aerolinea}
-              className="h-6 w-6 rounded"
-              src={oferta.logo}
-            />
-          ) : (
-            <span className="flex h-6 w-6 items-center justify-center rounded bg-[#E4E8EE] font-mono text-[10px] text-[#14477E]">
-              {oferta.aerolineaIata}
-            </span>
-          )}
+          <LogoAerolinea
+            iata={oferta.aerolineaIata}
+            logo={oferta.logo}
+            nombre={oferta.aerolinea}
+          />
           <span className="text-sm font-semibold text-[#0B2545]">
             {oferta.aerolinea}
           </span>
@@ -189,9 +189,7 @@ export default function ResumenVuelo({ oferta, mostrarMargen }: Props) {
 
         <div className="text-right">
           <p className="text-xl font-semibold text-[#0B2545]">
-            {oferta.precioVenta.toLocaleString("es-MX", {
-              maximumFractionDigits: 2,
-            })}
+            {dinero(oferta.precioVenta)}
             <span className="ml-1 text-sm font-normal text-[#5A6B80]">
               {oferta.moneda}
             </span>
@@ -200,11 +198,9 @@ export default function ResumenVuelo({ oferta, mostrarMargen }: Props) {
             total {pasajeros} pasajero{pasajeros === 1 ? "" : "s"} · impuestos
             incluidos
             {mostrarMargen
-              ? ` · neto ${oferta.costoNeto.toLocaleString("es-MX", {
-                  maximumFractionDigits: 2,
-                })} + markup ${oferta.markup.toLocaleString("es-MX", {
-                  maximumFractionDigits: 2,
-                })}`
+              ? ` · neto ${dinero(oferta.costoNeto)} + markup ${dinero(
+                  oferta.markup,
+                )}`
               : ""}
           </p>
         </div>

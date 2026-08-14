@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { OfertaConPrecio } from "@/app/api/buscar/route";
 import Bandera from "@/components/Bandera";
 import { DetalleTramos, equipajeTexto } from "@/components/ResumenVuelo";
+import LogoAerolinea from "@/components/LogoAerolinea";
+import { dinero } from "@/lib/dinero";
 
 export function horaCorta(iso: string): string {
   return new Date(iso).toLocaleTimeString("es-MX", {
@@ -46,18 +48,11 @@ export default function TarjetaOferta({
       <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-stretch">
         <div className="min-w-0 flex-1">
           <div className="mb-3 flex items-center gap-2">
-            {oferta.logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                alt={oferta.aerolinea}
-                className="h-6 w-6 rounded"
-                src={oferta.logo}
-              />
-            ) : (
-              <span className="flex h-6 w-6 items-center justify-center rounded bg-[#E4E8EE] font-mono text-[10px] text-[#14477E]">
-                {oferta.aerolineaIata}
-              </span>
-            )}
+            <LogoAerolinea
+              iata={oferta.aerolineaIata}
+              logo={oferta.logo}
+              nombre={oferta.aerolinea}
+            />
             <span className="text-sm font-medium text-[#0B2545]">
               {oferta.aerolinea}
             </span>
@@ -133,9 +128,7 @@ export default function TarjetaOferta({
         <div className="flex flex-col items-end justify-between gap-2 border-t border-[#E4E8EE] pt-3 sm:w-52 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
           <div className="text-right">
             <p className="text-2xl font-semibold text-[#0B2545]">
-              {oferta.precioVenta.toLocaleString("es-MX", {
-                maximumFractionDigits: 2,
-              })}
+              {dinero(oferta.precioVenta)}
               <span className="ml-1 text-sm font-normal text-[#5A6B80]">
                 {oferta.moneda}
               </span>
@@ -146,14 +139,7 @@ export default function TarjetaOferta({
             </p>
             {mostrarMargen && (
               <p className="mt-1 text-xs text-[#9AA7B8]">
-                neto{" "}
-                {oferta.costoNeto.toLocaleString("es-MX", {
-                  maximumFractionDigits: 2,
-                })}{" "}
-                + markup{" "}
-                {oferta.markup.toLocaleString("es-MX", {
-                  maximumFractionDigits: 2,
-                })}
+                neto {dinero(oferta.costoNeto)} + markup {dinero(oferta.markup)}
               </p>
             )}
           </div>

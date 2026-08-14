@@ -13,6 +13,8 @@ import {
   minutosATexto,
 } from "@/components/TarjetaOferta";
 import { FRANJAS, dentroDeFranjas } from "@/lib/franjas";
+import LogoAerolinea from "@/components/LogoAerolinea";
+import { dinero, dineroCorto } from "@/lib/dinero";
 
 interface Filtros {
   escalasMaximas: number | null;
@@ -169,7 +171,8 @@ export default function ArmarVuelo({
     setElegidas((actuales) =>
       actuales.map((valor, i) => (i === indice ? id : valor)),
     );
-    setFiltros(FILTROS_INICIALES);
+    // El número de vuelo es del tramo que ya se cerró; el resto de filtros sigue sirviendo.
+    setFiltros((actuales) => ({ ...actuales, vuelo: "" }));
     setVisibles(12);
   }
 
@@ -390,6 +393,10 @@ export default function ArmarVuelo({
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <LogoAerolinea
+                          iata={tramo.segmentos[0].aerolineaIata}
+                          nombre={tramo.segmentos[0].aerolinea}
+                        />
                         <span className="text-lg font-semibold tabular-nums text-[#0B2545]">
                           {horaCorta(tramo.segmentos[0].sale)}
                           <span className="mx-2 text-[#9AA7B8]">–</span>
@@ -430,14 +437,11 @@ export default function ArmarVuelo({
                       <div className="text-right">
                         <p className="text-base font-semibold text-[#0B2545]">
                           {diferencia <= 0
-                            ? `desde ${precio.toLocaleString("es-MX", { maximumFractionDigits: 0 })}`
-                            : `+ ${diferencia.toLocaleString("es-MX", { maximumFractionDigits: 0 })}`}
+                            ? `desde ${dineroCorto(precio)}`
+                            : `+ ${dineroCorto(diferencia)}`}
                         </p>
                         <p className="text-xs text-[#5A6B80]">
-                          total del viaje{" "}
-                          {precio.toLocaleString("es-MX", {
-                            maximumFractionDigits: 0,
-                          })}
+                          total del viaje {dineroCorto(precio, moneda)}
                         </p>
                       </div>
                       <button
@@ -479,7 +483,12 @@ export default function ArmarVuelo({
                 key={combo.ofertaId}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-[#0B2545]">
+                  <p className="flex items-center gap-2 font-medium text-[#0B2545]">
+                    <LogoAerolinea
+                      iata={combo.aerolineaIata}
+                      logo={aerolineas[combo.aerolineaIata]?.logo}
+                      nombre={aerolineas[combo.aerolineaIata]?.nombre}
+                    />
                     {aerolineas[combo.aerolineaIata]?.nombre ??
                       combo.aerolineaIata}
                     {combo.marcaTarifa ? ` · ${combo.marcaTarifa}` : ""}
@@ -495,22 +504,14 @@ export default function ArmarVuelo({
                   </p>
                   {mostrarMargen && (
                     <p className="mt-1 text-xs text-[#9AA7B8]">
-                      neto{" "}
-                      {combo.costoNeto.toLocaleString("es-MX", {
-                        maximumFractionDigits: 2,
-                      })}{" "}
-                      + markup{" "}
-                      {combo.markup.toLocaleString("es-MX", {
-                        maximumFractionDigits: 2,
-                      })}
+                      neto {dinero(combo.costoNeto)} + markup{" "}
+                      {dinero(combo.markup)}
                     </p>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-3 border-t border-[#E4E8EE] pt-3 sm:w-52 sm:flex-col sm:items-end sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
                   <p className="text-xl font-semibold text-[#0B2545]">
-                    {combo.precioVenta.toLocaleString("es-MX", {
-                      maximumFractionDigits: 2,
-                    })}
+                    {dinero(combo.precioVenta)}
                     <span className="ml-1 text-sm font-normal text-[#5A6B80]">
                       {moneda}
                     </span>

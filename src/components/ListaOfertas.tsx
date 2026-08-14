@@ -9,6 +9,7 @@ import type {
 } from "@/app/api/buscar/route";
 import ArmarVuelo from "@/components/ArmarVuelo";
 import TarjetaOferta, { minutosATexto } from "@/components/TarjetaOferta";
+import { dineroCorto } from "@/lib/dinero";
 import { FRANJAS, dentroDeFranjas, franjaDe } from "@/lib/franjas";
 
 type GrupoHorario = "franjasSalida" | "franjasLlegada" | "franjasRegreso";
@@ -512,10 +513,7 @@ export default function ListaOfertas({
                 {escalonesDePrecio(precioMinimo, precioMaximoDisponible).map(
                   (monto) => (
                     <option key={monto} value={monto}>
-                      hasta{" "}
-                      {monto.toLocaleString("es-MX", {
-                        maximumFractionDigits: 0,
-                      })}
+                      hasta {dineroCorto(monto)}
                     </option>
                   ),
                 )}
@@ -594,9 +592,7 @@ export default function ListaOfertas({
                       <span className="truncate">{datos.nombre}</span>
                     </span>
                     <span className="text-xs text-[#5A6B80]">
-                      {datos.minimo.toLocaleString("es-MX", {
-                        maximumFractionDigits: 0,
-                      })}
+                      {dineroCorto(datos.minimo)}
                     </span>
                   </label>
                 ))}

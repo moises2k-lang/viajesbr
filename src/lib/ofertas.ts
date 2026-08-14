@@ -14,6 +14,7 @@ export function minutosEntre(desde: string, hasta: string): number {
 
 export interface SegmentoNormalizado {
   vuelo: string;
+  aerolineaIata: string;
   origen: string;
   destino: string;
   origenNombre: string;
@@ -104,6 +105,7 @@ export function normalizarTramo(tramo: RebanadaOferta): TramoNormalizado {
         segmento.marketing_carrier.iata_code,
         segmento.marketing_carrier_flight_number,
       ),
+      aerolineaIata: segmento.marketing_carrier.iata_code,
       origen: segmento.origin.iata_code,
       destino: segmento.destination.iata_code,
       origenNombre: segmento.origin.name,
@@ -172,8 +174,16 @@ export function claveTramo(tramo: RebanadaOferta): string {
     .join("|");
 }
 
-export function tramoConMaleta(tramo: TramoNormalizado): boolean {
-  return tramo.equipaje.some((e) => e.tipo === "checked" && e.cantidad > 0);
+/**
+ * El equipaje lo define la tarifa, no la ruta: se lee de la oferta y nunca de la
+ * opción de tramo, que es compartida por tarifas con y sin maleta.
+ */
+function rebanadaConMaleta(tramo: RebanadaOferta): boolean {
+  return (
+    tramo.segments[0]?.passengers?.[0]?.baggages?.some(
+      (b) => b.type === "checked" && b.quantity > 0,
+    ) ?? false
+  );
 }
 
 /** Opción de un tramo suelto (una ida o un regreso concretos) para armar el viaje. */
@@ -228,7 +238,6 @@ export function armarOpcionesPorTramo(
 
   for (const { oferta, precio } of ofertas) {
     const ids: number[] = [];
-    const tramos: TramoNormalizado[] = [];
     for (const [indice, rebanada] of oferta.slices.entries()) {
       const clave = claveTramo(rebanada);
       const llave = `${indice}::${clave}`;
@@ -239,17 +248,21 @@ export function armarOpcionesPorTramo(
           indice,
           clave,
           precioMinimo: precio.precioVenta,
-          tramo: normalizarTramo(rebanada),
+          // Equipaje y marca pertenecen a la tarifa, no al tramo compartido.
+          tramo: {
+            ...normalizarTramo(rebanada),
+            equipaje: [],
+            marcaTarifa: null,
+          },
         };
         opciones.set(llave, opcion);
       } else if (precio.precioVenta < opcion.precioMinimo) {
         opcion.precioMinimo = precio.precioVenta;
       }
       ids.push(opcion.id);
-      tramos.push(opcion.tramo);
     }
 
-    const conMaleta = tramos.every(tramoConMaleta);
+    const conMaleta = oferta.slices.every(rebanadaConMaleta);
     const marca = oferta.slices[0]?.fare_brand_name ?? "";
     /** Misma ruta con distinta familia de tarifa o equipaje son opciones distintas de compra. */
     const llaveCombo = `${ids.join(">")}|${conMaleta ? 1 : 0}|${marca}`;

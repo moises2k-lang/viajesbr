@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
+
+import { dinero } from "@/lib/dinero";
 import type { FichaHotel } from "@/app/api/hoteles/[hotelId]/route";
 import type { HotelConPrecio } from "@/app/api/hoteles/route";
 import { emparejarHabitacion } from "@/lib/habitaciones";
@@ -13,10 +15,6 @@ type Orden = "precio" | "calificacion" | "estrellas" | "nombre";
 interface Props {
   hoteles: HotelConPrecio[];
   mostrarMargen: boolean;
-}
-
-function dinero(monto: number, moneda: string): string {
-  return `${moneda} ${monto.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default function ListaHoteles({ hoteles, mostrarMargen }: Props) {

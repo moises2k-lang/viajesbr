@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { FichaHotel } from "@/app/api/hoteles/[hotelId]/route";
 import type { HotelConPrecio } from "@/app/api/hoteles/route";
+import { dinero } from "@/lib/dinero";
 import { emparejarHabitacion } from "@/lib/habitaciones";
 import Bandera from "@/components/Bandera";
 
@@ -14,10 +15,6 @@ interface Props {
   error: string | null;
   mostrarMargen: boolean;
   onCerrar: () => void;
-}
-
-function dinero(monto: number, moneda: string): string {
-  return `${moneda} ${monto.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default function DetalleHotel({
