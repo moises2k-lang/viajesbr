@@ -92,6 +92,36 @@ CREATE TABLE IF NOT EXISTS pasajeros (
 
 CREATE INDEX IF NOT EXISTS pasajeros_orden_idx ON pasajeros (orden_id);
 
+CREATE TABLE IF NOT EXISTS itinerarios (
+  id BIGSERIAL PRIMARY KEY,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  titulo TEXT NOT NULL,
+  cliente TEXT NOT NULL,
+  resumen TEXT,
+  moneda TEXT NOT NULL,
+  estado TEXT NOT NULL DEFAULT 'borrador'
+);
+
+CREATE TABLE IF NOT EXISTS itinerario_bloques (
+  id BIGSERIAL PRIMARY KEY,
+  itinerario_id BIGINT NOT NULL REFERENCES itinerarios (id) ON DELETE CASCADE,
+  posicion INTEGER NOT NULL,
+  tipo TEXT NOT NULL,
+  titulo TEXT NOT NULL,
+  fecha DATE,
+  fecha_fin DATE,
+  detalle TEXT,
+  proveedor TEXT,
+  costo_neto NUMERIC(12, 2),
+  precio_venta NUMERIC(12, 2),
+  cotizacion_id BIGINT REFERENCES cotizaciones (id) ON DELETE SET NULL,
+  datos JSONB
+);
+
+CREATE INDEX IF NOT EXISTS itinerario_bloques_itinerario_idx
+  ON itinerario_bloques (itinerario_id, posicion);
+
 INSERT INTO reglas_markup (nombre, prioridad, porcentaje, monto_fijo, monto_minimo)
-SELECT 'Markup general', 1000, 8.000, 0, 250
+SELECT 'Markup general', 1000, 8.000, 0, 25
 WHERE NOT EXISTS (SELECT 1 FROM reglas_markup);
