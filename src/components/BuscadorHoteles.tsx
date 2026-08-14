@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { OpcionCiudad } from "@/app/api/ciudades/route";
 import CampoCiudad from "@/components/CampoCiudad";
 import RangoFechas from "@/components/RangoFechas";
+import SelectorMoneda from "@/components/SelectorMoneda";
 import SelectorPasajeros, { type Pasajeros } from "@/components/SelectorPasajeros";
 
 export interface ParametrosHotel {
@@ -64,7 +65,7 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
   return (
     <form className="rounded-2xl bg-white p-4 shadow-lg shadow-[#0B2545]/10 sm:p-6" onSubmit={enviar}>
       <div className="grid gap-3 lg:grid-cols-12">
-        <div className="lg:col-span-4">
+        <div className="lg:col-span-3">
           <CampoCiudad
             descripcion={datos.destino || null}
             etiqueta="Destino"
@@ -79,7 +80,7 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
           />
         </div>
 
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-4">
           <RangoFechas
             conRegreso
             desde={datos.entrada}
@@ -96,6 +97,15 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
             onCambio={(p) => setDatos({ ...datos, adultos: p.adultos, menores: p.menores })}
             sinBebes
             valor={pasajeros}
+          />
+        </div>
+
+        <div className="lg:col-span-2">
+          <SelectorMoneda
+            etiqueta="Moneda"
+            placeholder="USD"
+            valor={datos.moneda}
+            onCambio={(v) => setDatos({ ...datos, moneda: v ?? "USD" })}
           />
         </div>
       </div>
