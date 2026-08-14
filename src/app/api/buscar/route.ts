@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { buscarOfertas, type Oferta } from "@/lib/duffel";
 import { calcularPrecio, reglasActivas } from "@/lib/markup";
+import { bandera, nombrePais } from "@/lib/paises";
 import { query } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -46,6 +47,12 @@ export interface OfertaConPrecio {
     destino: string;
     origenNombre: string;
     destinoNombre: string;
+    origenCiudad: string | null;
+    destinoCiudad: string | null;
+    origenPais: string | null;
+    destinoPais: string | null;
+    origenBandera: string | null;
+    destinoBandera: string | null;
     duracion: string | null;
     minutos: number;
     escalas: number;
@@ -55,6 +62,10 @@ export interface OfertaConPrecio {
       vuelo: string;
       origen: string;
       destino: string;
+      origenNombre: string;
+      destinoNombre: string;
+      origenBandera: string | null;
+      destinoBandera: string | null;
       sale: string;
       llega: string;
       minutos: number;
@@ -89,8 +100,22 @@ function normalizarOferta(
     tramos: oferta.slices.map((tramo) => ({
       origen: tramo.origin.iata_code,
       destino: tramo.destination.iata_code,
-      origenNombre: tramo.origin.city_name ?? tramo.origin.name,
-      destinoNombre: tramo.destination.city_name ?? tramo.destination.name,
+      origenNombre: tramo.origin.name,
+      destinoNombre: tramo.destination.name,
+      origenCiudad: tramo.origin.city_name ?? null,
+      destinoCiudad: tramo.destination.city_name ?? null,
+      origenPais: tramo.origin.iata_country_code
+        ? nombrePais(tramo.origin.iata_country_code)
+        : null,
+      destinoPais: tramo.destination.iata_country_code
+        ? nombrePais(tramo.destination.iata_country_code)
+        : null,
+      origenBandera: tramo.origin.iata_country_code
+        ? bandera(tramo.origin.iata_country_code)
+        : null,
+      destinoBandera: tramo.destination.iata_country_code
+        ? bandera(tramo.destination.iata_country_code)
+        : null,
       duracion: tramo.duration ?? null,
       minutos: minutosEntre(
         tramo.segments[0].departing_at,
@@ -106,6 +131,14 @@ function normalizarOferta(
         vuelo: `${segmento.marketing_carrier.iata_code}${segmento.marketing_carrier_flight_number}`,
         origen: segmento.origin.iata_code,
         destino: segmento.destination.iata_code,
+        origenNombre: segmento.origin.name,
+        destinoNombre: segmento.destination.name,
+        origenBandera: segmento.origin.iata_country_code
+          ? bandera(segmento.origin.iata_country_code)
+          : null,
+        destinoBandera: segmento.destination.iata_country_code
+          ? bandera(segmento.destination.iata_country_code)
+          : null,
         sale: segmento.departing_at,
         llega: segmento.arriving_at,
         minutos: minutosEntre(segmento.departing_at, segmento.arriving_at),

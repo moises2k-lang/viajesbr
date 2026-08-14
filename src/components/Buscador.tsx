@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { OpcionLugar } from "@/app/api/lugares/route";
 import CampoAeropuerto from "@/components/CampoAeropuerto";
 import RangoFechas from "@/components/RangoFechas";
 import SelectorPasajeros, { type Pasajeros } from "@/components/SelectorPasajeros";
@@ -19,9 +20,9 @@ export interface ParametrosFormulario {
 }
 
 const VACIO: ParametrosFormulario = {
-  origen: "MEX",
+  origen: "",
   destino: "",
-  origenNombre: "Ciudad de México",
+  origenNombre: null,
   destinoNombre: null,
   fechaSalida: "",
   fechaRegreso: null,
@@ -47,9 +48,37 @@ interface Props {
 export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props) {
   const [datos, setDatos] = useState<ParametrosFormulario>(valoresIniciales ?? VACIO);
   const [inversiones, setInversiones] = useState(0);
+  const [origenDetectado, setOrigenDetectado] = useState<OpcionLugar | null>(null);
   const [redondo, setRedondo] = useState(
     valoresIniciales ? valoresIniciales.fechaRegreso !== null : true,
   );
+
+  useEffect(() => {
+    if (valoresIniciales) return;
+    const control = new AbortController();
+    (async () => {
+      try {
+        const respuesta = await fetch("/api/origen", { signal: control.signal });
+        if (!respuesta.ok) return;
+        const cuerpo = (await respuesta.json()) as { opcion: OpcionLugar | null };
+        if (!cuerpo.opcion) return;
+        const opcion = cuerpo.opcion;
+        setOrigenDetectado(opcion);
+        setDatos((actuales) =>
+          actuales.origen === ""
+            ? {
+                ...actuales,
+                origen: opcion.codigo,
+                origenNombre: [opcion.bandera, opcion.nombre].filter(Boolean).join(" "),
+              }
+            : actuales,
+        );
+      } catch {
+        // sin ubicación disponible: el usuario escribe su origen
+      }
+    })();
+    return () => control.abort();
+  }, [valoresIniciales]);
 
   const pasajeros: Pasajeros = {
     adultos: datos.adultos,
@@ -125,7 +154,7 @@ export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props
           <CampoAeropuerto
             descripcion={datos.origenNombre ?? null}
             etiqueta="Origen"
-            key={`origen-${inversiones}`}
+            key={`origen-${inversiones}-${origenDetectado?.codigo ?? "manual"}`}
             onCambio={(codigo, nombre) => setDatos({ ...datos, origen: codigo, origenNombre: nombre })}
             valor={datos.origen}
           />

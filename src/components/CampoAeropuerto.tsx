@@ -52,7 +52,7 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
   }, [texto]);
 
   function elegir(opcion: OpcionLugar) {
-    const nombre = opcion.tipo === "ciudad" ? opcion.nombre : `${opcion.nombre}`;
+    const nombre = [opcion.bandera, opcion.nombre].filter(Boolean).join(" ");
     setTexto(`${nombre} (${opcion.codigo})`);
     onCambio(opcion.codigo, nombre);
     setAbierto(false);
@@ -88,10 +88,20 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
                 onClick={() => elegir(opcion)}
                 type="button"
               >
-                <span className="min-w-0">
-                  <span className="block truncate font-medium text-[#0B2545]">{opcion.nombre}</span>
-                  <span className="block truncate text-xs text-[#5A6B80]">
-                    {opcion.tipo === "ciudad" ? "Todos los aeropuertos" : (opcion.ciudad ?? "Aeropuerto")}
+                <span className="flex min-w-0 items-center gap-2">
+                  {opcion.bandera && <span className="text-lg leading-none">{opcion.bandera}</span>}
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-[#0B2545]">
+                      {opcion.nombre}
+                    </span>
+                    <span className="block truncate text-xs text-[#5A6B80]">
+                      {[
+                        opcion.tipo === "ciudad" ? "Todos los aeropuertos" : opcion.ciudad,
+                        opcion.pais,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
                   </span>
                 </span>
                 <span className="rounded bg-[#E4E8EE] px-1.5 py-0.5 font-mono text-xs text-[#14477E]">

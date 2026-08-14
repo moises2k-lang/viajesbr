@@ -8,10 +8,17 @@ export interface PasajeroSolicitud {
   age?: number;
 }
 
+export interface LugarOferta {
+  iata_code: string;
+  name: string;
+  city_name?: string;
+  iata_country_code?: string;
+}
+
 export interface SegmentoOferta {
   id: string;
-  origin: { iata_code: string; name: string; city_name?: string };
-  destination: { iata_code: string; name: string; city_name?: string };
+  origin: LugarOferta;
+  destination: LugarOferta;
   departing_at: string;
   arriving_at: string;
   duration?: string;
@@ -29,8 +36,8 @@ export interface SegmentoOferta {
 export interface RebanadaOferta {
   id: string;
   duration?: string;
-  origin: { iata_code: string; city_name?: string; name: string };
-  destination: { iata_code: string; city_name?: string; name: string };
+  origin: LugarOferta;
+  destination: LugarOferta;
   segments: SegmentoOferta[];
   fare_brand_name?: string | null;
 }
@@ -160,14 +167,27 @@ export async function buscarOfertas(p: ParametrosBusqueda): Promise<SolicitudOfe
   });
 }
 
+export interface AeropuertoSugerido {
+  id: string;
+  name: string;
+  iata_code: string | null;
+  city_name?: string | null;
+  iata_country_code?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
 export interface LugarSugerido {
   id: string;
   name: string;
   iata_code: string | null;
   iata_city_code?: string | null;
   city_name?: string | null;
+  iata_country_code?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   type: string;
-  airports?: { id: string; name: string; iata_code: string | null; city_name?: string | null }[];
+  airports?: AeropuertoSugerido[];
 }
 
 export async function sugerirLugares(consulta: string): Promise<LugarSugerido[]> {

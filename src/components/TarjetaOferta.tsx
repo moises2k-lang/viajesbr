@@ -79,7 +79,8 @@ export default function TarjetaOferta({ oferta, mostrarMargen, onElegir }: Props
                   {horaCorta(tramo.segmentos[tramo.segmentos.length - 1].llega)}
                 </div>
                 <div className="text-sm text-[#5A6B80]">
-                  {tramo.origen} → {tramo.destino} · {minutosATexto(tramo.minutos)} ·{" "}
+                  {tramo.origenBandera} {tramo.origen} → {tramo.destinoBandera} {tramo.destino} ·{" "}
+                  {minutosATexto(tramo.minutos)} ·{" "}
                   {tramo.escalas === 0
                     ? "directo"
                     : `${tramo.escalas} escala${tramo.escalas === 1 ? "" : "s"} (${tramo.segmentos
@@ -88,6 +89,15 @@ export default function TarjetaOferta({ oferta, mostrarMargen, onElegir }: Props
                         .join(", ")})`}
                 </div>
               </div>
+              <p className="text-xs text-[#5A6B80]">
+                {[tramo.origenCiudad ?? tramo.origenNombre, tramo.origenPais]
+                  .filter(Boolean)
+                  .join(", ")}{" "}
+                →{" "}
+                {[tramo.destinoCiudad ?? tramo.destinoNombre, tramo.destinoPais]
+                  .filter(Boolean)
+                  .join(", ")}
+              </p>
               <p className="mt-1 text-xs text-[#5A6B80]">
                 {fechaCorta(tramo.segmentos[0].sale)} · {equipajeTexto(tramo.equipaje)}
               </p>
@@ -107,19 +117,23 @@ export default function TarjetaOferta({ oferta, mostrarMargen, onElegir }: Props
               {oferta.tramos.map((tramo, indice) => (
                 <div key={`detalle-${indice}`}>
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#5A6B80]">
-                    {indice === 0 ? "Ida" : `Tramo ${indice + 1}`} · {tramo.origenNombre} –{" "}
-                    {tramo.destinoNombre}
+                    {indice === 0 ? "Ida" : `Tramo ${indice + 1}`} · {tramo.origenBandera}{" "}
+                    {tramo.origenNombre} ({tramo.origen}) – {tramo.destinoBandera}{" "}
+                    {tramo.destinoNombre} ({tramo.destino})
                   </p>
                   {tramo.segmentos.map((segmento) => (
                     <div className="mt-1 text-xs text-[#0B2545]" key={segmento.vuelo + segmento.sale}>
                       {segmento.esperaMinutos !== null && (
                         <p className="my-1 text-[#5A6B80]">
-                          Espera en {segmento.origen}: {minutosATexto(segmento.esperaMinutos)}
+                          Espera en {segmento.origenNombre} ({segmento.origen}):{" "}
+                          {minutosATexto(segmento.esperaMinutos)}
                         </p>
                       )}
                       <p>
-                        <span className="font-mono">{segmento.vuelo}</span> · {segmento.origen}{" "}
-                        {fechaCorta(segmento.sale)} {horaCorta(segmento.sale)} → {segmento.destino}{" "}
+                        <span className="font-mono">{segmento.vuelo}</span> ·{" "}
+                        {segmento.origenBandera} {segmento.origenNombre} ({segmento.origen}){" "}
+                        {fechaCorta(segmento.sale)} {horaCorta(segmento.sale)} →{" "}
+                        {segmento.destinoBandera} {segmento.destinoNombre} ({segmento.destino}){" "}
                         {fechaCorta(segmento.llega)} {horaCorta(segmento.llega)} ·{" "}
                         {minutosATexto(segmento.minutos)}
                       </p>
