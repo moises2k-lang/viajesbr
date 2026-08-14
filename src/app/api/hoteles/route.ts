@@ -110,7 +110,19 @@ export async function POST(request: Request) {
       limite: MAXIMO_HOTELES,
     });
   } catch (error) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 502 });
+    const mensaje = (error as Error).message;
+    if (/no availability found/i.test(mensaje) || /código 2001/i.test(mensaje)) {
+      return NextResponse.json({
+        busquedaId: null,
+        ambiente: esAmbientePruebaHoteles() ? "sandbox" : "live",
+        noches: noches(p.entrada, p.salida),
+        total: 0,
+        hoteles: [],
+        mensaje:
+          "No encontramos hoteles disponibles para esas fechas. Prueba con otras fechas o destino.",
+      });
+    }
+    return NextResponse.json({ error: mensaje }, { status: 502 });
   }
 
   const reglas = await reglasActivas();

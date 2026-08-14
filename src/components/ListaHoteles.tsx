@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 
-import { dinero } from "@/lib/dinero";
+import Precio from "@/components/Precio";
 import type { FichaHotel } from "@/app/api/hoteles/[hotelId]/route";
 import type { HotelConPrecio } from "@/app/api/hoteles/route";
 import { emparejarHabitacion } from "@/lib/habitaciones";
@@ -174,7 +174,7 @@ export default function ListaHoteles({ hoteles, mostrarMargen }: Props) {
             value={precioMaximo ?? topePrecio}
           />
           <span className="text-xs font-normal normal-case text-[#0B2545]">
-            hasta {dinero(precioMaximo ?? topePrecio, moneda)}
+            hasta <Precio moneda={moneda} monto={precioMaximo ?? topePrecio} />
           </span>
         </label>
 
@@ -282,7 +282,7 @@ export default function ListaHoteles({ hoteles, mostrarMargen }: Props) {
                       Desde
                     </p>
                     <p className="text-xl font-bold text-[#0B2545]">
-                      {dinero(hotel.desde, hotel.moneda)}
+                      <Precio moneda={hotel.moneda} monto={hotel.desde} />
                     </p>
                     <button
                       className="mt-2 rounded-lg bg-[#F0A400] px-4 py-2 text-sm font-semibold text-[#0B2545]"
@@ -350,33 +350,44 @@ export default function ListaHoteles({ hoteles, mostrarMargen }: Props) {
                             {habitacion.impuestosNoIncluidos.length > 0 && (
                               <p className="text-xs text-[#B4451F]">
                                 Se paga en el hotel:{" "}
-                                {habitacion.impuestosNoIncluidos
-                                  .map(
-                                    (i) =>
-                                      `${i.descripcion} ${dinero(i.monto, hotel.moneda)}`,
-                                  )
-                                  .join(", ")}
+                                {habitacion.impuestosNoIncluidos.map((i, idx) => (
+                                  <span key={idx}>
+                                    {idx > 0 ? ", " : ""}
+                                    {i.descripcion}{" "}
+                                    <Precio moneda={hotel.moneda} monto={i.monto} />
+                                  </span>
+                                ))}
                               </p>
                             )}
                           </div>
                           <div className="text-right">
                             <p className="text-base font-bold text-[#0B2545]">
-                              {dinero(habitacion.precioVenta, hotel.moneda)}
+                              <Precio
+                                moneda={hotel.moneda}
+                                monto={habitacion.precioVenta}
+                              />
                             </p>
                             {mostrarMargen && (
                               <p className="text-xs text-[#5A6B80]">
                                 neto{" "}
-                                {dinero(habitacion.costoNeto, hotel.moneda)} +
-                                markup {dinero(habitacion.markup, hotel.moneda)}
+                                <Precio
+                                  moneda={hotel.moneda}
+                                  monto={habitacion.costoNeto}
+                                />{" "}
+                                + markup{" "}
+                                <Precio
+                                  moneda={hotel.moneda}
+                                  monto={habitacion.markup}
+                                />
                               </p>
                             )}
                             {habitacion.precioReferencia !== null && (
                               <p className="text-xs text-[#5A6B80]">
                                 referencia {habitacion.fuenteReferencia ?? ""}{" "}
-                                {dinero(
-                                  habitacion.precioReferencia,
-                                  hotel.moneda,
-                                )}
+                                <Precio
+                                  moneda={hotel.moneda}
+                                  monto={habitacion.precioReferencia}
+                                />
                               </p>
                             )}
                           </div>

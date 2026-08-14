@@ -481,7 +481,7 @@ export default function Buscador({
             />
           </div>
 
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-3">
             <RangoFechas
               conRegreso={redondo}
               desde={datos.fechaSalida}
@@ -492,7 +492,7 @@ export default function Buscador({
             />
           </div>
 
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <SelectorPasajeros
               onCambio={(p) => setDatos({ ...datos, ...p })}
               valor={pasajeros}

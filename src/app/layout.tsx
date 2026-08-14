@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Barlow } from "next/font/google";
+import { MonedaProvider } from "@/components/MonedaContext";
 import "./globals.css";
 
 const barlow = Barlow({
@@ -21,7 +22,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       lang="es"
       className={`${barlow.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <MonedaProvider>{children}</MonedaProvider>
+      </body>
     </html>
   );
 }

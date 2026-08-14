@@ -120,50 +120,52 @@ export default function CampoCiudad({
       <label className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
         {etiqueta}
       </label>
-      <input
-        autoComplete="off"
-        className={`mt-1 w-full min-w-0 rounded-lg border border-[#E4E8EE] bg-white py-2.5 pr-9 text-sm font-medium text-[#0B2545] outline-none focus:border-[#14477E] focus:ring-2 focus:ring-[#14477E]/20 ${
-          banderaElegida ? "pl-9" : "pl-3"
-        }`}
-        onChange={(evento) => {
-          const nuevo = evento.target.value;
-          setTexto(nuevo);
-          setAbierto(true);
-          setOpciones([]);
-          setBuscando(nuevo.trim().length >= 3);
-          setBanderaElegida(null);
-          onCambio(null);
-        }}
-        onClick={abrir}
-        onFocus={abrir}
-        onKeyDown={teclas}
-        placeholder="Ciudad, zona o país"
-        ref={campo}
-        required
-        value={texto}
-      />
-      {banderaElegida && (
-        <span className="pointer-events-none absolute left-3 top-[2.1rem]">
-          <Bandera bandera={banderaElegida} clase="h-3 w-5" />
-        </span>
-      )}
-      {texto !== "" && (
-        <button
-          aria-label="Limpiar destino"
-          className="absolute right-2 top-[1.9rem] flex h-6 w-6 items-center justify-center rounded-full text-[#5A6B80] hover:bg-[#F5F7FA]"
-          onClick={() => {
-            anterior.current = "";
-            setTexto("");
-            setBanderaElegida(null);
+      <div className="relative mt-1">
+        <input
+          autoComplete="off"
+          className={`w-full min-w-0 rounded-lg border border-[#E4E8EE] bg-white py-2.5 pr-9 text-sm font-medium text-[#0B2545] outline-none focus:border-[#14477E] focus:ring-2 focus:ring-[#14477E]/20 ${
+            banderaElegida ? "pl-9" : "pl-3"
+          }`}
+          onChange={(evento) => {
+            const nuevo = evento.target.value;
+            setTexto(nuevo);
+            setAbierto(true);
             setOpciones([]);
+            setBuscando(nuevo.trim().length >= 3);
+            setBanderaElegida(null);
             onCambio(null);
-            campo.current?.focus();
           }}
-          type="button"
-        >
-          ×
-        </button>
-      )}
+          onClick={abrir}
+          onFocus={abrir}
+          onKeyDown={teclas}
+          placeholder="Ciudad, zona o país"
+          ref={campo}
+          required
+          value={texto}
+        />
+        {banderaElegida && (
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
+            <Bandera bandera={banderaElegida} clase="h-3 w-5" />
+          </span>
+        )}
+        {texto !== "" && (
+          <button
+            aria-label="Limpiar destino"
+            className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-[#5A6B80] hover:bg-[#F5F7FA]"
+            onClick={() => {
+              anterior.current = "";
+              setTexto("");
+              setBanderaElegida(null);
+              setOpciones([]);
+              onCambio(null);
+              campo.current?.focus();
+            }}
+            type="button"
+          >
+            ×
+          </button>
+        )}
+      </div>
 
       {abierto && consulta.length >= 3 && (
         <ul className="absolute z-30 mt-1 max-h-72 w-full min-w-[20rem] max-w-[calc(100vw-2rem)] overflow-auto rounded-lg border border-[#E4E8EE] bg-white shadow-lg">

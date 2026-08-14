@@ -14,7 +14,7 @@ import {
 } from "@/components/TarjetaOferta";
 import { FRANJAS, dentroDeFranjas } from "@/lib/franjas";
 import LogoAerolinea from "@/components/LogoAerolinea";
-import { dinero, dineroCorto } from "@/lib/dinero";
+import Precio from "@/components/Precio";
 
 interface Filtros {
   escalasMaximas: number | null;
@@ -436,12 +436,12 @@ export default function ArmarVuelo({
                     <div className="flex items-center justify-between gap-3 border-t border-[#E4E8EE] pt-3 sm:w-44 sm:flex-col sm:items-end sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
                       <div className="text-right">
                         <p className="text-base font-semibold text-[#0B2545]">
-                          {diferencia <= 0
-                            ? `desde ${dineroCorto(precio)}`
-                            : `+ ${dineroCorto(diferencia)}`}
+                          {diferencia <= 0 ? "desde " : "+ "}
+                          <Precio corto moneda={moneda} monto={diferencia <= 0 ? precio : diferencia} />
                         </p>
                         <p className="text-xs text-[#5A6B80]">
-                          total del viaje {dineroCorto(precio, moneda)}
+                          total del viaje{" "}
+                          <Precio corto moneda={moneda} monto={precio} />
                         </p>
                       </div>
                       <button
@@ -504,17 +504,14 @@ export default function ArmarVuelo({
                   </p>
                   {mostrarMargen && (
                     <p className="mt-1 text-xs text-[#9AA7B8]">
-                      neto {dinero(combo.costoNeto)} + markup{" "}
-                      {dinero(combo.markup)}
+                      neto <Precio moneda={moneda} monto={combo.costoNeto} /> +{" "}
+                      markup <Precio moneda={moneda} monto={combo.markup} />
                     </p>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-3 border-t border-[#E4E8EE] pt-3 sm:w-52 sm:flex-col sm:items-end sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
                   <p className="text-xl font-semibold text-[#0B2545]">
-                    {dinero(combo.precioVenta)}
-                    <span className="ml-1 text-sm font-normal text-[#5A6B80]">
-                      {moneda}
-                    </span>
+                    <Precio moneda={moneda} monto={combo.precioVenta} />
                   </p>
                   <button
                     className="rounded-lg bg-[#C9A227] px-4 py-2.5 text-sm font-semibold text-[#0B2545] disabled:opacity-60"

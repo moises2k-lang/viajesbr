@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { FichaHotel } from "@/app/api/hoteles/[hotelId]/route";
 import type { HotelConPrecio } from "@/app/api/hoteles/route";
-import { dinero } from "@/lib/dinero";
+import Precio from "@/components/Precio";
 import { emparejarHabitacion } from "@/lib/habitaciones";
 import Bandera from "@/components/Bandera";
 
@@ -128,7 +128,7 @@ export default function DetalleHotel({
                   </p>
                   <p className="text-[#0B2545]">
                     {hotel.noches} noche{hotel.noches === 1 ? "" : "s"} · desde{" "}
-                    {dinero(hotel.desde, hotel.moneda)}
+                    <Precio moneda={hotel.moneda} monto={hotel.desde} />
                   </p>
                   <p className="text-xs text-[#5A6B80]">
                     Entrada desde {ficha.entrada ?? "no informado"} · salida
@@ -357,18 +357,22 @@ export default function DetalleHotel({
                       {habitacion.impuestosNoIncluidos.length > 0 && (
                         <p className="mt-1 text-xs text-[#B4451F]">
                           Se paga en el hotel:{" "}
-                          {habitacion.impuestosNoIncluidos
-                            .map(
-                              (i) =>
-                                `${i.descripcion} ${dinero(i.monto, hotel.moneda)}`,
-                            )
-                            .join(", ")}
+                          {habitacion.impuestosNoIncluidos.map((i, idx) => (
+                            <span key={idx}>
+                              {idx > 0 ? ", " : ""}
+                              {i.descripcion}{" "}
+                              <Precio moneda={hotel.moneda} monto={i.monto} />
+                            </span>
+                          ))}
                         </p>
                       )}
                     </div>
                     <div className="text-right sm:w-36">
                       <p className="text-base font-bold text-[#0B2545]">
-                        {dinero(habitacion.precioVenta, hotel.moneda)}
+                        <Precio
+                          moneda={hotel.moneda}
+                          monto={habitacion.precioVenta}
+                        />
                       </p>
                       <p className="text-xs text-[#5A6B80]">
                         {hotel.noches} noche{hotel.noches === 1 ? "" : "s"} en
@@ -376,8 +380,16 @@ export default function DetalleHotel({
                       </p>
                       {mostrarMargen && (
                         <p className="text-xs text-[#9AA7B8]">
-                          neto {dinero(habitacion.costoNeto, hotel.moneda)} +
-                          markup {dinero(habitacion.markup, hotel.moneda)}
+                          neto{" "}
+                          <Precio
+                            moneda={hotel.moneda}
+                            monto={habitacion.costoNeto}
+                          />{" "}
+                          + markup{" "}
+                          <Precio
+                            moneda={hotel.moneda}
+                            monto={habitacion.markup}
+                          />
                         </p>
                       )}
                     </div>

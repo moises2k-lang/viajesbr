@@ -4,7 +4,8 @@ import { useState } from "react";
 import type { OfertaConPrecio } from "@/app/api/buscar/route";
 import Bandera from "@/components/Bandera";
 import LogoAerolinea from "@/components/LogoAerolinea";
-import { dinero } from "@/lib/dinero";
+import IconoFranja from "@/components/IconoFranja";
+import Precio from "@/components/Precio";
 import {
   fechaCorta,
   horaCorta,
@@ -70,8 +71,9 @@ export function DetalleTramos({ oferta }: { oferta: OfertaConPrecio }) {
         >
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 bg-[#0B2545] px-3 py-2 text-white">
             <p className="text-sm font-semibold">
-              {nombreTramo(oferta.tramos.length, indice)} · {tramo.origen} →{" "}
-              {tramo.destino}
+              {nombreTramo(oferta.tramos.length, indice)} ·{" "}
+              <Bandera bandera={tramo.origenBandera} /> {tramo.origen} →{" "}
+              <Bandera bandera={tramo.destinoBandera} /> {tramo.destino}
             </p>
             <p className="text-xs text-white/70">
               {fechaCorta(tramo.segmentos[0].sale)} ·{" "}
@@ -88,14 +90,16 @@ export function DetalleTramos({ oferta }: { oferta: OfertaConPrecio }) {
                 {segmento.esperaMinutos !== null && (
                   <p className="my-2 rounded-md bg-[#FFF6E0] px-2 py-1.5 text-xs font-medium text-[#8A6A00]">
                     Escala de {minutosATexto(segmento.esperaMinutos)} en{" "}
-                    {segmento.origen} · {segmento.origenNombre}
+                    <Bandera bandera={segmento.origenBandera} /> {segmento.origen} ·{" "}
+                    {segmento.origenNombre}
                   </p>
                 )}
 
                 <div className="flex gap-3">
                   <div className="w-14 shrink-0 pt-0.5 text-right">
                     <p className="text-sm font-semibold tabular-nums text-[#0B2545]">
-                      {horaCorta(segmento.sale)}
+                      {horaCorta(segmento.sale)}{" "}
+                      <IconoFranja iso={segmento.sale} />
                     </p>
                   </div>
                   <div className="relative flex w-3 shrink-0 justify-center">
@@ -189,19 +193,19 @@ export default function ResumenVuelo({ oferta, mostrarMargen }: Props) {
 
         <div className="text-right">
           <p className="text-xl font-semibold text-[#0B2545]">
-            {dinero(oferta.precioVenta)}
-            <span className="ml-1 text-sm font-normal text-[#5A6B80]">
-              {oferta.moneda}
-            </span>
+            <Precio moneda={oferta.moneda} monto={oferta.precioVenta} />
           </p>
           <p className="text-xs text-[#5A6B80]">
             total {pasajeros} pasajero{pasajeros === 1 ? "" : "s"} · impuestos
             incluidos
-            {mostrarMargen
-              ? ` · neto ${dinero(oferta.costoNeto)} + markup ${dinero(
-                  oferta.markup,
-                )}`
-              : ""}
+            {mostrarMargen && (
+              <>
+                {" · neto "}
+                <Precio moneda={oferta.moneda} monto={oferta.costoNeto} /> +
+                markup{" "}
+                <Precio moneda={oferta.moneda} monto={oferta.markup} />
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -223,19 +227,32 @@ export default function ResumenVuelo({ oferta, mostrarMargen }: Props) {
             </p>
             <p className="text-lg font-semibold tabular-nums text-[#0B2545]">
               {horaCorta(tramo.segmentos[0].sale)}
+              <IconoFranja className="ml-1" iso={tramo.segmentos[0].sale} />
               <span className="mx-2 text-[#9AA7B8]">–</span>
               {horaCorta(tramo.segmentos[tramo.segmentos.length - 1].llega)}
+              <IconoFranja
+                className="ml-1"
+                iso={tramo.segmentos[tramo.segmentos.length - 1].llega}
+              />
             </p>
             <p className="text-sm text-[#5A6B80]">
               <Bandera bandera={tramo.origenBandera} /> {tramo.origen} →{" "}
               <Bandera bandera={tramo.destinoBandera} /> {tramo.destino} ·{" "}
               {minutosATexto(tramo.minutos)} ·{" "}
-              {tramo.escalas === 0
-                ? "directo"
-                : `${tramo.escalas} escala${tramo.escalas === 1 ? "" : "s"} (${tramo.segmentos
-                    .slice(0, -1)
-                    .map((s) => s.destino)
-                    .join(", ")})`}
+              {tramo.escalas === 0 ? (
+                "directo"
+              ) : (
+                <span>
+                  {tramo.escalas} escala{tramo.escalas === 1 ? "" : "s"} (
+                  {tramo.segmentos.slice(0, -1).map((s, i) => (
+                    <span key={i}>
+                      {i > 0 ? ", " : ""}
+                      <Bandera bandera={s.destinoBandera} /> {s.destino}
+                    </span>
+                  ))}
+                  )
+                </span>
+              )}
             </p>
             <p className="text-xs text-[#5A6B80]">
               {[tramo.origenCiudad ?? tramo.origenNombre, tramo.origenPais]

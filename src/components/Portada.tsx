@@ -19,6 +19,9 @@ import ListaOfertas from "@/components/ListaOfertas";
 import FormularioReserva, {
   type ResultadoReserva,
 } from "@/components/FormularioReserva";
+import SelectorMoneda from "@/components/SelectorMoneda";
+import Precio from "@/components/Precio";
+import { useMoneda } from "@/components/MonedaContext";
 import {
   borrarHistorial,
   guardarBusqueda,
@@ -51,10 +54,12 @@ type EstadoHoteles =
       hoteles: HotelConPrecio[];
       total: number;
       ambiente: string;
+      mensaje?: string;
     };
 
 export default function Portada({ modoInterno }: { modoInterno: boolean }) {
-  const [pestana, setPestana] = useState<"vuelos" | "hoteles">("vuelos");
+  const { moneda, setMoneda } = useMoneda();
+  const [pestana, setPestana] = useState<"vuelos" | "hoteles" | "paquetes">("vuelos");
   const [estado, setEstado] = useState<Estado>({ fase: "inicio" });
   const [estadoHoteles, setEstadoHoteles] = useState<EstadoHoteles>({
     fase: "inicio",
@@ -151,6 +156,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
         hoteles: cuerpo.hoteles,
         total: cuerpo.total,
         ambiente: cuerpo.ambiente,
+        mensaje: cuerpo.mensaje,
       });
     } catch (e) {
       setError((e as Error).message);
@@ -164,22 +170,31 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img alt="IA Travel Planning" className="h-9" src="/logo.svg" />
-          <nav className="flex items-center gap-4 text-sm text-white/80">
-            <Link
-              className="hover:text-white"
-              href="/admin/itinerarios"
-              prefetch={false}
-            >
-              Itinerarios
-            </Link>
-            <Link
-              className="hover:text-white"
-              href="/admin/markup"
-              prefetch={false}
-            >
-              Markup
-            </Link>
-          </nav>
+          <div className="flex items-center gap-4">
+            <SelectorMoneda
+              className="w-40"
+              etiqueta=""
+              placeholder=""
+              valor={moneda}
+              onCambio={(nuevo) => setMoneda(nuevo ?? "USD")}
+            />
+            <nav className="flex items-center gap-4 text-sm text-white/80">
+              <Link
+                className="hover:text-white"
+                href="/admin/itinerarios"
+                prefetch={false}
+              >
+                Itinerarios
+              </Link>
+              <Link
+                className="hover:text-white"
+                href="/admin/markup"
+                prefetch={false}
+              >
+                Markup
+              </Link>
+            </nav>
+          </div>
         </div>
       </header>
 
@@ -189,15 +204,19 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
             <h1 className="text-2xl font-semibold sm:text-3xl">
               {pestana === "vuelos"
                 ? "Vuelos con tarifas en tiempo real"
-                : "Hoteles con tarifas en tiempo real"}
+                : pestana === "hoteles"
+                  ? "Hoteles con tarifas en tiempo real"
+                  : "Paquetes vuelo + hotel"}
             </h1>
             <p className="mt-1 text-sm text-white/70">
               {pestana === "vuelos"
                 ? "Más de 300 aerolíneas · precio final con impuestos · sin cargos escondidos"
-                : "Inventario de liteAPI · precio por estancia completa · políticas de cancelación reales"}
+                : pestana === "hoteles"
+                  ? "Inventario de liteAPI · precio por estancia completa · políticas de cancelación reales"
+                  : "Combina tu vuelo y hotel en una sola búsqueda"}
             </p>
             <div className="mt-4 flex gap-2">
-              {(["vuelos", "hoteles"] as const).map((opcion) => (
+              {(["vuelos", "hoteles", "paquetes"] as const).map((opcion) => (
                 <button
                   className={`rounded-full px-4 py-1.5 text-sm font-medium ${
                     pestana === opcion
@@ -211,7 +230,11 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
                   }}
                   type="button"
                 >
-                  {opcion === "vuelos" ? "Vuelos" : "Hoteles"}
+                  {opcion === "vuelos"
+                    ? "Vuelos"
+                    : opcion === "hoteles"
+                      ? "Hoteles"
+                      : "Paquetes"}
                 </button>
               ))}
             </div>
@@ -252,20 +275,158 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
 
             {estadoHoteles.fase === "resultados" && (
               <div className="mt-6">
-                <p className="mb-3 text-sm text-[#5A6B80]">
-                  {estadoHoteles.total} hotel
-                  {estadoHoteles.total === 1 ? "" : "es"} con disponibilidad
-                  {ultimoHotel ? ` en ${ultimoHotel.destino}` : ""}
-                  {estadoHoteles.ambiente === "sandbox"
-                    ? " · inventario de prueba (sandbox): no reserva hoteles reales"
-                    : ""}
-                </p>
-                <ListaHoteles
-                  hoteles={estadoHoteles.hoteles}
-                  mostrarMargen={modoInterno}
-                />
+                {estadoHoteles.total === 0 ? (
+                  <div className="rounded-xl border border-[#E4E8EE] bg-white p-6 text-center">
+                    <p className="text-base font-medium text-[#0B2545]">
+                      No hay hoteles disponibles
+                    </p>
+                    <p className="mt-1 text-sm text-[#5A6B80]">
+                      {estadoHoteles.mensaje ??
+                        "Prueba con otras fechas o destino."}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="mb-3 text-sm text-[#5A6B80]">
+                      {estadoHoteles.total} hotel
+                      {estadoHoteles.total === 1 ? "" : "es"} con disponibilidad
+                      {ultimoHotel ? ` en ${ultimoHotel.destino}` : ""}
+                      {estadoHoteles.ambiente === "sandbox"
+                        ? " · inventario de prueba (sandbox): no reserva hoteles reales"
+                        : ""}
+                    </p>
+                    <ListaHoteles
+                      hoteles={estadoHoteles.hoteles}
+                      mostrarMargen={modoInterno}
+                    />
+                  </>
+                )}
               </div>
             )}
+          </>
+        )}
+
+        {pestana === "paquetes" && (
+          <>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold text-[#0B2545]">
+                  1. Elige tu vuelo
+                </h2>
+                <div className="relative z-10">
+                  <Buscador
+                    cargando={estado.fase === "buscando"}
+                    key={`formulario-paquetes-${aplicaciones}`}
+                    valoresIniciales={ultimaBusqueda}
+                    onBuscar={buscar}
+                  />
+                </div>
+
+                {pestana === "paquetes" && error && (
+                  <p className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+                    {error}
+                  </p>
+                )}
+
+                {pestana === "paquetes" &&
+                  (estado.fase === "inicio" || estado.fase === "resultados") && (
+                    <HistorialBusquedas
+                      historial={historial}
+                      onBorrar={borrarHistorial}
+                      onRepetir={buscar}
+                    />
+                  )}
+
+                {pestana === "paquetes" && estado.fase === "buscando" && (
+                  <div className="flex flex-col gap-3">
+                    <p className="text-sm text-[#5A6B80]">
+                      Consultando aerolíneas en vivo… puede tardar hasta 30
+                      segundos.
+                    </p>
+                    {[0, 1, 2, 3].map((n) => (
+                      <div
+                        className="h-28 animate-pulse rounded-xl border border-[#E4E8EE] bg-white"
+                        key={n}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {pestana === "paquetes" && estado.fase === "resultados" && (
+                  <ListaOfertas
+                    aerolineasCombinaciones={estado.aerolineasCombinaciones}
+                    combinaciones={estado.combinaciones}
+                    mostrarMargen={modoInterno}
+                    ofertas={estado.ofertas}
+                    opcionesTramo={estado.opcionesTramo}
+                    resolviendo={resolviendo}
+                    total={estado.total}
+                    tramosBuscados={estado.tramosBuscados}
+                    onElegir={(oferta) => setEstado({ fase: "reservando", oferta })}
+                    onElegirCombinacion={elegirCombinacion}
+                  />
+                )}
+              </div>
+
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold text-[#0B2545]">
+                  2. Elige tu hotel
+                </h2>
+                <div className="relative z-10">
+                  <BuscadorHoteles
+                    cargando={estadoHoteles.fase === "buscando"}
+                    valoresIniciales={ultimoHotel}
+                    onBuscar={buscarHotel}
+                  />
+                </div>
+
+                {estadoHoteles.fase === "buscando" && (
+                  <div className="flex flex-col gap-3">
+                    <p className="text-sm text-[#5A6B80]">
+                      Consultando hoteles en vivo…
+                    </p>
+                    {[0, 1, 2].map((n) => (
+                      <div
+                        className="h-32 animate-pulse rounded-xl border border-[#E4E8EE] bg-white"
+                        key={n}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {estadoHoteles.fase === "resultados" && (
+                  <div>
+                    {estadoHoteles.total === 0 ? (
+                      <div className="rounded-xl border border-[#E4E8EE] bg-white p-6 text-center">
+                        <p className="text-base font-medium text-[#0B2545]">
+                          No hay hoteles disponibles
+                        </p>
+                        <p className="mt-1 text-sm text-[#5A6B80]">
+                          {estadoHoteles.mensaje ??
+                            "Prueba con otras fechas o destino."}
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="mb-3 text-sm text-[#5A6B80]">
+                          {estadoHoteles.total} hotel
+                          {estadoHoteles.total === 1 ? "" : "es"} con
+                          disponibilidad
+                          {ultimoHotel ? ` en ${ultimoHotel.destino}` : ""}
+                          {estadoHoteles.ambiente === "sandbox"
+                            ? " · inventario de prueba (sandbox): no reserva hoteles reales"
+                            : ""}
+                        </p>
+                        <ListaHoteles
+                          hoteles={estadoHoteles.hoteles}
+                          mostrarMargen={modoInterno}
+                        />
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </>
         )}
 
@@ -322,18 +483,20 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
           />
         )}
 
-        {pestana === "vuelos" && estado.fase === "reservando" && (
-          <FormularioReserva
-            mostrarMargen={modoInterno}
-            oferta={estado.oferta}
-            onCancelar={() => ultimaBusqueda && buscar(ultimaBusqueda)}
-            onReservada={(resultado) =>
-              setEstado({ fase: "confirmada", resultado })
-            }
-          />
-        )}
+        {(pestana === "vuelos" || pestana === "paquetes") &&
+          estado.fase === "reservando" && (
+            <FormularioReserva
+              mostrarMargen={modoInterno}
+              oferta={estado.oferta}
+              onCancelar={() => ultimaBusqueda && buscar(ultimaBusqueda)}
+              onReservada={(resultado) =>
+                setEstado({ fase: "confirmada", resultado })
+              }
+            />
+          )}
 
-        {pestana === "vuelos" && estado.fase === "confirmada" && (
+        {(pestana === "vuelos" || pestana === "paquetes") &&
+          estado.fase === "confirmada" && (
           <section className="mt-8 rounded-xl border border-green-300 bg-green-50 p-6">
             <h2 className="text-lg font-semibold text-green-900">
               Reserva confirmada
@@ -347,17 +510,15 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
               <dd>{estado.resultado.ambiente}</dd>
               <dt className="text-[#5A6B80]">Costo neto</dt>
               <dd>
-                {estado.resultado.costoNeto.toFixed(2)}{" "}
-                {estado.resultado.moneda}
+                <Precio monto={estado.resultado.costoNeto} moneda={estado.resultado.moneda} />
               </dd>
               <dt className="text-[#5A6B80]">Markup</dt>
               <dd>
-                {estado.resultado.markup.toFixed(2)} {estado.resultado.moneda}
+                <Precio monto={estado.resultado.markup} moneda={estado.resultado.moneda} />
               </dd>
               <dt className="text-[#5A6B80]">Precio de venta</dt>
               <dd className="font-semibold">
-                {estado.resultado.precioVenta.toFixed(2)}{" "}
-                {estado.resultado.moneda}
+                <Precio monto={estado.resultado.precioVenta} moneda={estado.resultado.moneda} />
               </dd>
             </dl>
             <button

@@ -196,9 +196,9 @@ export default function RangoFechas({
 
   return (
     <div className="relative" ref={contenedor}>
-      <div className={`grid gap-2 ${unica ? "grid-cols-1" : "grid-cols-2"}`}>
+      <div className={`grid min-w-0 gap-2 ${unica ? "grid-cols-1" : "grid-cols-2"}`}>
         <button
-          className={`rounded-lg border bg-white px-3 py-2.5 text-left ${
+          className={`min-w-0 rounded-lg border bg-white px-3 py-2.5 text-left ${
             abierto && eligiendo === "desde"
               ? "border-[#14477E]"
               : "border-[#E4E8EE]"
@@ -209,13 +209,13 @@ export default function RangoFechas({
           <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
             {etiquetaDesde}
           </span>
-          <span className="text-sm font-medium text-[#0B2545]">
+          <span className="block truncate whitespace-nowrap text-sm font-medium text-[#0B2545]">
             {desde ? textoLargo(desde) : "Elegir fecha"}
           </span>
         </button>
         {!unica && (
           <button
-            className={`rounded-lg border bg-white px-3 py-2.5 text-left disabled:bg-[#F5F7FA] ${
+            className={`min-w-0 rounded-lg border bg-white px-3 py-2.5 text-left disabled:bg-[#F5F7FA] ${
               abierto && eligiendo === "hasta"
                 ? "border-[#14477E]"
                 : "border-[#E4E8EE]"
@@ -228,7 +228,7 @@ export default function RangoFechas({
               {etiquetaHasta}
             </span>
             <span
-              className={`text-sm font-medium ${conRegreso ? "text-[#0B2545]" : "text-[#9AA7B8]"}`}
+              className={`block truncate whitespace-nowrap text-sm font-medium ${conRegreso ? "text-[#0B2545]" : "text-[#9AA7B8]"}`}
             >
               {conRegreso
                 ? hasta

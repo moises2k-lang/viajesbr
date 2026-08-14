@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { OpcionCiudad } from "@/app/api/ciudades/route";
 import CampoCiudad from "@/components/CampoCiudad";
 import RangoFechas from "@/components/RangoFechas";
-import SelectorMoneda from "@/components/SelectorMoneda";
 import SelectorPasajeros, { type Pasajeros } from "@/components/SelectorPasajeros";
+import { useMoneda } from "@/components/MonedaContext";
 
 export interface ParametrosHotel {
   placeId: string;
@@ -46,7 +46,12 @@ interface Props {
 }
 
 export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }: Props) {
+  const { moneda } = useMoneda();
   const [datos, setDatos] = useState<ParametrosHotel>(valoresIniciales ?? VACIO);
+
+  useEffect(() => {
+    setDatos((actuales) => (actuales.moneda === moneda ? actuales : { ...actuales, moneda }));
+  }, [moneda]);
 
   const pasajeros: Pasajeros = { adultos: datos.adultos, menores: datos.menores, bebes: 0 };
   const totalNoches = noches(datos.entrada, datos.salida);
@@ -59,13 +64,13 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
   function enviar(evento: React.FormEvent) {
     evento.preventDefault();
     if (falta) return;
-    onBuscar(datos);
+    onBuscar({ ...datos, moneda });
   }
 
   return (
     <form className="rounded-2xl bg-white p-4 shadow-lg shadow-[#0B2545]/10 sm:p-6" onSubmit={enviar}>
       <div className="grid gap-3 lg:grid-cols-12">
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-4">
           <CampoCiudad
             descripcion={datos.destino || null}
             etiqueta="Destino"
@@ -91,7 +96,7 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
           />
         </div>
 
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-4">
           <SelectorPasajeros
             etiqueta="Huéspedes"
             onCambio={(p) => setDatos({ ...datos, adultos: p.adultos, menores: p.menores })}
@@ -100,14 +105,6 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
           />
         </div>
 
-        <div className="lg:col-span-2">
-          <SelectorMoneda
-            etiqueta="Moneda"
-            placeholder="USD"
-            valor={datos.moneda}
-            onCambio={(v) => setDatos({ ...datos, moneda: v ?? "USD" })}
-          />
-        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">

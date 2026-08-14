@@ -5,7 +5,8 @@ import type { OfertaConPrecio } from "@/app/api/buscar/route";
 import Bandera from "@/components/Bandera";
 import { DetalleTramos, equipajeTexto } from "@/components/ResumenVuelo";
 import LogoAerolinea from "@/components/LogoAerolinea";
-import { dinero } from "@/lib/dinero";
+import IconoFranja from "@/components/IconoFranja";
+import Precio from "@/components/Precio";
 
 export function horaCorta(iso: string): string {
   return new Date(iso).toLocaleTimeString("es-MX", {
@@ -71,19 +72,32 @@ export default function TarjetaOferta({
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <div className="text-lg font-semibold tabular-nums text-[#0B2545]">
                   {horaCorta(tramo.segmentos[0].sale)}
+                  <IconoFranja className="ml-1" iso={tramo.segmentos[0].sale} />
                   <span className="mx-2 text-[#9AA7B8]">–</span>
                   {horaCorta(tramo.segmentos[tramo.segmentos.length - 1].llega)}
+                  <IconoFranja
+                    className="ml-1"
+                    iso={tramo.segmentos[tramo.segmentos.length - 1].llega}
+                  />
                 </div>
                 <div className="text-sm text-[#5A6B80]">
                   <Bandera bandera={tramo.origenBandera} /> {tramo.origen} →{" "}
                   <Bandera bandera={tramo.destinoBandera} /> {tramo.destino} ·{" "}
                   {minutosATexto(tramo.minutos)} ·{" "}
-                  {tramo.escalas === 0
-                    ? "directo"
-                    : `${tramo.escalas} escala${tramo.escalas === 1 ? "" : "s"} (${tramo.segmentos
-                        .slice(0, -1)
-                        .map((s) => s.destino)
-                        .join(", ")})`}
+                  {tramo.escalas === 0 ? (
+                    "directo"
+                  ) : (
+                    <span>
+                      {tramo.escalas} escala{tramo.escalas === 1 ? "" : "s"} (
+                      {tramo.segmentos.slice(0, -1).map((s, i) => (
+                        <span key={i}>
+                          {i > 0 ? ", " : ""}
+                          <Bandera bandera={s.destinoBandera} /> {s.destino}
+                        </span>
+                      ))}
+                      )
+                    </span>
+                  )}
                 </div>
               </div>
               <p className="text-xs text-[#5A6B80]">
@@ -128,10 +142,7 @@ export default function TarjetaOferta({
         <div className="flex flex-col items-end justify-between gap-2 border-t border-[#E4E8EE] pt-3 sm:w-52 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
           <div className="text-right">
             <p className="text-2xl font-semibold text-[#0B2545]">
-              {dinero(oferta.precioVenta)}
-              <span className="ml-1 text-sm font-normal text-[#5A6B80]">
-                {oferta.moneda}
-              </span>
+              <Precio moneda={oferta.moneda} monto={oferta.precioVenta} />
             </p>
             <p className="text-xs text-[#5A6B80]">
               total {pasajeros} pasajero{pasajeros === 1 ? "" : "s"} · impuestos
@@ -139,7 +150,8 @@ export default function TarjetaOferta({
             </p>
             {mostrarMargen && (
               <p className="mt-1 text-xs text-[#9AA7B8]">
-                neto {dinero(oferta.costoNeto)} + markup {dinero(oferta.markup)}
+                neto <Precio moneda={oferta.moneda} monto={oferta.costoNeto} /> +
+                markup <Precio moneda={oferta.moneda} monto={oferta.markup} />
               </p>
             )}
           </div>
