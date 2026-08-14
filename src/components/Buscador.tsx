@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import CampoAeropuerto from "@/components/CampoAeropuerto";
+import RangoFechas from "@/components/RangoFechas";
 import SelectorPasajeros, { type Pasajeros } from "@/components/SelectorPasajeros";
 
 export interface ParametrosFormulario {
@@ -56,8 +57,15 @@ export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props
     bebes: datos.bebes,
   };
 
+  const completo =
+    datos.origen.trim().length === 3 &&
+    datos.destino.trim().length === 3 &&
+    datos.fechaSalida !== "" &&
+    (!redondo || datos.fechaRegreso !== null);
+
   function enviar(evento: React.FormEvent) {
     evento.preventDefault();
+    if (!completo) return;
     onBuscar({
       ...datos,
       origen: datos.origen.trim().toUpperCase(),
@@ -143,33 +151,16 @@ export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props
           />
         </div>
 
-        <label className="lg:col-span-2">
-          <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
-            Salida
-          </span>
-          <input
-            className="mt-1 w-full rounded-lg border border-[#E4E8EE] bg-white px-3 py-2.5 text-sm font-medium text-[#0B2545] outline-none focus:border-[#14477E]"
-            onChange={(evento) => setDatos({ ...datos, fechaSalida: evento.target.value })}
-            required
-            type="date"
-            value={datos.fechaSalida}
+        <div className="lg:col-span-4">
+          <RangoFechas
+            conRegreso={redondo}
+            desde={datos.fechaSalida}
+            hasta={datos.fechaRegreso}
+            onCambio={(desde, hasta) =>
+              setDatos({ ...datos, fechaSalida: desde, fechaRegreso: hasta })
+            }
           />
-        </label>
-
-        <label className="lg:col-span-2">
-          <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
-            Regreso
-          </span>
-          <input
-            className="mt-1 w-full rounded-lg border border-[#E4E8EE] bg-white px-3 py-2.5 text-sm font-medium text-[#0B2545] outline-none focus:border-[#14477E] disabled:bg-[#F5F7FA] disabled:text-[#9AA7B8]"
-            disabled={!redondo}
-            min={datos.fechaSalida || undefined}
-            onChange={(evento) => setDatos({ ...datos, fechaRegreso: evento.target.value })}
-            required={redondo}
-            type="date"
-            value={datos.fechaRegreso ?? ""}
-          />
-        </label>
+        </div>
 
         <div className="lg:col-span-2">
           <SelectorPasajeros
@@ -181,7 +172,7 @@ export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props
 
       <button
         className="mt-4 w-full rounded-lg bg-[#0B2545] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#14477E] disabled:opacity-60 sm:w-auto"
-        disabled={cargando}
+        disabled={cargando || !completo}
         type="submit"
       >
         {cargando ? "Buscando tarifas…" : "Buscar vuelos"}

@@ -13,6 +13,8 @@ interface Props {
   onCambio: (valor: Pasajeros) => void;
 }
 
+const EDADES_MENORES = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
 function resumen(p: Pasajeros): string {
   const partes = [`${p.adultos} adulto${p.adultos === 1 ? "" : "s"}`];
   if (p.menores.length > 0) {
@@ -125,18 +127,21 @@ export default function SelectorPasajeros({ valor, onCambio }: Props) {
               {valor.menores.map((edad, indice) => (
                 <label className="text-xs text-[#5A6B80]" key={`menor-${indice}`}>
                   Edad {indice + 1}
-                  <input
+                  <select
                     className="mt-1 w-full rounded border border-[#E4E8EE] px-2 py-1 text-sm text-[#0B2545]"
-                    max={17}
-                    min={0}
                     onChange={(evento) => {
                       const menores = [...valor.menores];
                       menores[indice] = Number(evento.target.value);
                       onCambio({ ...valor, menores });
                     }}
-                    type="number"
                     value={edad}
-                  />
+                  >
+                    {EDADES_MENORES.map((opcion) => (
+                      <option key={opcion} value={opcion}>
+                        {opcion} años
+                      </option>
+                    ))}
+                  </select>
                 </label>
               ))}
             </div>
