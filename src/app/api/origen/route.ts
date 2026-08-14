@@ -50,34 +50,44 @@ export async function GET(request: Request) {
     return NextResponse.json({ opcion: null, motivo: "sin ubicación en la petición" });
   }
 
-  let lugares;
+  async function candidatos(texto: string): Promise<AeropuertoSugerido[]> {
+    const lugares = await sugerirLugares(texto);
+    const lista: AeropuertoSugerido[] = [];
+    for (const lugar of lugares) {
+      if (lugar.type === "airport") {
+        lista.push(lugar);
+        continue;
+      }
+      for (const aeropuerto of lugar.airports ?? []) {
+        lista.push({
+          ...aeropuerto,
+          iata_country_code: aeropuerto.iata_country_code ?? lugar.iata_country_code ?? null,
+          city_name: aeropuerto.city_name ?? lugar.name,
+        });
+      }
+    }
+    return pais
+      ? lista.filter((a) => a.iata_country_code?.toUpperCase() === pais.toUpperCase())
+      : lista;
+  }
+
+  let lista: AeropuertoSugerido[];
   try {
-    lugares = await sugerirLugares(consulta);
+    lista = await candidatos(consulta);
+    // La ciudad de la red puede no tener aeropuerto (centros de datos): se busca por país.
+    if (lista.length === 0 && pais) {
+      const nombre = nombrePais(pais);
+      if (nombre) lista = await candidatos(nombre);
+    }
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 502 });
   }
 
-  const candidatos: AeropuertoSugerido[] = [];
-  for (const lugar of lugares) {
-    if (lugar.type === "airport") {
-      candidatos.push(lugar);
-      continue;
-    }
-    for (const aeropuerto of lugar.airports ?? []) {
-      candidatos.push({
-        ...aeropuerto,
-        iata_country_code: aeropuerto.iata_country_code ?? lugar.iata_country_code ?? null,
-        city_name: aeropuerto.city_name ?? lugar.name,
-      });
-    }
-  }
-
-  const delPais = pais
-    ? candidatos.filter((a) => a.iata_country_code?.toUpperCase() === pais.toUpperCase())
-    : candidatos;
-  const lista = delPais.length > 0 ? delPais : candidatos;
   if (lista.length === 0) {
-    return NextResponse.json({ opcion: null, motivo: "sin aeropuertos para esa ciudad" });
+    return NextResponse.json({
+      opcion: null,
+      motivo: `sin aeropuertos para ${consulta}${pais ? ` (${pais})` : ""}`,
+    });
   }
 
   const conCoordenadas = lista.filter(
