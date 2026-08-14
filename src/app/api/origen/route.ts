@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sugerirLugares, type AeropuertoSugerido } from "@/lib/duffel";
+import { aeropuertosDelPais, sugerirLugares, type AeropuertoSugerido } from "@/lib/duffel";
 import { bandera, nombrePais } from "@/lib/paises";
 import type { OpcionLugar } from "@/app/api/lugares/route";
 
@@ -74,10 +74,9 @@ export async function GET(request: Request) {
   let lista: AeropuertoSugerido[];
   try {
     lista = await candidatos(consulta);
-    // La ciudad de la red puede no tener aeropuerto (centros de datos): se busca por país.
-    if (lista.length === 0 && pais) {
-      const nombre = nombrePais(pais);
-      if (nombre) lista = await candidatos(nombre);
+    // La ciudad de la red puede no tener aeropuerto: se toma el más cercano del país.
+    if (lista.length === 0 && pais && Number.isFinite(latitud) && Number.isFinite(longitud)) {
+      lista = await aeropuertosDelPais(pais);
     }
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 502 });

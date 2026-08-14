@@ -102,7 +102,7 @@ export function esAmbientePrueba(): boolean {
   return !(process.env.DUFFEL_API_TOKEN || "").startsWith("duffel_live");
 }
 
-async function llamar<T>(ruta: string, init?: RequestInit): Promise<T> {
+async function llamarCrudo<T>(ruta: string, init?: RequestInit): Promise<T> {
   const respuesta = await fetch(`${DUFFEL_URL}${ruta}`, {
     ...init,
     headers: {
@@ -128,7 +128,11 @@ async function llamar<T>(ruta: string, init?: RequestInit): Promise<T> {
     throw new Error(`Duffel ${respuesta.status}: ${detalle}`);
   }
 
-  return (JSON.parse(texto) as RespuestaDuffel<T>).data;
+  return JSON.parse(texto) as T;
+}
+
+async function llamar<T>(ruta: string, init?: RequestInit): Promise<T> {
+  return (await llamarCrudo<RespuestaDuffel<T>>(ruta, init)).data;
 }
 
 export interface ParametrosBusqueda {
@@ -188,6 +192,27 @@ export interface LugarSugerido {
   longitude?: number | null;
   type: string;
   airports?: AeropuertoSugerido[];
+}
+
+interface PaginaAeropuertos {
+  data: AeropuertoSugerido[];
+  meta: { after?: string | null };
+}
+
+/** Aeropuertos de un país con sus coordenadas, tal como los publica Duffel. */
+export async function aeropuertosDelPais(codigoPais: string): Promise<AeropuertoSugerido[]> {
+  const aeropuertos: AeropuertoSugerido[] = [];
+  let after: string | null = null;
+  for (let pagina = 0; pagina < 10; pagina += 1) {
+    const ruta =
+      `/air/airports?iata_country_code=${encodeURIComponent(codigoPais)}&limit=200` +
+      (after ? `&after=${encodeURIComponent(after)}` : "");
+    const cuerpo = await llamarCrudo<PaginaAeropuertos>(ruta);
+    aeropuertos.push(...cuerpo.data);
+    after = cuerpo.meta.after ?? null;
+    if (!after) break;
+  }
+  return aeropuertos;
 }
 
 export async function sugerirLugares(consulta: string): Promise<LugarSugerido[]> {
