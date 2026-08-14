@@ -89,18 +89,29 @@ export async function GET(request: Request) {
     });
   }
 
-  const conCoordenadas = lista.filter(
-    (a) => typeof a.latitude === "number" && typeof a.longitude === "number",
-  );
-  const elegido =
-    Number.isFinite(latitud) && Number.isFinite(longitud) && conCoordenadas.length > 0
-      ? conCoordenadas.reduce((mejor, actual) =>
-          distanciaKm(latitud, longitud, actual.latitude as number, actual.longitude as number) <
-          distanciaKm(latitud, longitud, mejor.latitude as number, mejor.longitude as number)
-            ? actual
-            : mejor,
-        )
-      : lista[0];
+  /** Duffel sólo sugiere aeropuertos con servicio comercial: así se descartan aeródromos. */
+  async function tieneServicioComercial(codigo: string): Promise<boolean> {
+    const sugeridos = await sugerirLugares(codigo);
+    return sugeridos.some((lugar) => lugar.iata_code === codigo);
+  }
 
-  return NextResponse.json({ opcion: aOpcion(elegido, consulta) });
+  const cercanos = lista
+    .filter((a) => typeof a.latitude === "number" && typeof a.longitude === "number")
+    .sort(
+      (a, b) =>
+        distanciaKm(latitud, longitud, a.latitude as number, a.longitude as number) -
+        distanciaKm(latitud, longitud, b.latitude as number, b.longitude as number),
+    );
+
+  if (!Number.isFinite(latitud) || !Number.isFinite(longitud) || cercanos.length === 0) {
+    return NextResponse.json({ opcion: aOpcion(lista[0], consulta) });
+  }
+
+  for (const candidato of cercanos.slice(0, 6)) {
+    if (candidato.iata_code && (await tieneServicioComercial(candidato.iata_code))) {
+      return NextResponse.json({ opcion: aOpcion(candidato, consulta) });
+    }
+  }
+
+  return NextResponse.json({ opcion: aOpcion(cercanos[0], consulta) });
 }
