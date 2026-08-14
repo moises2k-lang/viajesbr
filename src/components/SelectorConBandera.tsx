@@ -21,6 +21,8 @@ interface Props {
   listaClassName?: string;
   itemClassName?: string;
   botonClassName?: string;
+  buscable?: boolean;
+  placeholderBusqueda?: string;
 }
 
 export default function SelectorConBandera({
@@ -35,14 +37,28 @@ export default function SelectorConBandera({
   listaClassName,
   itemClassName,
   botonClassName,
+  buscable,
+  placeholderBusqueda,
 }: Props) {
   const [abierto, setAbierto] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
   const contenedor = useRef<HTMLDivElement>(null);
 
   const seleccionado = useMemo(
     () => items.find((i) => i.valor === valor) ?? null,
     [items, valor],
   );
+
+  const itemsFiltrados = useMemo(() => {
+    if (!buscable || !busqueda.trim()) return items;
+    const termino = busqueda.trim().toLowerCase();
+    return items.filter(
+      (i) =>
+        i.etiqueta.toLowerCase().includes(termino) ||
+        i.valor.toLowerCase().includes(termino) ||
+        i.iso.toLowerCase().includes(termino),
+    );
+  }, [items, buscable, busqueda]);
 
   useEffect(() => {
     function cerrar(evento: MouseEvent) {
@@ -60,6 +76,7 @@ export default function SelectorConBandera({
   function seleccionar(nuevo: string) {
     onCambio(nuevo);
     setAbierto(false);
+    setBusqueda("");
   }
 
   return (
@@ -96,7 +113,19 @@ export default function SelectorConBandera({
         <div
           className={`absolute z-50 mt-1 max-h-72 w-full overflow-auto rounded-md border border-[#E4E8EE] bg-white shadow-lg ${listaClassName ?? ""}`}
         >
-          {items.map((item) => (
+          {buscable && (
+            <div className="sticky top-0 z-10 border-b border-[#E4E8EE] bg-white p-2">
+              <input
+                autoFocus
+                className="w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-[#0B2545] focus:border-[#14477E] focus:outline-none"
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder={placeholderBusqueda ?? "Buscar…"}
+                type="text"
+                value={busqueda}
+              />
+            </div>
+          )}
+          {itemsFiltrados.map((item) => (
             <button
               className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[#F5F7FA] ${seleccionado?.valor === item.valor ? "bg-[#F5F7FA] font-medium" : ""} ${itemClassName ?? ""}`}
               key={item.valor}
