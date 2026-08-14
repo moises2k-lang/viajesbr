@@ -170,10 +170,14 @@ export interface ReservaHotel {
   };
 }
 
+/** liteAPI cobra la reserva al crédito de la cuenta (ACC_CREDIT_CARD) o al wallet. */
+export type MetodoPagoHotel = "ACC_CREDIT_CARD" | "WALLET";
+
 export async function reservarHotel(args: {
   prebookId: string;
   huesped: HuespedHotel;
   referencia: string;
+  metodoPago: MetodoPagoHotel;
 }): Promise<ReservaHotel> {
   return llamar<ReservaHotel>("/rates/book", {
     method: "POST",
@@ -194,6 +198,7 @@ export async function reservarHotel(args: {
           remarks: "",
         },
       ],
+      payment: { method: args.metodoPago },
       clientReference: args.referencia,
     }),
   });

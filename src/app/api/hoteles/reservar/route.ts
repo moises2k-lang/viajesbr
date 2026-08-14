@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { query } from "@/lib/db";
+import { randomUUID } from "node:crypto";
 import { esAmbientePruebaHoteles, preReservarHotel, reservarHotel } from "@/lib/liteapi";
 
 export const runtime = "nodejs";
@@ -12,6 +13,7 @@ const esquema = z.object({
   apellido: z.string().trim().min(2),
   correo: z.string().trim().email(),
   telefono: z.string().trim().optional(),
+  metodoPago: z.enum(["ACC_CREDIT_CARD", "WALLET"]).default("ACC_CREDIT_CARD"),
 });
 
 interface Cotizacion {
@@ -71,7 +73,8 @@ export async function POST(request: Request) {
         correo: p.correo,
         telefono: p.telefono,
       },
-      referencia: `cotizacion-${cotizacion.id}`,
+      referencia: `cot${cotizacion.id}-${randomUUID().slice(0, 8)}`,
+      metodoPago: p.metodoPago,
     });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 502 });
