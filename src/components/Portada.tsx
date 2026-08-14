@@ -35,7 +35,7 @@ import Precio from "@/components/Precio";
 import { useMoneda } from "@/components/MonedaContext";
 import { useAuth } from "@/components/AuthContext";
 import AuthModal from "@/components/AuthModal";
-import { TicketsPlane, Building2, Briefcase, User, LogOut } from "lucide-react";
+import { TicketsPlane, Building2, Briefcase, User, LogOut, Users } from "lucide-react";
 import {
   borrarHistorial,
   guardarBusqueda,
@@ -329,6 +329,13 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
             <nav className="flex items-center gap-4 text-sm text-white/80">
               <Link
                 className="hover:text-white"
+                href="/corporativo"
+                prefetch={false}
+              >
+                Corporativos
+              </Link>
+              <Link
+                className="hover:text-white"
                 href="/admin/itinerarios"
                 prefetch={false}
               >
@@ -387,7 +394,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
                   ? "Inventario de liteAPI · precio por estancia completa · políticas de cancelación reales"
                   : "Combina tu vuelo y hotel en una sola búsqueda"}
             </p>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               {(["vuelos", "hoteles", "paquetes"] as const).map((opcion) => (
                 <button
                   className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium ${
@@ -417,6 +424,13 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
                   )}
                 </button>
               ))}
+              <Link
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/25"
+                href="/corporativo"
+                prefetch={false}
+              >
+                <Users className="h-4 w-4" /> Corporativos
+              </Link>
             </div>
           </div>
         </div>
