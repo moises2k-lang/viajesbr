@@ -14,6 +14,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MAXIMO_HOTELES = 60;
+const MAXIMO_TARIFAS_POR_HOTEL = 12;
 
 const esquema = z.object({
   ciudad: z.string().trim().min(2),
@@ -160,6 +161,7 @@ export async function POST(request: Request) {
 
     if (habitaciones.length === 0) continue;
     habitaciones.sort((a, b) => a.precioVenta - b.precioVenta);
+    habitaciones.splice(MAXIMO_TARIFAS_POR_HOTEL);
     const paisHotel = info?.country_code?.toUpperCase() ?? p.pais.toUpperCase();
 
     hoteles.push({
