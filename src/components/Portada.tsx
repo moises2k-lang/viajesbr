@@ -234,13 +234,14 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
           />
         </div>
 
-        {pestana === "vuelos" && estado.fase !== "buscando" && (
-          <HistorialBusquedas
-            historial={historial}
-            onBorrar={borrarHistorial}
-            onRepetir={buscar}
-          />
-        )}
+        {pestana === "vuelos" &&
+          (estado.fase === "inicio" || estado.fase === "resultados") && (
+            <HistorialBusquedas
+              historial={historial}
+              onBorrar={borrarHistorial}
+              onRepetir={buscar}
+            />
+          )}
 
         {pestana === "vuelos" && error && (
           <p className="mt-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">

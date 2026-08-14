@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { OfertaConPrecio } from "@/app/api/buscar/route";
+import Bandera from "@/components/Bandera";
 import { DetalleTramos, equipajeTexto } from "@/components/ResumenVuelo";
 
 export function horaCorta(iso: string): string {
@@ -79,8 +80,9 @@ export default function TarjetaOferta({
                   {horaCorta(tramo.segmentos[tramo.segmentos.length - 1].llega)}
                 </div>
                 <div className="text-sm text-[#5A6B80]">
-                  {tramo.origenBandera} {tramo.origen} → {tramo.destinoBandera}{" "}
-                  {tramo.destino} · {minutosATexto(tramo.minutos)} ·{" "}
+                  <Bandera bandera={tramo.origenBandera} /> {tramo.origen} →{" "}
+                  <Bandera bandera={tramo.destinoBandera} /> {tramo.destino} ·{" "}
+                  {minutosATexto(tramo.minutos)} ·{" "}
                   {tramo.escalas === 0
                     ? "directo"
                     : `${tramo.escalas} escala${tramo.escalas === 1 ? "" : "s"} (${tramo.segmentos

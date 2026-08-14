@@ -105,7 +105,9 @@ export default function FormularioReserva({
   }
 
   return (
-    <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_22rem]">
+    <section className="mt-8 space-y-6">
+      <ResumenVuelo mostrarMargen={mostrarMargen} oferta={oferta} />
+
       <div className="rounded-xl border border-[#E4E8EE] bg-white p-4">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold text-[#0B2545]">
@@ -128,17 +130,17 @@ export default function FormularioReserva({
         <form className="mt-4 flex flex-col gap-6" onSubmit={enviar}>
           {pasajeros.map((pasajero, indice) => (
             <fieldset
-              className="grid gap-3 border-t border-neutral-200 pt-4 sm:grid-cols-5"
+              className="grid gap-3 border-t border-neutral-200 pt-4 sm:grid-cols-2 lg:grid-cols-5"
               key={indice}
             >
               <legend className="text-sm font-medium">
                 {etiqueta(oferta.pasajeros[indice], indice)}
               </legend>
 
-              <label className="flex flex-col gap-1 text-sm">
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
                 Título
                 <select
-                  className="rounded-md border border-neutral-300 px-3 py-2"
+                  className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2"
                   onChange={(e) => actualizar(indice, "titulo", e.target.value)}
                   value={pasajero.titulo}
                 >
@@ -150,20 +152,20 @@ export default function FormularioReserva({
                 </select>
               </label>
 
-              <label className="flex flex-col gap-1 text-sm">
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
                 Nombre(s)
                 <input
-                  className="rounded-md border border-neutral-300 px-3 py-2"
+                  className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2"
                   onChange={(e) => actualizar(indice, "nombre", e.target.value)}
                   required
                   value={pasajero.nombre}
                 />
               </label>
 
-              <label className="flex flex-col gap-1 text-sm">
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
                 Apellidos
                 <input
-                  className="rounded-md border border-neutral-300 px-3 py-2"
+                  className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2"
                   onChange={(e) =>
                     actualizar(indice, "apellido", e.target.value)
                   }
@@ -172,10 +174,10 @@ export default function FormularioReserva({
                 />
               </label>
 
-              <label className="flex flex-col gap-1 text-sm">
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
                 Fecha de nacimiento
                 <input
-                  className="rounded-md border border-neutral-300 px-3 py-2"
+                  className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2"
                   onChange={(e) =>
                     actualizar(indice, "fechaNacimiento", e.target.value)
                   }
@@ -185,10 +187,10 @@ export default function FormularioReserva({
                 />
               </label>
 
-              <label className="flex flex-col gap-1 text-sm">
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
                 Sexo
                 <select
-                  className="rounded-md border border-neutral-300 px-3 py-2"
+                  className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2"
                   onChange={(e) => actualizar(indice, "genero", e.target.value)}
                   value={pasajero.genero}
                 >
@@ -201,20 +203,20 @@ export default function FormularioReserva({
 
           <fieldset className="grid gap-3 border-t border-neutral-200 pt-4 sm:grid-cols-2">
             <legend className="text-sm font-medium">Contacto</legend>
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
               Correo
               <input
-                className="rounded-md border border-neutral-300 px-3 py-2"
+                className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2"
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 type="email"
                 value={email}
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
               Teléfono (con lada +52)
               <input
-                className="rounded-md border border-neutral-300 px-3 py-2"
+                className="w-full min-w-0 rounded-md border border-neutral-300 px-3 py-2"
                 onChange={(e) => setTelefono(e.target.value)}
                 required
                 value={telefono}
@@ -237,8 +239,6 @@ export default function FormularioReserva({
           </button>
         </form>
       </div>
-
-      <ResumenVuelo mostrarMargen={mostrarMargen} oferta={oferta} />
     </section>
   );
 }

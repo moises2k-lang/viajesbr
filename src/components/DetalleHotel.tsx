@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { FichaHotel } from "@/app/api/hoteles/[hotelId]/route";
 import type { HotelConPrecio } from "@/app/api/hoteles/route";
 import { emparejarHabitacion } from "@/lib/habitaciones";
+import Bandera from "@/components/Bandera";
 
 interface Props {
   hotel: HotelConPrecio;
@@ -58,7 +59,7 @@ export default function DetalleHotel({
               {[ficha?.direccion ?? hotel.direccion, hotel.ciudad, hotel.pais]
                 .filter(Boolean)
                 .join(" · ")}{" "}
-              {hotel.bandera}
+              <Bandera bandera={hotel.bandera} />
             </p>
           </div>
           <button

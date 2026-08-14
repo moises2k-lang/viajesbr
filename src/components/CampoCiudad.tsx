@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { OpcionCiudad } from "@/app/api/ciudades/route";
+import Bandera from "@/components/Bandera";
+import { separarBandera } from "@/lib/paises";
 
 interface Props {
   etiqueta: string;
@@ -9,8 +11,17 @@ interface Props {
   onCambio: (opcion: OpcionCiudad | null) => void;
 }
 
-export default function CampoCiudad({ etiqueta, descripcion, onCambio }: Props) {
-  const [texto, setTexto] = useState(descripcion ?? "");
+export default function CampoCiudad({
+  etiqueta,
+  descripcion,
+  onCambio,
+}: Props) {
+  const inicial = separarBandera(descripcion ?? "");
+  const [texto, setTexto] = useState(inicial.resto);
+  /** Bandera del destino elegido, dibujada como imagen (Windows no tiene el emoji). */
+  const [banderaElegida, setBanderaElegida] = useState<string | null>(
+    inicial.bandera,
+  );
   const [opciones, setOpciones] = useState<OpcionCiudad[]>([]);
   const [abierto, setAbierto] = useState(false);
   const [buscando, setBuscando] = useState(false);
@@ -18,13 +29,18 @@ export default function CampoCiudad({ etiqueta, descripcion, onCambio }: Props) 
   const contenedor = useRef<HTMLDivElement>(null);
   const campo = useRef<HTMLInputElement>(null);
   /** Destino elegido antes de abrir el campo, para no perderlo si no se elige otro. */
-  const anterior = useRef(descripcion ?? "");
+  const anterior = useRef(inicial.resto);
 
   useEffect(() => {
     function fuera(evento: MouseEvent) {
-      if (contenedor.current && !contenedor.current.contains(evento.target as Node)) {
+      if (
+        contenedor.current &&
+        !contenedor.current.contains(evento.target as Node)
+      ) {
         setAbierto(false);
-        setTexto((actual) => (actual.trim() === "" ? anterior.current : actual));
+        setTexto((actual) =>
+          actual.trim() === "" ? anterior.current : actual,
+        );
       }
     }
     document.addEventListener("mousedown", fuera);
@@ -38,10 +54,15 @@ export default function CampoCiudad({ etiqueta, descripcion, onCambio }: Props) 
     const temporizador = setTimeout(async () => {
       setBuscando(true);
       try {
-        const respuesta = await fetch(`/api/ciudades?q=${encodeURIComponent(consulta)}`, {
-          signal: control.signal,
-        });
-        const cuerpo = (await respuesta.json()) as { opciones?: OpcionCiudad[] };
+        const respuesta = await fetch(
+          `/api/ciudades?q=${encodeURIComponent(consulta)}`,
+          {
+            signal: control.signal,
+          },
+        );
+        const cuerpo = (await respuesta.json()) as {
+          opciones?: OpcionCiudad[];
+        };
         setOpciones(respuesta.ok ? (cuerpo.opciones ?? []) : []);
         setResaltada(0);
       } catch {
@@ -57,8 +78,9 @@ export default function CampoCiudad({ etiqueta, descripcion, onCambio }: Props) 
   }, [texto]);
 
   function elegir(opcion: OpcionCiudad) {
-    anterior.current = [opcion.bandera, opcion.nombre].filter(Boolean).join(" ");
+    anterior.current = opcion.nombre;
     setTexto(anterior.current);
+    setBanderaElegida(opcion.bandera);
     onCambio(opcion);
     setAbierto(false);
   }
@@ -68,6 +90,7 @@ export default function CampoCiudad({ etiqueta, descripcion, onCambio }: Props) 
     if (texto !== "") {
       anterior.current = texto;
       setTexto("");
+      setBanderaElegida(null);
     }
     setAbierto(true);
   }
@@ -99,13 +122,16 @@ export default function CampoCiudad({ etiqueta, descripcion, onCambio }: Props) 
       </label>
       <input
         autoComplete="off"
-        className="mt-1 w-full rounded-lg border border-[#E4E8EE] bg-white py-2.5 pl-3 pr-9 text-sm font-medium text-[#0B2545] outline-none focus:border-[#14477E] focus:ring-2 focus:ring-[#14477E]/20"
+        className={`mt-1 w-full min-w-0 rounded-lg border border-[#E4E8EE] bg-white py-2.5 pr-9 text-sm font-medium text-[#0B2545] outline-none focus:border-[#14477E] focus:ring-2 focus:ring-[#14477E]/20 ${
+          banderaElegida ? "pl-9" : "pl-3"
+        }`}
         onChange={(evento) => {
           const nuevo = evento.target.value;
           setTexto(nuevo);
           setAbierto(true);
           setOpciones([]);
           setBuscando(nuevo.trim().length >= 3);
+          setBanderaElegida(null);
           onCambio(null);
         }}
         onClick={abrir}
@@ -116,6 +142,11 @@ export default function CampoCiudad({ etiqueta, descripcion, onCambio }: Props) 
         required
         value={texto}
       />
+      {banderaElegida && (
+        <span className="pointer-events-none absolute left-3 top-[2.1rem]">
+          <Bandera bandera={banderaElegida} clase="h-3 w-5" />
+        </span>
+      )}
       {texto !== "" && (
         <button
           aria-label="Limpiar destino"
@@ -123,6 +154,7 @@ export default function CampoCiudad({ etiqueta, descripcion, onCambio }: Props) 
           onClick={() => {
             anterior.current = "";
             setTexto("");
+            setBanderaElegida(null);
             setOpciones([]);
             onCambio(null);
             campo.current?.focus();
@@ -145,10 +177,14 @@ export default function CampoCiudad({ etiqueta, descripcion, onCambio }: Props) 
                 onMouseEnter={() => setResaltada(indice)}
                 type="button"
               >
-                {opcion.bandera && <span className="text-lg leading-none">{opcion.bandera}</span>}
+                <Bandera bandera={opcion.bandera} clase="mt-0.5 h-3.5 w-5" />
                 <span className="min-w-0">
-                  <span className="block font-medium text-[#0B2545]">{opcion.nombre}</span>
-                  <span className="block text-xs text-[#5A6B80]">{opcion.detalle}</span>
+                  <span className="block font-medium text-[#0B2545]">
+                    {opcion.nombre}
+                  </span>
+                  <span className="block text-xs text-[#5A6B80]">
+                    {opcion.detalle}
+                  </span>
                 </span>
               </button>
             </li>

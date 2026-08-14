@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import type { OfertaConPrecio } from "@/app/api/buscar/route";
+import Bandera from "@/components/Bandera";
 import {
   fechaCorta,
   horaCorta,
@@ -101,8 +103,8 @@ export function DetalleTramos({ oferta }: { oferta: OfertaConPrecio }) {
                   </div>
                   <div className="min-w-0 flex-1 pb-3">
                     <p className="text-sm font-medium text-[#0B2545]">
-                      {segmento.origenBandera} {segmento.origen} ·{" "}
-                      {segmento.origenNombre}
+                      <Bandera bandera={segmento.origenBandera} />{" "}
+                      {segmento.origen} · {segmento.origenNombre}
                     </p>
                     <p className="mt-1 text-xs text-[#5A6B80]">
                       <span className="font-mono text-[#14477E]">
@@ -114,8 +116,8 @@ export function DetalleTramos({ oferta }: { oferta: OfertaConPrecio }) {
                       {segmento.avion ? ` · ${segmento.avion}` : ""}
                     </p>
                     <p className="mt-2 text-sm font-medium text-[#0B2545]">
-                      {segmento.destinoBandera} {segmento.destino} ·{" "}
-                      {segmento.destinoNombre}
+                      <Bandera bandera={segmento.destinoBandera} />{" "}
+                      {segmento.destino} · {segmento.destinoNombre}
                     </p>
                   </div>
                   <div className="w-14 shrink-0 self-end pb-3 text-right">
@@ -148,122 +150,133 @@ interface Props {
   mostrarMargen: boolean;
 }
 
-/** Resumen completo del vuelo elegido, para tenerlo a la vista al capturar pasajeros. */
+/** Tira ancha con el vuelo elegido, arriba del formulario de pasajeros. */
 export default function ResumenVuelo({ oferta, mostrarMargen }: Props) {
   const pasajeros = oferta.pasajeros.length;
+  const [detalleAbierto, setDetalleAbierto] = useState(false);
 
   return (
-    <aside className="h-fit rounded-xl border border-[#E4E8EE] bg-white p-4 lg:sticky lg:top-4">
-      <div className="flex items-center gap-2">
-        {oferta.logo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            alt={oferta.aerolinea}
-            className="h-6 w-6 rounded"
-            src={oferta.logo}
-          />
-        ) : (
-          <span className="flex h-6 w-6 items-center justify-center rounded bg-[#E4E8EE] font-mono text-[10px] text-[#14477E]">
-            {oferta.aerolineaIata}
+    <section className="rounded-xl border border-[#E4E8EE] bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {oferta.logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              alt={oferta.aerolinea}
+              className="h-6 w-6 rounded"
+              src={oferta.logo}
+            />
+          ) : (
+            <span className="flex h-6 w-6 items-center justify-center rounded bg-[#E4E8EE] font-mono text-[10px] text-[#14477E]">
+              {oferta.aerolineaIata}
+            </span>
+          )}
+          <span className="text-sm font-semibold text-[#0B2545]">
+            {oferta.aerolinea}
           </span>
-        )}
-        <span className="text-sm font-semibold text-[#0B2545]">
-          {oferta.aerolinea}
-        </span>
-        {oferta.tramos[0]?.marcaTarifa && (
-          <span className="rounded-full bg-[#E4E8EE] px-2 py-0.5 text-xs text-[#14477E]">
-            {oferta.tramos[0].marcaTarifa}
+          {oferta.tramos[0]?.marcaTarifa && (
+            <span className="rounded-full bg-[#E4E8EE] px-2 py-0.5 text-xs text-[#14477E]">
+              {oferta.tramos[0].marcaTarifa}
+            </span>
+          )}
+          <span className="text-xs text-[#5A6B80]">
+            ·{" "}
+            {oferta.pasajeros
+              .map((pasajero, indice) => nombrePasajero(pasajero, indice))
+              .join(" · ")}
           </span>
-        )}
-      </div>
-
-      {oferta.tramos.map((tramo, indice) => (
-        <div
-          className="mt-3 border-t border-[#E4E8EE] pt-3"
-          key={`resumen-${indice}`}
-        >
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#5A6B80]">
-            {oferta.tramos.length === 2 && indice === 1
-              ? "Regreso"
-              : indice === 0
-                ? "Ida"
-                : `Tramo ${indice + 1}`}{" "}
-            · {fechaCorta(tramo.segmentos[0].sale)}
-          </p>
-          <p className="text-lg font-semibold tabular-nums text-[#0B2545]">
-            {horaCorta(tramo.segmentos[0].sale)}
-            <span className="mx-2 text-[#9AA7B8]">–</span>
-            {horaCorta(tramo.segmentos[tramo.segmentos.length - 1].llega)}
-          </p>
-          <p className="text-sm text-[#5A6B80]">
-            {tramo.origenBandera} {tramo.origen} → {tramo.destinoBandera}{" "}
-            {tramo.destino} · {minutosATexto(tramo.minutos)} ·{" "}
-            {tramo.escalas === 0
-              ? "directo"
-              : `${tramo.escalas} escala${tramo.escalas === 1 ? "" : "s"} (${tramo.segmentos
-                  .slice(0, -1)
-                  .map((s) => s.destino)
-                  .join(", ")})`}
-          </p>
-          <p className="text-xs text-[#5A6B80]">
-            {[tramo.origenCiudad ?? tramo.origenNombre, tramo.origenPais]
-              .filter(Boolean)
-              .join(", ")}{" "}
-            →{" "}
-            {[tramo.destinoCiudad ?? tramo.destinoNombre, tramo.destinoPais]
-              .filter(Boolean)
-              .join(", ")}
-          </p>
         </div>
-      ))}
 
-      <div className="mt-3 border-t border-[#E4E8EE] pt-3">
-        <DetalleTramos oferta={oferta} />
-      </div>
-
-      <div className="mt-3 border-t border-[#E4E8EE] pt-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[#5A6B80]">
-          Pasajeros
-        </p>
-        <ul className="mt-1 text-xs text-[#0B2545]">
-          {oferta.pasajeros.map((pasajero, indice) => (
-            <li key={`pasajero-${indice}`}>
-              {nombrePasajero(pasajero, indice)}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="mt-3 border-t border-[#E4E8EE] pt-3">
-        <p className="text-2xl font-semibold text-[#0B2545]">
-          {oferta.precioVenta.toLocaleString("es-MX", {
-            maximumFractionDigits: 2,
-          })}
-          <span className="ml-1 text-sm font-normal text-[#5A6B80]">
-            {oferta.moneda}
-          </span>
-        </p>
-        <p className="text-xs text-[#5A6B80]">
-          total {pasajeros} pasajero{pasajeros === 1 ? "" : "s"} · impuestos
-          incluidos
-        </p>
-        {mostrarMargen && (
-          <p className="mt-1 text-xs text-[#9AA7B8]">
-            neto{" "}
-            {oferta.costoNeto.toLocaleString("es-MX", {
-              maximumFractionDigits: 2,
-            })}{" "}
-            + markup{" "}
-            {oferta.markup.toLocaleString("es-MX", {
+        <div className="text-right">
+          <p className="text-xl font-semibold text-[#0B2545]">
+            {oferta.precioVenta.toLocaleString("es-MX", {
               maximumFractionDigits: 2,
             })}
+            <span className="ml-1 text-sm font-normal text-[#5A6B80]">
+              {oferta.moneda}
+            </span>
           </p>
-        )}
-        <p className="mt-1 text-xs text-[#5A6B80]">
-          Esta tarifa vence el {fechaCorta(oferta.expiraEn)} a las{" "}
-          {horaCorta(oferta.expiraEn)}; si se vence hay que volver a buscar.
-        </p>
+          <p className="text-xs text-[#5A6B80]">
+            total {pasajeros} pasajero{pasajeros === 1 ? "" : "s"} · impuestos
+            incluidos
+            {mostrarMargen
+              ? ` · neto ${oferta.costoNeto.toLocaleString("es-MX", {
+                  maximumFractionDigits: 2,
+                })} + markup ${oferta.markup.toLocaleString("es-MX", {
+                  maximumFractionDigits: 2,
+                })}`
+              : ""}
+          </p>
+        </div>
       </div>
-    </aside>
+
+      <div
+        className={`mt-3 grid gap-3 border-t border-[#E4E8EE] pt-3 ${
+          oferta.tramos.length === 1
+            ? ""
+            : oferta.tramos.length === 2
+              ? "sm:grid-cols-2"
+              : "sm:grid-cols-2 lg:grid-cols-3"
+        }`}
+      >
+        {oferta.tramos.map((tramo, indice) => (
+          <div key={`tira-${indice}`}>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#5A6B80]">
+              {nombreTramo(oferta.tramos.length, indice)} ·{" "}
+              {fechaCorta(tramo.segmentos[0].sale)}
+            </p>
+            <p className="text-lg font-semibold tabular-nums text-[#0B2545]">
+              {horaCorta(tramo.segmentos[0].sale)}
+              <span className="mx-2 text-[#9AA7B8]">–</span>
+              {horaCorta(tramo.segmentos[tramo.segmentos.length - 1].llega)}
+            </p>
+            <p className="text-sm text-[#5A6B80]">
+              <Bandera bandera={tramo.origenBandera} /> {tramo.origen} →{" "}
+              <Bandera bandera={tramo.destinoBandera} /> {tramo.destino} ·{" "}
+              {minutosATexto(tramo.minutos)} ·{" "}
+              {tramo.escalas === 0
+                ? "directo"
+                : `${tramo.escalas} escala${tramo.escalas === 1 ? "" : "s"} (${tramo.segmentos
+                    .slice(0, -1)
+                    .map((s) => s.destino)
+                    .join(", ")})`}
+            </p>
+            <p className="text-xs text-[#5A6B80]">
+              {[tramo.origenCiudad ?? tramo.origenNombre, tramo.origenPais]
+                .filter(Boolean)
+                .join(", ")}{" "}
+              →{" "}
+              {[tramo.destinoCiudad ?? tramo.destinoNombre, tramo.destinoPais]
+                .filter(Boolean)
+                .join(", ")}
+            </p>
+            <p className="mt-1 text-xs text-[#5A6B80]">
+              Equipaje: {equipajeTexto(tramo.equipaje)}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <button
+        className="mt-3 text-xs font-semibold text-[#14477E] underline"
+        onClick={() => setDetalleAbierto((abierto) => !abierto)}
+        type="button"
+      >
+        {detalleAbierto
+          ? "Ocultar el detalle vuelo por vuelo"
+          : "Ver el detalle vuelo por vuelo y condiciones"}
+      </button>
+
+      {detalleAbierto && (
+        <div className="mt-3 border-t border-[#E4E8EE] pt-3">
+          <DetalleTramos oferta={oferta} />
+        </div>
+      )}
+
+      <p className="mt-2 text-xs text-[#5A6B80]">
+        Esta tarifa vence el {fechaCorta(oferta.expiraEn)} a las{" "}
+        {horaCorta(oferta.expiraEn)}; si se vence hay que volver a buscar.
+      </p>
+    </section>
   );
 }

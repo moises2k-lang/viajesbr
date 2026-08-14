@@ -1,5 +1,6 @@
 "use client";
 
+import { TextoConBandera } from "@/components/Bandera";
 import type { ParametrosFormulario } from "@/components/Buscador";
 import type { BusquedaGuardada } from "@/lib/historial";
 
@@ -80,9 +81,15 @@ export default function HistorialBusquedas({
                   : `${p.origen} → ${p.destino}`}
               </p>
               <p className="text-xs text-[#5A6B80]">
-                {[p.origenNombre, p.destinoNombre]
-                  .filter(Boolean)
-                  .join(" → ") || "Vuelo guardado"}
+                {p.origenNombre || p.destinoNombre ? (
+                  <>
+                    <TextoConBandera texto={p.origenNombre} />
+                    {p.origenNombre && p.destinoNombre ? " → " : ""}
+                    <TextoConBandera texto={p.destinoNombre} />
+                  </>
+                ) : (
+                  "Vuelo guardado"
+                )}
               </p>
               <p className="mt-1 text-xs text-[#5A6B80]">
                 {fechaCorta(p.fechaSalida)}

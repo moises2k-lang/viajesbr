@@ -6,6 +6,7 @@ import type { FichaHotel } from "@/app/api/hoteles/[hotelId]/route";
 import type { HotelConPrecio } from "@/app/api/hoteles/route";
 import { emparejarHabitacion } from "@/lib/habitaciones";
 import DetalleHotel from "@/components/DetalleHotel";
+import Bandera from "@/components/Bandera";
 
 type Orden = "precio" | "calificacion" | "estrellas" | "nombre";
 
@@ -253,7 +254,7 @@ export default function ListaHoteles({ hoteles, mostrarMargen }: Props) {
                       {[hotel.direccion, hotel.ciudad, hotel.pais]
                         .filter(Boolean)
                         .join(" · ")}{" "}
-                      {hotel.bandera}
+                      <Bandera bandera={hotel.bandera} />
                     </p>
                     {hotel.calificacion !== null && (
                       <p className="text-xs text-[#5A6B80]">

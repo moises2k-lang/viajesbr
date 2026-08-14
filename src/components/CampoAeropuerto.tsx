@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { OpcionLugar } from "@/app/api/lugares/route";
+import Bandera from "@/components/Bandera";
+import { separarBandera } from "@/lib/paises";
 
 interface Props {
   etiqueta: string;
@@ -10,9 +12,19 @@ interface Props {
   onCambio: (codigo: string, descripcion: string | null) => void;
 }
 
-export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio }: Props) {
-  const elegida = descripcion ? `${descripcion} (${valor})` : valor;
+export default function CampoAeropuerto({
+  etiqueta,
+  valor,
+  descripcion,
+  onCambio,
+}: Props) {
+  const inicial = separarBandera(descripcion ?? "");
+  const elegida = inicial.resto ? `${inicial.resto} (${valor})` : valor;
   const [texto, setTexto] = useState(elegida);
+  /** Bandera del lugar elegido: se dibuja como imagen porque Windows no tiene el emoji. */
+  const [banderaElegida, setBanderaElegida] = useState<string | null>(
+    inicial.bandera,
+  );
   const [opciones, setOpciones] = useState<OpcionLugar[]>([]);
   const [abierto, setAbierto] = useState(false);
   const [buscando, setBuscando] = useState(false);
@@ -22,11 +34,16 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
   /** Lo que hay que restaurar si el usuario abre el campo y se va sin elegir nada. */
   const anterior = useRef(elegida);
 
+  /** Se llama desde el listener global, que se registra una sola vez. */
+  const cerrarRef = useRef<() => void>(() => {});
+
   useEffect(() => {
     function fuera(evento: MouseEvent) {
-      if (contenedor.current && !contenedor.current.contains(evento.target as Node)) {
-        setAbierto(false);
-        setTexto((actual) => (actual.trim() === "" ? anterior.current : actual));
+      if (
+        contenedor.current &&
+        !contenedor.current.contains(evento.target as Node)
+      ) {
+        cerrarRef.current();
       }
     }
     document.addEventListener("mousedown", fuera);
@@ -40,9 +57,12 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
     const temporizador = setTimeout(async () => {
       setBuscando(true);
       try {
-        const respuesta = await fetch(`/api/lugares?q=${encodeURIComponent(consulta)}`, {
-          signal: control.signal,
-        });
+        const respuesta = await fetch(
+          `/api/lugares?q=${encodeURIComponent(consulta)}`,
+          {
+            signal: control.signal,
+          },
+        );
         const cuerpo = (await respuesta.json()) as { opciones?: OpcionLugar[] };
         setOpciones(respuesta.ok ? (cuerpo.opciones ?? []) : []);
         setResaltada(0);
@@ -59,18 +79,45 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
   }, [texto]);
 
   function elegir(opcion: OpcionLugar) {
-    const nombre = [opcion.bandera, opcion.nombre].filter(Boolean).join(" ");
-    anterior.current = `${nombre} (${opcion.codigo})`;
+    anterior.current = `${opcion.nombre} (${opcion.codigo})`;
     setTexto(anterior.current);
-    onCambio(opcion.codigo, nombre);
+    setBanderaElegida(opcion.bandera);
+    onCambio(
+      opcion.codigo,
+      [opcion.bandera, opcion.nombre].filter(Boolean).join(" "),
+    );
     setAbierto(false);
   }
+
+  /**
+   * Al cerrar, un código escrito a mano ("EZE") se completa con el aeropuerto,
+   * su ciudad y su país; si no, el campo se quedaría con las tres letras pelonas.
+   */
+  function cerrar() {
+    setAbierto(false);
+    const escrito = texto.trim();
+    if (escrito === "") {
+      setTexto(anterior.current);
+      return;
+    }
+    if (/^[A-Za-z]{3}$/.test(escrito)) {
+      const exacta = opciones.find(
+        (opcion) => opcion.codigo.toUpperCase() === escrito.toUpperCase(),
+      );
+      if (exacta) elegir(exacta);
+    }
+  }
+
+  useEffect(() => {
+    cerrarRef.current = cerrar;
+  });
 
   /** Al entrar al campo se vacía para escribir de una, sin borrar el aeropuerto a mano. */
   function abrir() {
     if (texto !== "") {
       anterior.current = texto;
       setTexto("");
+      setBanderaElegida(null);
     }
     setAbierto(true);
   }
@@ -92,6 +139,8 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
     } else if (evento.key === "Escape") {
       setAbierto(false);
       setTexto(anterior.current);
+    } else if (evento.key === "Tab") {
+      cerrar();
     }
   }
 
@@ -102,13 +151,16 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
       </label>
       <input
         autoComplete="off"
-        className="mt-1 w-full rounded-lg border border-[#E4E8EE] bg-white py-2.5 pl-3 pr-9 text-sm font-medium text-[#0B2545] outline-none focus:border-[#14477E] focus:ring-2 focus:ring-[#14477E]/20"
+        className={`mt-1 w-full min-w-0 rounded-lg border border-[#E4E8EE] bg-white py-2.5 pr-9 text-sm font-medium text-[#0B2545] outline-none focus:border-[#14477E] focus:ring-2 focus:ring-[#14477E]/20 ${
+          banderaElegida ? "pl-9" : "pl-3"
+        }`}
         onChange={(evento) => {
           const nuevo = evento.target.value;
           setTexto(nuevo);
           setAbierto(true);
           setOpciones([]);
           setBuscando(nuevo.trim().length >= 2);
+          setBanderaElegida(null);
           if (/^[A-Za-z]{3}$/.test(nuevo.trim())) {
             onCambio(nuevo.trim().toUpperCase(), null);
           }
@@ -121,6 +173,11 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
         required
         value={texto}
       />
+      {banderaElegida && (
+        <span className="pointer-events-none absolute left-3 top-[2.1rem]">
+          <Bandera bandera={banderaElegida} clase="h-3 w-5" />
+        </span>
+      )}
       {texto !== "" && (
         <button
           aria-label={`Limpiar ${etiqueta.toLowerCase()}`}
@@ -128,6 +185,7 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
           onClick={() => {
             anterior.current = "";
             setTexto("");
+            setBanderaElegida(null);
             setOpciones([]);
             campo.current?.focus();
           }}
@@ -149,12 +207,16 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
                 type="button"
               >
                 <span className="flex min-w-0 items-center gap-2">
-                  {opcion.bandera && <span className="text-lg leading-none">{opcion.bandera}</span>}
+                  <Bandera bandera={opcion.bandera} clase="h-3.5 w-5" />
                   <span className="min-w-0">
-                    <span className="block font-medium text-[#0B2545]">{opcion.nombre}</span>
+                    <span className="block font-medium text-[#0B2545]">
+                      {opcion.nombre}
+                    </span>
                     <span className="block text-xs text-[#5A6B80]">
                       {[
-                        opcion.tipo === "ciudad" ? "Todos los aeropuertos" : opcion.ciudad,
+                        opcion.tipo === "ciudad"
+                          ? "Todos los aeropuertos"
+                          : opcion.ciudad,
                         opcion.pais,
                       ]
                         .filter(Boolean)
@@ -170,7 +232,9 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
           ))}
           {sugerencias.length === 0 && (
             <li className="px-3 py-2 text-sm text-[#5A6B80]">
-              {buscando ? "Buscando aeropuertos…" : "Sin aeropuertos con ese nombre"}
+              {buscando
+                ? "Buscando aeropuertos…"
+                : "Sin aeropuertos con ese nombre"}
             </li>
           )}
         </ul>

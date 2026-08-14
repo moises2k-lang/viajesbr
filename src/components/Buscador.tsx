@@ -97,6 +97,19 @@ export default function Buscador({
       ? valoresIniciales.tramos
       : [tramoVacio(), tramoVacio()],
   );
+  /**
+   * Sube de número cuando el sistema (no el usuario) rellena un tramo, para
+   * refrescar ese campo. No puede depender del texto escrito: si no, el campo se
+   * reinicia a las tres letras y se cierra el autocomplete a media palabra.
+   */
+  const [rellenos, setRellenos] = useState<number[]>(() => tramos.map(() => 0));
+
+  function marcarRelleno(indice: number) {
+    setRellenos((actuales) =>
+      actuales.map((numero, i) => (i === indice ? numero + 1 : numero)),
+    );
+  }
+
   const redondo = tipo === "redondo";
   const multiciudad = tipo === "multiciudad";
 
@@ -122,6 +135,7 @@ export default function Buscador({
         },
       ];
     });
+    setRellenos((actuales) => actuales.map((numero) => numero + 1));
     setTipo("multiciudad");
   }
 
@@ -330,7 +344,7 @@ export default function Buscador({
                 <CampoAeropuerto
                   descripcion={tramo.origenNombre}
                   etiqueta="Origen"
-                  key={`tramo-origen-${indice}-${tramo.origen}`}
+                  key={`tramo-origen-${indice}-${rellenos[indice] ?? 0}`}
                   onCambio={(codigo, nombre) =>
                     cambiarTramo(indice, {
                       origen: codigo,
@@ -344,7 +358,7 @@ export default function Buscador({
                 <CampoAeropuerto
                   descripcion={tramo.destinoNombre}
                   etiqueta="Destino"
-                  key={`tramo-destino-${indice}-${tramo.destino}`}
+                  key={`tramo-destino-${indice}-${rellenos[indice] ?? 0}`}
                   onCambio={(codigo, nombre) => {
                     cambiarTramo(indice, {
                       destino: codigo,
@@ -359,6 +373,7 @@ export default function Buscador({
                         origen: codigo,
                         origenNombre: nombre,
                       });
+                      marcarRelleno(indice + 1);
                     }
                   }}
                   valor={tramo.destino}
@@ -379,9 +394,14 @@ export default function Buscador({
                 {tramos.length > 2 && (
                   <button
                     className="w-full rounded-lg border border-[#E4E8EE] px-2 py-2.5 text-xs text-[#B4451F]"
-                    onClick={() =>
-                      setTramos(tramos.filter((_, i) => i !== indice))
-                    }
+                    onClick={() => {
+                      setTramos(tramos.filter((_, i) => i !== indice));
+                      setRellenos(
+                        rellenos
+                          .filter((_, i) => i !== indice)
+                          .map((numero) => numero + 1),
+                      );
+                    }}
                     type="button"
                   >
                     Quitar
@@ -395,7 +415,7 @@ export default function Buscador({
             {tramos.length < MAXIMO_TRAMOS && (
               <button
                 className="rounded-lg border border-[#14477E] px-4 py-2 text-sm font-semibold text-[#14477E]"
-                onClick={() =>
+                onClick={() => {
                   setTramos([
                     ...tramos,
                     {
@@ -403,8 +423,9 @@ export default function Buscador({
                       origen: tramos[tramos.length - 1].destino,
                       origenNombre: tramos[tramos.length - 1].destinoNombre,
                     },
-                  ])
-                }
+                  ]);
+                  setRellenos([...rellenos, 0]);
+                }}
                 type="button"
               >
                 + Agregar tramo
