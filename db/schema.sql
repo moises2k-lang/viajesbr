@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
 );
 
 CREATE TABLE IF NOT EXISTS sesiones (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id TEXT PRIMARY KEY,
   creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
   expira_en TIMESTAMPTZ NOT NULL,
   usuario_id BIGINT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE
@@ -203,3 +203,5 @@ CREATE TABLE IF NOT EXISTS hoteles_reservas (
 INSERT INTO reglas_markup (nombre, prioridad, porcentaje, monto_fijo, monto_minimo)
 SELECT 'Markup general', 1000, 8.000, 0, 25
 WHERE NOT EXISTS (SELECT 1 FROM reglas_markup);
+
+ALTER TABLE sesiones ALTER COLUMN id TYPE TEXT USING id::TEXT;

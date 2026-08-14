@@ -465,7 +465,9 @@ const packages = {
   step1: "Paso 1: Elige tu vuelo",
   step2: "Paso 2: Elige tu hotel",
   flightChosen: "Vuelo elegido",
+  hotelChosen: "Hotel elegido",
   changeFlight: "Cambiar vuelo",
+  packageTotal: "Total del paquete",
   searchingHotels: "Buscando hoteles disponibles en",
 };
 

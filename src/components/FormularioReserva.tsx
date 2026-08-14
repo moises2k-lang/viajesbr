@@ -157,6 +157,20 @@ export default function FormularioReserva({
     }
   }
 
+  const totalPaquete =
+    hotel && habitacion
+      ? {
+          moneda: oferta.moneda,
+          costoNeto: mostrarMargen
+            ? oferta.costoNeto + habitacion.costoNeto
+            : undefined,
+          markup: mostrarMargen
+            ? oferta.markup + habitacion.markup
+            : undefined,
+          precioVenta: oferta.precioVenta + habitacion.precioVenta,
+        }
+      : null;
+
   return (
     <section className="mt-8 space-y-6">
       <ResumenVuelo mostrarMargen={mostrarMargen} oferta={oferta} />
@@ -176,6 +190,40 @@ export default function FormularioReserva({
             <p className="text-xl font-semibold text-[#0B2545]">
               <Precio monto={habitacion.precioVenta} moneda={hotel.moneda} />
             </p>
+          </div>
+        </div>
+      )}
+
+      {totalPaquete && (
+        <div className="rounded-xl border border-[#C9A227] bg-[#FFF8E1] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-base font-semibold text-[#0B2545]">
+              {t("packages.packageTotal")}
+            </h3>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-[#0B2545]">
+                <Precio
+                  monto={totalPaquete.precioVenta}
+                  moneda={totalPaquete.moneda}
+                />
+              </p>
+              {mostrarMargen &&
+                totalPaquete.costoNeto !== undefined &&
+                totalPaquete.markup !== undefined && (
+                  <p className="text-xs text-[#5A6B80]">
+                    neto{" "}
+                    <Precio
+                      monto={totalPaquete.costoNeto}
+                      moneda={totalPaquete.moneda}
+                    />{" "}
+                    + markup{" "}
+                    <Precio
+                      monto={totalPaquete.markup}
+                      moneda={totalPaquete.moneda}
+                    />
+                  </p>
+                )}
+            </div>
           </div>
         </div>
       )}

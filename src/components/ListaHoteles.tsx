@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import Precio from "@/components/Precio";
 import type { FichaHotel } from "@/app/api/hoteles/[hotelId]/route";
 import type { HotelConPrecio, HabitacionConPrecio } from "@/app/api/hoteles/route";
+import type { OfertaConPrecio } from "@/app/api/buscar/route";
 import { emparejarHabitacion } from "@/lib/habitaciones";
 import DetalleHotel from "@/components/DetalleHotel";
 import Bandera from "@/components/Bandera";
@@ -16,10 +17,11 @@ type Orden = "precio" | "calificacion" | "estrellas" | "nombre";
 interface Props {
   hoteles: HotelConPrecio[];
   mostrarMargen: boolean;
+  oferta?: OfertaConPrecio;
   onElegir?: (hotel: HotelConPrecio, habitacion: HabitacionConPrecio) => void;
 }
 
-export default function ListaHoteles({ hoteles, mostrarMargen, onElegir }: Props) {
+export default function ListaHoteles({ hoteles, mostrarMargen, oferta, onElegir }: Props) {
   const [abierto, setAbierto] = useState<string | null>(null);
   const [detalle, setDetalle] = useState<string | null>(null);
   const [fichas, setFichas] = useState<Record<string, FichaHotel>>({});
@@ -304,6 +306,15 @@ export default function ListaHoteles({ hoteles, mostrarMargen, onElegir }: Props
                     >
                       {desplegado ? "Ocultar tarifas" : "Ver tarifas"}
                     </button>
+                    {oferta && hotel.habitaciones[0] && (
+                      <p className="mt-2 text-sm font-semibold text-[#0B2545]">
+                        Total paquete:{" "}
+                        <Precio
+                          monto={oferta.precioVenta + hotel.habitaciones[0].precioVenta}
+                          moneda={oferta.moneda}
+                        />
+                      </p>
+                    )}
                     {onElegir && hotel.habitaciones[0] && (
                       <button
                         className="mt-2 w-full rounded-lg bg-[#14477E] px-4 py-2 text-sm font-semibold text-white"
@@ -396,6 +407,15 @@ export default function ListaHoteles({ hoteles, mostrarMargen, onElegir }: Props
                                 <Precio
                                   moneda={hotel.moneda}
                                   monto={habitacion.precioReferencia}
+                                />
+                              </p>
+                            )}
+                            {oferta && (
+                              <p className="text-xs font-semibold text-[#0B2545]">
+                                Total paquete:{" "}
+                                <Precio
+                                  monto={oferta.precioVenta + habitacion.precioVenta}
+                                  moneda={oferta.moneda}
                                 />
                               </p>
                             )}

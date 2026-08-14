@@ -777,6 +777,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
                             <ListaHoteles
                               hoteles={estadoHoteles.hoteles}
                               mostrarMargen={modoInterno}
+                              oferta={paquete.vuelo}
                               onElegir={(hotel, habitacion) =>
                                 setPaquete({
                                   paso: 3,
