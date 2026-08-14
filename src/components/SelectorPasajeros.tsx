@@ -105,7 +105,7 @@ export default function SelectorPasajeros({ valor, onCambio }: Props) {
       </button>
 
       {abierto && (
-        <div className="absolute z-30 mt-1 w-80 rounded-lg border border-[#E4E8EE] bg-white p-4 shadow-lg">
+        <div className="absolute z-30 mt-1 w-[22rem] max-w-[calc(100vw-2rem)] rounded-lg border border-[#E4E8EE] bg-white p-4 shadow-lg">
           <Contador
             detalle="12 años o más"
             etiqueta="Adultos"
@@ -123,12 +123,12 @@ export default function SelectorPasajeros({ valor, onCambio }: Props) {
             valor={valor.menores.length}
           />
           {valor.menores.length > 0 && (
-            <div className="mt-2 grid grid-cols-4 gap-2 border-t border-[#E4E8EE] pt-3">
+            <div className="mt-2 grid grid-cols-3 gap-2 border-t border-[#E4E8EE] pt-3">
               {valor.menores.map((edad, indice) => (
                 <label className="text-xs text-[#5A6B80]" key={`menor-${indice}`}>
                   Edad {indice + 1}
                   <select
-                    className="mt-1 w-full rounded border border-[#E4E8EE] px-2 py-1 text-sm text-[#0B2545]"
+                    className="mt-1 w-full rounded border border-[#E4E8EE] px-1 py-1 text-sm text-[#0B2545]"
                     onChange={(evento) => {
                       const menores = [...valor.menores];
                       menores[indice] = Number(evento.target.value);

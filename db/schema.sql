@@ -122,6 +122,60 @@ CREATE TABLE IF NOT EXISTS itinerario_bloques (
 CREATE INDEX IF NOT EXISTS itinerario_bloques_itinerario_idx
   ON itinerario_bloques (itinerario_id, posicion);
 
+CREATE TABLE IF NOT EXISTS hoteles_busquedas (
+  id BIGSERIAL PRIMARY KEY,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ciudad TEXT NOT NULL,
+  pais TEXT NOT NULL,
+  entrada DATE NOT NULL,
+  salida DATE NOT NULL,
+  adultos SMALLINT NOT NULL,
+  menores SMALLINT NOT NULL DEFAULT 0,
+  moneda TEXT NOT NULL,
+  hoteles_encontrados INTEGER,
+  ambiente TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS hoteles_busquedas_creado_en_idx ON hoteles_busquedas (creado_en DESC);
+
+CREATE TABLE IF NOT EXISTS hoteles_cotizaciones (
+  id BIGSERIAL PRIMARY KEY,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  busqueda_id BIGINT REFERENCES hoteles_busquedas (id) ON DELETE SET NULL,
+  liteapi_hotel_id TEXT NOT NULL,
+  liteapi_offer_id TEXT NOT NULL,
+  hotel_nombre TEXT,
+  habitacion TEXT,
+  regimen TEXT,
+  moneda TEXT NOT NULL,
+  costo_neto NUMERIC(12, 2) NOT NULL,
+  markup NUMERIC(12, 2) NOT NULL,
+  precio_venta NUMERIC(12, 2) NOT NULL,
+  regla_markup_id BIGINT REFERENCES reglas_markup (id) ON DELETE SET NULL,
+  reembolsable BOOLEAN,
+  datos JSONB NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS hoteles_cotizaciones_hotel_idx
+  ON hoteles_cotizaciones (liteapi_hotel_id);
+
+CREATE TABLE IF NOT EXISTS hoteles_reservas (
+  id BIGSERIAL PRIMARY KEY,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  cotizacion_id BIGINT REFERENCES hoteles_cotizaciones (id) ON DELETE SET NULL,
+  liteapi_booking_id TEXT NOT NULL UNIQUE,
+  confirmacion_hotel TEXT,
+  estado TEXT NOT NULL,
+  ambiente TEXT NOT NULL,
+  moneda TEXT NOT NULL,
+  costo_neto NUMERIC(12, 2) NOT NULL,
+  markup NUMERIC(12, 2) NOT NULL,
+  precio_venta NUMERIC(12, 2) NOT NULL,
+  huesped_nombre TEXT,
+  huesped_correo TEXT,
+  respuesta JSONB NOT NULL
+);
+
 INSERT INTO reglas_markup (nombre, prioridad, porcentaje, monto_fijo, monto_minimo)
 SELECT 'Markup general', 1000, 8.000, 0, 25
 WHERE NOT EXISTS (SELECT 1 FROM reglas_markup);

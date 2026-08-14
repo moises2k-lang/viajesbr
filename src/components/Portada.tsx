@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 import type { OfertaConPrecio } from "@/app/api/buscar/route";
+import type { HotelConPrecio } from "@/app/api/hoteles/route";
 import Buscador, { type ParametrosFormulario } from "@/components/Buscador";
+import BuscadorHoteles, { type ParametrosHotel } from "@/components/BuscadorHoteles";
+import ListaHoteles from "@/components/ListaHoteles";
 import HistorialBusquedas from "@/components/HistorialBusquedas";
 import ListaOfertas from "@/components/ListaOfertas";
 import FormularioReserva, { type ResultadoReserva } from "@/components/FormularioReserva";
@@ -37,8 +40,16 @@ type Estado =
   | { fase: "reservando"; oferta: OfertaConPrecio }
   | { fase: "confirmada"; resultado: ResultadoReserva };
 
+type EstadoHoteles =
+  | { fase: "inicio" }
+  | { fase: "buscando" }
+  | { fase: "resultados"; hoteles: HotelConPrecio[]; total: number; ambiente: string };
+
 export default function Portada({ modoInterno }: { modoInterno: boolean }) {
+  const [pestana, setPestana] = useState<"vuelos" | "hoteles">("vuelos");
   const [estado, setEstado] = useState<Estado>({ fase: "inicio" });
+  const [estadoHoteles, setEstadoHoteles] = useState<EstadoHoteles>({ fase: "inicio" });
+  const [ultimoHotel, setUltimoHotel] = useState<ParametrosHotel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ultimaBusqueda, setUltimaBusqueda] = useState<ParametrosFormulario | null>(null);
   const historial = useSyncExternalStore(
@@ -71,6 +82,34 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
     }
   }
 
+  async function buscarHotel(parametros: ParametrosHotel) {
+    setError(null);
+    setUltimoHotel(parametros);
+    setEstadoHoteles({ fase: "buscando" });
+    try {
+      const respuesta = await fetch("/api/hoteles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...parametros, salida: parametros.salida }),
+      });
+      const cuerpo = await respuesta.json();
+      if (!respuesta.ok) {
+        setError(cuerpo.error ?? "No se pudo buscar hoteles");
+        setEstadoHoteles({ fase: "inicio" });
+        return;
+      }
+      setEstadoHoteles({
+        fase: "resultados",
+        hoteles: cuerpo.hoteles,
+        total: cuerpo.total,
+        ambiente: cuerpo.ambiente,
+      });
+    } catch (e) {
+      setError((e as Error).message);
+      setEstadoHoteles({ fase: "inicio" });
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
       <header className="bg-[#0B2545]">
@@ -92,15 +131,79 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
         <section className="-mb-6 bg-[#0B2545] pb-14 pt-2 text-white">
           <div className="px-1">
             <h1 className="text-2xl font-semibold sm:text-3xl">
-              Vuelos con tarifas en tiempo real
+              {pestana === "vuelos"
+                ? "Vuelos con tarifas en tiempo real"
+                : "Hoteles con tarifas en tiempo real"}
             </h1>
             <p className="mt-1 text-sm text-white/70">
-              Más de 300 aerolíneas · precio final con impuestos · sin cargos escondidos
+              {pestana === "vuelos"
+                ? "Más de 300 aerolíneas · precio final con impuestos · sin cargos escondidos"
+                : "Inventario de liteAPI · precio por estancia completa · políticas de cancelación reales"}
             </p>
+            <div className="mt-4 flex gap-2">
+              {(["vuelos", "hoteles"] as const).map((opcion) => (
+                <button
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium ${
+                    pestana === opcion ? "bg-white text-[#0B2545]" : "bg-white/15 text-white"
+                  }`}
+                  key={opcion}
+                  onClick={() => {
+                    setError(null);
+                    setPestana(opcion);
+                  }}
+                  type="button"
+                >
+                  {opcion === "vuelos" ? "Vuelos" : "Hoteles"}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
-        <div className="relative z-10">
+        {pestana === "hoteles" && (
+          <>
+            <div className="relative z-10">
+              <BuscadorHoteles
+                cargando={estadoHoteles.fase === "buscando"}
+                valoresIniciales={ultimoHotel}
+                onBuscar={buscarHotel}
+              />
+            </div>
+
+            {error && (
+              <p className="mt-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+                {error}
+              </p>
+            )}
+
+            {estadoHoteles.fase === "buscando" && (
+              <div className="mt-6 flex flex-col gap-3">
+                <p className="text-sm text-[#5A6B80]">Consultando hoteles en vivo…</p>
+                {[0, 1, 2].map((n) => (
+                  <div
+                    className="h-32 animate-pulse rounded-xl border border-[#E4E8EE] bg-white"
+                    key={n}
+                  />
+                ))}
+              </div>
+            )}
+
+            {estadoHoteles.fase === "resultados" && (
+              <div className="mt-6">
+                <p className="mb-3 text-sm text-[#5A6B80]">
+                  {estadoHoteles.total} hotel{estadoHoteles.total === 1 ? "" : "es"} con
+                  disponibilidad
+                  {estadoHoteles.ambiente === "sandbox"
+                    ? " · inventario de prueba (sandbox): no reserva hoteles reales"
+                    : ""}
+                </p>
+                <ListaHoteles hoteles={estadoHoteles.hoteles} mostrarMargen={modoInterno} />
+              </div>
+            )}
+          </>
+        )}
+
+        <div className={pestana === "vuelos" ? "relative z-10" : "hidden"}>
           <Buscador
             cargando={estado.fase === "buscando"}
             key={claveFormulario(ultimaBusqueda)}
@@ -109,7 +212,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
           />
         </div>
 
-        {estado.fase !== "buscando" && (
+        {pestana === "vuelos" && estado.fase !== "buscando" && (
           <HistorialBusquedas
             historial={historial}
             onBorrar={borrarHistorial}
@@ -117,13 +220,13 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
           />
         )}
 
-        {error && (
+        {pestana === "vuelos" && error && (
           <p className="mt-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">
             {error}
           </p>
         )}
 
-        {estado.fase === "buscando" && (
+        {pestana === "vuelos" && estado.fase === "buscando" && (
           <div className="mt-6 flex flex-col gap-3">
             <p className="text-sm text-[#5A6B80]">
               Consultando aerolíneas en vivo… puede tardar hasta 30 segundos.
@@ -134,7 +237,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
           </div>
         )}
 
-        {estado.fase === "resultados" && (
+        {pestana === "vuelos" && estado.fase === "resultados" && (
           <ListaOfertas
             mostrarMargen={modoInterno}
             ofertas={estado.ofertas}
@@ -143,7 +246,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
           />
         )}
 
-        {estado.fase === "reservando" && (
+        {pestana === "vuelos" && estado.fase === "reservando" && (
           <FormularioReserva
             oferta={estado.oferta}
             onCancelar={() => ultimaBusqueda && buscar(ultimaBusqueda)}
@@ -151,7 +254,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
           />
         )}
 
-        {estado.fase === "confirmada" && (
+        {pestana === "vuelos" && estado.fase === "confirmada" && (
           <section className="mt-8 rounded-xl border border-green-300 bg-green-50 p-6">
             <h2 className="text-lg font-semibold text-green-900">Reserva confirmada</h2>
             <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">

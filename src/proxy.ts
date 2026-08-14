@@ -35,5 +35,6 @@ export const config = {
     "/api/itinerarios/:path*",
     "/api/documentos/:path*",
     "/api/reservar",
+    "/api/hoteles/reservar",
   ],
 };

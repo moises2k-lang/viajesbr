@@ -1,0 +1,249 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { query } from "@/lib/db";
+import {
+  buscarHoteles,
+  esAmbientePruebaHoteles,
+  type HotelLiteApi,
+  type TarifaLiteApi,
+} from "@/lib/liteapi";
+import { calcularPrecio, reglasActivas } from "@/lib/markup";
+import { bandera, nombrePais } from "@/lib/paises";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
+const MAXIMO_HOTELES = 60;
+
+const esquema = z.object({
+  ciudad: z.string().trim().min(2),
+  pais: z.string().trim().length(2),
+  entrada: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  salida: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  adultos: z.number().int().min(1).max(9),
+  menores: z.array(z.number().int().min(0).max(17)).max(8),
+  moneda: z.string().trim().length(3).default("USD"),
+  nacionalidad: z.string().trim().length(2).default("MX"),
+});
+
+export interface HabitacionConPrecio {
+  ofertaId: string;
+  habitacion: string;
+  regimen: string | null;
+  reembolsable: boolean | null;
+  cancelaAntesDe: string | null;
+  costoNeto: number;
+  markup: number;
+  precioVenta: number;
+  precioReferencia: number | null;
+  fuenteReferencia: string | null;
+  impuestosNoIncluidos: { descripcion: string; monto: number }[];
+}
+
+export interface HotelConPrecio {
+  hotelId: string;
+  nombre: string;
+  direccion: string | null;
+  ciudad: string | null;
+  pais: string | null;
+  bandera: string | null;
+  estrellas: number | null;
+  calificacion: number | null;
+  resenas: number | null;
+  foto: string | null;
+  latitud: number | null;
+  longitud: number | null;
+  noches: number;
+  moneda: string;
+  desde: number;
+  habitaciones: HabitacionConPrecio[];
+}
+
+function noches(entrada: string, salida: string): number {
+  const dia = 24 * 60 * 60 * 1000;
+  return Math.max(
+    1,
+    Math.round((new Date(`${salida}T00:00:00Z`).getTime() - new Date(`${entrada}T00:00:00Z`).getTime()) / dia),
+  );
+}
+
+function totalTarifa(tarifa: TarifaLiteApi): { monto: number; moneda: string } | null {
+  const total = tarifa.retailRate?.total?.[0];
+  return total ? { monto: total.amount, moneda: total.currency } : null;
+}
+
+export async function POST(request: Request) {
+  let cuerpo: unknown;
+  try {
+    cuerpo = await request.json();
+  } catch {
+    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+  }
+
+  const validado = esquema.safeParse(cuerpo);
+  if (!validado.success) {
+    return NextResponse.json(
+      { error: "Parámetros inválidos", detalle: validado.error.issues },
+      { status: 400 },
+    );
+  }
+  const p = validado.data;
+  if (p.salida <= p.entrada) {
+    return NextResponse.json(
+      { error: "La fecha de salida debe ser posterior a la de entrada" },
+      { status: 400 },
+    );
+  }
+
+  let respuesta;
+  try {
+    respuesta = await buscarHoteles({
+      ciudad: p.ciudad,
+      pais: p.pais.toUpperCase(),
+      entrada: p.entrada,
+      salida: p.salida,
+      adultos: p.adultos,
+      menores: p.menores,
+      moneda: p.moneda.toUpperCase(),
+      nacionalidad: p.nacionalidad.toUpperCase(),
+      limite: MAXIMO_HOTELES,
+    });
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 502 });
+  }
+
+  const reglas = await reglasActivas();
+  const porId = new Map<string, HotelLiteApi>();
+  for (const hotel of respuesta.hotels ?? []) porId.set(hotel.id, hotel);
+
+  const totalNoches = noches(p.entrada, p.salida);
+  const hoteles: HotelConPrecio[] = [];
+
+  for (const fila of respuesta.data) {
+    const info = porId.get(fila.hotelId);
+    const habitaciones: HabitacionConPrecio[] = [];
+    let moneda = p.moneda.toUpperCase();
+
+    for (const tipo of fila.roomTypes) {
+      const tarifa = tipo.rates[0];
+      if (!tarifa) continue;
+      const total = totalTarifa(tarifa);
+      if (!total) continue;
+      moneda = total.moneda;
+      const precio = calcularPrecio(
+        total.monto,
+        {
+          aerolineaIata: "",
+          origen: "",
+          destino: p.ciudad.toUpperCase(),
+          moneda: total.moneda,
+        },
+        reglas,
+      );
+      const politica = tarifa.cancellationPolicies;
+      habitaciones.push({
+        ofertaId: tipo.offerId,
+        habitacion: tarifa.name,
+        regimen: tarifa.boardName ?? null,
+        reembolsable: politica?.refundableTag ? politica.refundableTag === "RFN" : null,
+        cancelaAntesDe: politica?.cancelPolicyInfos?.[0]?.cancelTime ?? null,
+        costoNeto: precio.costoNeto,
+        markup: precio.markup,
+        precioVenta: precio.precioVenta,
+        precioReferencia: tarifa.retailRate?.suggestedSellingPrice?.[0]?.amount ?? null,
+        fuenteReferencia: tarifa.retailRate?.suggestedSellingPrice?.[0]?.source ?? null,
+        impuestosNoIncluidos: (tarifa.retailRate?.taxesAndFees ?? [])
+          .filter((t) => !t.included)
+          .map((t) => ({ descripcion: t.description, monto: t.amount })),
+      });
+    }
+
+    if (habitaciones.length === 0) continue;
+    habitaciones.sort((a, b) => a.precioVenta - b.precioVenta);
+    const paisHotel = info?.country_code?.toUpperCase() ?? p.pais.toUpperCase();
+
+    hoteles.push({
+      hotelId: fila.hotelId,
+      nombre: info?.name ?? fila.hotelId,
+      direccion: info?.address ?? null,
+      ciudad: info?.city_name ?? p.ciudad,
+      pais: nombrePais(paisHotel),
+      bandera: bandera(paisHotel),
+      estrellas: info?.stars ?? null,
+      calificacion: info?.rating ?? null,
+      resenas: info?.reviewCount ?? null,
+      foto: info?.main_photo ?? info?.thumbnail ?? null,
+      latitud: info?.latitude ?? null,
+      longitud: info?.longitude ?? null,
+      noches: totalNoches,
+      moneda,
+      desde: habitaciones[0].precioVenta,
+      habitaciones,
+    });
+  }
+
+  hoteles.sort((a, b) => a.desde - b.desde);
+  const ambiente = esAmbientePruebaHoteles() ? "sandbox" : "live";
+
+  const [busqueda] = await query<{ id: string }>(
+    `INSERT INTO hoteles_busquedas (ciudad, pais, entrada, salida, adultos, menores, moneda,
+                                    hoteles_encontrados, ambiente)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+     RETURNING id::text`,
+    [
+      p.ciudad,
+      p.pais.toUpperCase(),
+      p.entrada,
+      p.salida,
+      p.adultos,
+      p.menores.length,
+      p.moneda.toUpperCase(),
+      hoteles.length,
+      ambiente,
+    ],
+  );
+
+  const valores: unknown[] = [];
+  const filas: string[] = [];
+  for (const hotel of hoteles) {
+    for (const habitacion of hotel.habitaciones) {
+      const base = valores.length;
+      valores.push(
+        busqueda.id,
+        hotel.hotelId,
+        habitacion.ofertaId,
+        hotel.nombre,
+        habitacion.habitacion,
+        habitacion.regimen,
+        hotel.moneda,
+        habitacion.costoNeto,
+        habitacion.markup,
+        habitacion.precioVenta,
+        habitacion.reembolsable,
+        JSON.stringify({ hotel: hotel.hotelId, habitacion }),
+      );
+      filas.push(
+        `($${base + 1}::bigint,$${base + 2},$${base + 3},$${base + 4},$${base + 5},$${base + 6},` +
+          `$${base + 7},$${base + 8},$${base + 9},$${base + 10},$${base + 11},$${base + 12}::jsonb)`,
+      );
+    }
+  }
+
+  if (filas.length > 0) {
+    await query(
+      `INSERT INTO hoteles_cotizaciones
+         (busqueda_id, liteapi_hotel_id, liteapi_offer_id, hotel_nombre, habitacion, regimen,
+          moneda, costo_neto, markup, precio_venta, reembolsable, datos)
+       VALUES ${filas.join(",")}`,
+      valores,
+    );
+  }
+
+  return NextResponse.json({
+    busquedaId: busqueda.id,
+    ambiente,
+    noches: totalNoches,
+    total: hoteles.length,
+    hoteles,
+  });
+}

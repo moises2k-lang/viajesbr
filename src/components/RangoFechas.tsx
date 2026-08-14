@@ -6,6 +6,8 @@ interface Props {
   desde: string;
   hasta: string | null;
   conRegreso: boolean;
+  etiquetaDesde?: string;
+  etiquetaHasta?: string;
   onCambio: (desde: string, hasta: string | null) => void;
 }
 
@@ -51,7 +53,14 @@ function casillas(anio: number, mes: number): (number | null)[] {
   ];
 }
 
-export default function RangoFechas({ desde, hasta, conRegreso, onCambio }: Props) {
+export default function RangoFechas({
+  desde,
+  hasta,
+  conRegreso,
+  etiquetaDesde = "Desde",
+  etiquetaHasta = "Hasta",
+  onCambio,
+}: Props) {
   const [abierto, setAbierto] = useState(false);
   const [eligiendo, setEligiendo] = useState<"desde" | "hasta">("desde");
   const inicial = desde || hoyIso();
@@ -160,7 +169,7 @@ export default function RangoFechas({ desde, hasta, conRegreso, onCambio }: Prop
           type="button"
         >
           <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
-            Desde
+            {etiquetaDesde}
           </span>
           <span className="text-sm font-medium text-[#0B2545]">
             {desde ? textoLargo(desde) : "Elegir fecha"}
@@ -175,7 +184,7 @@ export default function RangoFechas({ desde, hasta, conRegreso, onCambio }: Prop
           type="button"
         >
           <span className="block text-xs font-medium uppercase tracking-wide text-[#5A6B80]">
-            Hasta
+            {etiquetaHasta}
           </span>
           <span
             className={`text-sm font-medium ${conRegreso ? "text-[#0B2545]" : "text-[#9AA7B8]"}`}
