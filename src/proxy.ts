@@ -21,9 +21,7 @@ function credencialValida(request: NextRequest): boolean {
 }
 
 export function proxy(request: NextRequest) {
-  const esLecturaDeReglas =
-    request.nextUrl.pathname === "/api/markup" && request.method === "GET";
-  if (esLecturaDeReglas || credencialValida(request)) {
+  if (credencialValida(request)) {
     return NextResponse.next();
   }
   return SOLICITAR_CREDENCIALES;
