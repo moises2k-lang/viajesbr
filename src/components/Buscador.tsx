@@ -45,6 +45,7 @@ interface Props {
 
 export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props) {
   const [datos, setDatos] = useState<ParametrosFormulario>(valoresIniciales ?? VACIO);
+  const [inversiones, setInversiones] = useState(0);
   const [redondo, setRedondo] = useState(
     valoresIniciales ? valoresIniciales.fechaRegreso !== null : true,
   );
@@ -66,6 +67,7 @@ export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props
   }
 
   function invertir() {
+    setInversiones((n) => n + 1);
     setDatos({
       ...datos,
       origen: datos.destino,
@@ -115,6 +117,7 @@ export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props
           <CampoAeropuerto
             descripcion={datos.origenNombre ?? null}
             etiqueta="Origen"
+            key={`origen-${inversiones}`}
             onCambio={(codigo, nombre) => setDatos({ ...datos, origen: codigo, origenNombre: nombre })}
             valor={datos.origen}
           />
@@ -132,6 +135,7 @@ export default function Buscador({ cargando, valoresIniciales, onBuscar }: Props
           <CampoAeropuerto
             descripcion={datos.destinoNombre ?? null}
             etiqueta="Destino"
+            key={`destino-${inversiones}`}
             onCambio={(codigo, nombre) =>
               setDatos({ ...datos, destino: codigo, destinoNombre: nombre })
             }

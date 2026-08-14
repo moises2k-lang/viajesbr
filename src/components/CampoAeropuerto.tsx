@@ -15,14 +15,6 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
   const [opciones, setOpciones] = useState<OpcionLugar[]>([]);
   const [abierto, setAbierto] = useState(false);
   const contenedor = useRef<HTMLDivElement>(null);
-  const ultimoExterno = useRef(valor);
-
-  useEffect(() => {
-    if (valor !== ultimoExterno.current) {
-      ultimoExterno.current = valor;
-      setTexto(descripcion ? `${descripcion} (${valor})` : valor);
-    }
-  }, [valor, descripcion]);
 
   useEffect(() => {
     function fuera(evento: MouseEvent) {

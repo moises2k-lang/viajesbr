@@ -41,10 +41,11 @@ function equipajeTexto(equipaje: { tipo: string; cantidad: number }[]): string {
 
 interface Props {
   oferta: OfertaConPrecio;
+  mostrarMargen: boolean;
   onElegir: (oferta: OfertaConPrecio) => void;
 }
 
-export default function TarjetaOferta({ oferta, onElegir }: Props) {
+export default function TarjetaOferta({ oferta, mostrarMargen, onElegir }: Props) {
   const [abierto, setAbierto] = useState(false);
   const pasajeros = oferta.pasajeros.length;
 
@@ -163,10 +164,12 @@ export default function TarjetaOferta({ oferta, onElegir }: Props) {
             <p className="text-xs text-[#5A6B80]">
               total {pasajeros} pasajero{pasajeros === 1 ? "" : "s"} · impuestos incluidos
             </p>
-            <p className="mt-1 text-xs text-[#9AA7B8]">
-              neto {oferta.costoNeto.toLocaleString("es-MX", { maximumFractionDigits: 2 })} + markup{" "}
-              {oferta.markup.toLocaleString("es-MX", { maximumFractionDigits: 2 })}
-            </p>
+            {mostrarMargen && (
+              <p className="mt-1 text-xs text-[#9AA7B8]">
+                neto {oferta.costoNeto.toLocaleString("es-MX", { maximumFractionDigits: 2 })} + markup{" "}
+                {oferta.markup.toLocaleString("es-MX", { maximumFractionDigits: 2 })}
+              </p>
+            )}
           </div>
           <button
             className="w-full rounded-lg bg-[#C9A227] px-4 py-2.5 text-sm font-semibold text-[#0B2545] transition hover:bg-[#b8931f]"

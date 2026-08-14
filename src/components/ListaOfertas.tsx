@@ -54,10 +54,11 @@ function puntaje(oferta: OfertaConPrecio, precioMinimo: number, duracionMinima: 
 interface Props {
   ofertas: OfertaConPrecio[];
   total: number;
+  mostrarMargen: boolean;
   onElegir: (oferta: OfertaConPrecio) => void;
 }
 
-export default function ListaOfertas({ ofertas, total, onElegir }: Props) {
+export default function ListaOfertas({ ofertas, total, mostrarMargen, onElegir }: Props) {
   const [orden, setOrden] = useState<Orden>("mejor");
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_INICIALES);
   const [visibles, setVisibles] = useState(15);
@@ -299,7 +300,12 @@ export default function ListaOfertas({ ofertas, total, onElegir }: Props) {
         ) : (
           <ul className="flex flex-col gap-3">
             {filtradas.slice(0, visibles).map((oferta) => (
-              <TarjetaOferta key={oferta.ofertaId} oferta={oferta} onElegir={onElegir} />
+              <TarjetaOferta
+                key={oferta.ofertaId}
+                mostrarMargen={mostrarMargen}
+                oferta={oferta}
+                onElegir={onElegir}
+              />
             ))}
           </ul>
         )}
