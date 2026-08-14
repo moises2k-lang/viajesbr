@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Calendar } from "lucide-react";
 
 interface Props {
   desde: string;
@@ -195,7 +196,7 @@ export default function RangoFechas({
   }
 
   const claseCampo =
-    "mt-1 w-full min-w-0 rounded-lg border bg-white px-3 py-2.5 text-left text-sm font-medium transition focus:outline-none";
+    "mt-1 inline-flex w-full min-w-0 items-center gap-2 rounded-lg border bg-white px-3 py-2.5 text-left text-sm font-medium transition focus:outline-none";
 
   return (
     <div className="relative" ref={contenedor}>
@@ -205,7 +206,7 @@ export default function RangoFechas({
             {etiquetaDesde}
           </span>
           <button
-            className={`${claseCampo} truncate whitespace-nowrap ${
+            className={`${claseCampo} ${
               abierto && eligiendo === "desde"
                 ? "border-[#14477E] focus:ring-2 focus:ring-[#14477E]/20"
                 : "border-[#E4E8EE]"
@@ -213,7 +214,10 @@ export default function RangoFechas({
             onClick={() => abrir("desde")}
             type="button"
           >
-            {desde ? textoLargo(desde) : "Elegir fecha"}
+            <Calendar className="h-4 w-4 shrink-0 text-[#5A6B80]" />
+            <span className="truncate">
+              {desde ? textoLargo(desde) : "Elegir fecha"}
+            </span>
           </button>
         </div>
         {!unica && (
@@ -222,7 +226,7 @@ export default function RangoFechas({
               {etiquetaHasta}
             </span>
             <button
-              className={`${claseCampo} truncate whitespace-nowrap disabled:cursor-not-allowed disabled:bg-[#F5F7FA] disabled:text-[#9AA7B8] ${
+              className={`${claseCampo} disabled:cursor-not-allowed disabled:bg-[#F5F7FA] disabled:text-[#9AA7B8] ${
                 abierto && eligiendo === "hasta"
                   ? "border-[#14477E] focus:ring-2 focus:ring-[#14477E]/20"
                   : "border-[#E4E8EE]"
@@ -231,11 +235,14 @@ export default function RangoFechas({
               onClick={() => abrir("hasta")}
               type="button"
             >
-              {conRegreso
-                ? hasta
-                  ? textoLargo(hasta)
-                  : "Elegir fecha"
-                : "Sólo ida"}
+              <Calendar className="h-4 w-4 shrink-0 text-[#5A6B80]" />
+              <span className="truncate">
+                {conRegreso
+                  ? hasta
+                    ? textoLargo(hasta)
+                    : "Elegir fecha"
+                  : "Sólo ida"}
+              </span>
             </button>
           </div>
         )}
