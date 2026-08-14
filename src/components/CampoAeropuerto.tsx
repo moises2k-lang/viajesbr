@@ -80,21 +80,19 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
         value={texto}
       />
       {abierto && texto.trim().length >= 2 && opciones.length > 0 && (
-        <ul className="absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded-lg border border-[#E4E8EE] bg-white shadow-lg">
+        <ul className="absolute z-30 mt-1 max-h-72 w-full min-w-[20rem] max-w-[calc(100vw-2rem)] overflow-auto rounded-lg border border-[#E4E8EE] bg-white shadow-lg">
           {opciones.map((opcion) => (
             <li key={`${opcion.tipo}-${opcion.codigo}`}>
               <button
-                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-[#F5F7FA]"
+                className="flex w-full items-start justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-[#F5F7FA]"
                 onClick={() => elegir(opcion)}
                 type="button"
               >
                 <span className="flex min-w-0 items-center gap-2">
                   {opcion.bandera && <span className="text-lg leading-none">{opcion.bandera}</span>}
                   <span className="min-w-0">
-                    <span className="block truncate font-medium text-[#0B2545]">
-                      {opcion.nombre}
-                    </span>
-                    <span className="block truncate text-xs text-[#5A6B80]">
+                    <span className="block font-medium text-[#0B2545]">{opcion.nombre}</span>
+                    <span className="block text-xs text-[#5A6B80]">
                       {[
                         opcion.tipo === "ciudad" ? "Todos los aeropuertos" : opcion.ciudad,
                         opcion.pais,
@@ -104,7 +102,7 @@ export default function CampoAeropuerto({ etiqueta, valor, descripcion, onCambio
                     </span>
                   </span>
                 </span>
-                <span className="rounded bg-[#E4E8EE] px-1.5 py-0.5 font-mono text-xs text-[#14477E]">
+                <span className="shrink-0 rounded bg-[#E4E8EE] px-1.5 py-0.5 font-mono text-xs text-[#14477E]">
                   {opcion.codigo}
                 </span>
               </button>

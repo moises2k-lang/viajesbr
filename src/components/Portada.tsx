@@ -18,21 +18,6 @@ import {
   suscribirHistorial,
 } from "@/lib/historial";
 
-/** Remonta el formulario cuando se aplica otra búsqueda (por ejemplo desde el historial). */
-function claveFormulario(p: ParametrosFormulario | null): string {
-  if (!p) return "formulario-vacio";
-  return [
-    p.origen,
-    p.destino,
-    p.fechaSalida,
-    p.fechaRegreso ?? "",
-    p.adultos,
-    p.menores.join(","),
-    p.bebes,
-    p.cabina ?? "",
-  ].join("-");
-}
-
 type Estado =
   | { fase: "inicio" }
   | { fase: "buscando" }
@@ -52,6 +37,8 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
   const [ultimoHotel, setUltimoHotel] = useState<ParametrosHotel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ultimaBusqueda, setUltimaBusqueda] = useState<ParametrosFormulario | null>(null);
+  // Cada búsqueda aplicada remonta el formulario, incluso si repite los mismos datos.
+  const [aplicaciones, setAplicaciones] = useState(0);
   const historial = useSyncExternalStore(
     suscribirHistorial,
     historialDelNavegador,
@@ -61,6 +48,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
   async function buscar(parametros: ParametrosFormulario) {
     setError(null);
     setUltimaBusqueda(parametros);
+    setAplicaciones((n) => n + 1);
     guardarBusqueda(parametros);
     setEstado({ fase: "buscando" });
     try {
@@ -206,7 +194,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
         <div className={pestana === "vuelos" ? "relative z-10" : "hidden"}>
           <Buscador
             cargando={estado.fase === "buscando"}
-            key={claveFormulario(ultimaBusqueda)}
+            key={`formulario-${aplicaciones}`}
             valoresIniciales={ultimaBusqueda}
             onBuscar={buscar}
           />
