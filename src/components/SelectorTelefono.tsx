@@ -92,7 +92,7 @@ export default function SelectorTelefono({
 
   return (
     <div className={className}>
-      <label className="mb-1 block text-sm font-medium text-[#0B2545]">
+      <label className="mb-1 block text-sm font-bold text-[#0B2545]">
         {etiqueta}
       </label>
       <div className="flex">
@@ -118,7 +118,7 @@ export default function SelectorTelefono({
           onCambio={cambiarIso}
         />
         <input
-          className="min-w-0 flex-1 rounded-r-md border border-neutral-300 px-3 py-2 text-sm text-[#0B2545] focus:border-[#14477E] focus:outline-none"
+          className="min-w-0 flex-1 rounded-r-md border border-[#14477E] px-3 py-2.5 text-sm font-semibold text-[#0B2545] placeholder:text-[#5A6B80] focus:border-[#0B2545] focus:outline-none"
           onChange={(e) => cambiarNumero(e.target.value)}
           placeholder={t("common.phoneNumber")}
           required={required}

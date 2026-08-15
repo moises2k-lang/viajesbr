@@ -432,6 +432,53 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
     return cuerpo.id;
   }
 
+  async function guardarCotizacionVuelo(datos: {
+    pasajeros: { titulo: string; nombre: string; apellido: string; fechaNacimiento: string; genero: string }[];
+    email: string;
+    telefono: string;
+  }) {
+    if (estado.fase !== "reservando") throw new Error("No hay vuelo seleccionado");
+    const { oferta } = estado;
+    const tramoIda = oferta.tramos[0];
+    const tramoVuelta = oferta.tramos[oferta.tramos.length - 1];
+    const pasajeroPrincipal = datos.pasajeros[0] ?? { nombre: "", apellido: "" };
+    const nombresPasajeros = datos.pasajeros
+      .map((p) => `${p.nombre} ${p.apellido}`.trim())
+      .filter(Boolean)
+      .join(" · ");
+    const respuesta = await fetch("/api/itinerarios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        titulo: `Vuelo ${tramoIda.origen} → ${tramoVuelta.destino}`,
+        cliente: `${pasajeroPrincipal.nombre} ${pasajeroPrincipal.apellido}`.trim() || datos.email,
+        resumen: `${nombresPasajeros || datos.email} · ${datos.telefono}`,
+        moneda: oferta.moneda,
+        estado: "cotizacion",
+        bloques: [
+          {
+            posicion: 0,
+            tipo: "vuelo",
+            titulo: `Vuelo ${oferta.aerolinea} ${tramoIda.origen} → ${tramoVuelta.destino}`,
+            fecha: tramoIda.segmentos[0].sale.slice(0, 10),
+            fecha_fin: tramoVuelta.segmentos[tramoVuelta.segmentos.length - 1].llega.slice(0, 10),
+            detalle: `${tramoIda.origen} → ${tramoVuelta.destino} · ${oferta.tramos.length === 2 ? "ida y vuelta" : oferta.tramos.length + " tramos"} · ${datos.pasajeros.length} ${t("common.passengers")}`,
+            proveedor: oferta.aerolinea,
+            costo_neto: oferta.costoNeto,
+            precio_venta: oferta.precioVenta,
+            cotizacion_id: oferta.cotizacionId ? parseInt(oferta.cotizacionId, 10) : null,
+            datos: { oferta, pasajeros: datos.pasajeros },
+          },
+        ],
+      }),
+    });
+    const cuerpo = (await respuesta.json()) as { id?: string; error?: string };
+    if (!respuesta.ok || !cuerpo.id) {
+      throw new Error(cuerpo.error ?? "No se pudo guardar la cotización");
+    }
+    return cuerpo.id;
+  }
+
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#F5F7FA]">
       <header className="bg-[#0B2545]">
@@ -918,6 +965,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
             mostrarMargen={modoInterno}
             oferta={estado.oferta}
             onCancelar={() => ultimaBusqueda && buscar(ultimaBusqueda)}
+            onGuardar={guardarCotizacionVuelo}
             onReservada={(resultado) =>
               setEstado({ fase: "confirmada", resultado })
             }

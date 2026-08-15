@@ -79,12 +79,12 @@ export default function FechaNacimiento({
   }
 
   const selectClase =
-    "w-full min-w-0 rounded-md border border-neutral-300 bg-white px-2 py-2.5 text-sm text-[#0B2545] focus:border-[#14477E] focus:outline-none";
+    "w-full min-w-0 rounded-md border border-[#14477E] bg-white px-2 py-2.5 text-sm font-semibold text-[#0B2545] focus:border-[#0B2545] focus:outline-none";
 
   return (
     <div className={className}>
       {etiqueta && (
-        <label className="mb-1 block text-sm font-semibold text-[#0B2545]">
+        <label className="mb-1 block text-sm font-bold text-[#0B2545]">
           {etiqueta} {required && <span className="text-red-500">*</span>}
         </label>
       )}

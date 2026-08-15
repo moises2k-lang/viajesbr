@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { HotelConPrecio, HabitacionConPrecio } from "@/app/api/hoteles/route";
 import Precio from "@/components/Precio";
 import SelectorTelefono from "@/components/SelectorTelefono";
@@ -48,6 +48,11 @@ export default function FormularioReservaHotel({
   const [enviando, setEnviando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const formularioRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    formularioRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
 
   async function guardar(evento: React.FormEvent) {
     evento.preventDefault();
@@ -100,11 +105,11 @@ export default function FormularioReservaHotel({
   }
 
   const inputClase =
-    "w-full min-w-0 rounded-md border border-neutral-300 bg-white px-3 py-2.5 text-sm font-medium text-[#0B2545] placeholder:text-[#9AA7B8] focus:border-[#14477E] focus:outline-none";
-  const labelClase = "block text-sm font-semibold text-[#0B2545] mb-1";
+    "w-full min-w-0 rounded-md border border-[#14477E] bg-white px-3 py-2.5 text-sm font-semibold text-[#0B2545] placeholder:text-[#5A6B80] focus:border-[#0B2545] focus:outline-none";
+  const labelClase = "block text-sm font-bold text-[#0B2545] mb-1";
 
   return (
-    <section className="mt-8 space-y-6">
+    <section ref={formularioRef} className="mt-8 space-y-6">
       <div className="rounded-xl border border-[#E4E8EE] bg-white p-4">
         <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-[#0B2545]">
           <Building2 className="h-5 w-5" /> {t("hotels.hotel")}
@@ -177,7 +182,7 @@ export default function FormularioReservaHotel({
           <label className={labelClase}>
             {t("form.paymentMethod")}
             <select
-              className="w-full min-w-0 rounded-md border border-neutral-300 bg-white px-3 py-2.5 text-sm font-medium text-[#0B2545]"
+              className={inputClase}
               onChange={(e) => setMetodoPago(e.target.value)}
               value={metodoPago}
             >

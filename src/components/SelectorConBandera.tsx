@@ -82,13 +82,13 @@ export default function SelectorConBandera({
   return (
     <div className={`relative ${className ?? ""}`} ref={contenedor}>
       {etiqueta && (
-        <label className="mb-1 block text-sm font-medium text-[#0B2545]">
+        <label className="mb-1 block text-sm font-bold text-[#0B2545]">
           {etiqueta}
         </label>
       )}
       <button
         aria-expanded={abierto}
-        className={`flex w-full items-center justify-between gap-2 rounded-md border border-neutral-300 bg-white px-3 py-2 text-left text-sm text-[#0B2545] focus:border-[#14477E] focus:outline-none ${botonClassName ?? ""}`}
+        className={`flex w-full items-center justify-between gap-2 rounded-md border border-[#14477E] bg-white px-3 py-2.5 text-left text-sm font-semibold text-[#0B2545] focus:border-[#0B2545] focus:outline-none ${botonClassName ?? ""}`}
         onClick={() => setAbierto((v) => !v)}
         type="button"
       >
