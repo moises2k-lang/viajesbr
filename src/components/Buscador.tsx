@@ -472,7 +472,7 @@ export default function Buscador({
               etiqueta={t("common.origin")}
               key={`origen-${inversiones}-${origenDetectado?.codigo ?? "manual"}`}
               onCambio={(codigo, nombre, ciudad, pais) =>
-                setDatos({ ...datos, origen: codigo, origenNombre: nombre, origenCiudad: ciudad, origenPais: pais })
+                setDatos({ ...datos, origen: codigo, origenNombre: nombre, origenCiudad: ciudad ?? null, origenPais: pais ?? null })
               }
               valor={datos.origen}
             />
@@ -500,7 +500,7 @@ export default function Buscador({
               etiqueta={t("common.destination")}
               key={`destino-${inversiones}`}
               onCambio={(codigo, nombre, ciudad, pais) =>
-                setDatos({ ...datos, destino: codigo, destinoNombre: nombre, destinoCiudad: ciudad, destinoPais: pais })
+                setDatos({ ...datos, destino: codigo, destinoNombre: nombre, destinoCiudad: ciudad ?? null, destinoPais: pais ?? null })
               }
               valor={datos.destino}
             />

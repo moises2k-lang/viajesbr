@@ -172,7 +172,7 @@ export default function CampoAeropuerto({
             setBuscando(nuevo.trim().length >= 2);
             setBanderaElegida(null);
             if (/^[A-Za-z]{3}$/.test(nuevo.trim())) {
-              onCambio(nuevo.trim().toUpperCase(), null);
+              onCambio(nuevo.trim().toUpperCase(), null, null, null);
             }
           }}
           onClick={abrir}

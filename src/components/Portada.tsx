@@ -15,6 +15,7 @@ import type {
   OpcionTramo,
 } from "@/app/api/buscar/route";
 import type { OpcionCiudad } from "@/app/api/ciudades/route";
+import type { OpcionLugar } from "@/app/api/lugares/route";
 import type {
   HotelConPrecio,
   HabitacionConPrecio,
@@ -40,6 +41,7 @@ import { useAuth } from "@/components/AuthContext";
 import AuthModal from "@/components/AuthModal";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useI18n } from "@/lib/i18n";
+import { separarBandera } from "@/lib/paises";
 import { TicketsPlane, Building2, Briefcase, User, LogOut, Users } from "lucide-react";
 import {
   borrarHistorial,
@@ -228,21 +230,75 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
       return;
     }
 
+    async function resolverConsultaHotel(
+      busqueda: ParametrosFormulario,
+    ): Promise<string | null> {
+      if (busqueda.destinoCiudad?.trim()) return busqueda.destinoCiudad.trim();
+      if (busqueda.destinoNombre?.trim()) {
+        const { resto } = separarBandera(busqueda.destinoNombre);
+        if (resto.trim()) return resto.trim();
+      }
+      if (busqueda.destino?.trim()) {
+        try {
+          const respuesta = await fetch(
+            `/api/lugares?q=${encodeURIComponent(busqueda.destino.trim())}`,
+          );
+          if (respuesta.ok) {
+            const cuerpo = (await respuesta.json()) as {
+              opciones?: OpcionLugar[];
+            };
+            const opcion =
+              cuerpo.opciones?.find((o) => o.ciudad?.trim()) ??
+              cuerpo.opciones?.[0];
+            if (opcion?.ciudad?.trim()) return opcion.ciudad.trim();
+            if (opcion?.nombre) {
+              const { resto } = separarBandera(opcion.nombre);
+              if (resto.trim()) return resto.trim();
+            }
+          }
+        } catch {
+          // no hay conectividad: fallamos por abajo
+        }
+      }
+      return null;
+    }
+
     async function buscarHotelesDestino() {
-      const consulta =
-        busqueda.destinoCiudad ?? busqueda.destinoNombre ?? busqueda.destino;
+      const consulta = await resolverConsultaHotel(busqueda);
+      if (!consulta) {
+        setEstadoHoteles({
+          fase: "resultados",
+          hoteles: [],
+          total: 0,
+          ambiente: "live",
+          mensaje: t("search.noHotelsDestination"),
+        });
+        return;
+      }
       try {
         const respuesta = await fetch(
           `/api/ciudades?q=${encodeURIComponent(consulta)}`,
         );
         if (!respuesta.ok) {
-          setEstadoHoteles({ fase: "inicio" });
+          setEstadoHoteles({
+            fase: "resultados",
+            hoteles: [],
+            total: 0,
+            ambiente: "live",
+            mensaje: t("search.noHotelsDestination"),
+          });
           return;
         }
         const cuerpo = (await respuesta.json()) as { opciones?: OpcionCiudad[] };
         const opcion = cuerpo.opciones?.[0];
         if (!opcion) {
-          setEstadoHoteles({ fase: "inicio" });
+          setEstadoHoteles({
+            fase: "resultados",
+            hoteles: [],
+            total: 0,
+            ambiente: "live",
+            mensaje: t("search.noHotelsDestination"),
+          });
           return;
         }
         buscarHotel({
@@ -257,7 +313,13 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
           nacionalidad: "MX",
         });
       } catch {
-        setEstadoHoteles({ fase: "inicio" });
+        setEstadoHoteles({
+          fase: "resultados",
+          hoteles: [],
+          total: 0,
+          ambiente: "live",
+          mensaje: t("search.noHotelsDestination"),
+        });
       }
     }
 
