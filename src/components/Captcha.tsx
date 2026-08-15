@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 interface Props {
@@ -51,6 +52,15 @@ export default function Captcha({ onChange }: Props) {
           required
           className="w-28 rounded-md border border-[#14477E] bg-white px-3 py-2 text-sm font-semibold text-[#0B2545] placeholder:text-[#5A6B80] focus:border-[#0B2545] focus:outline-none"
         />
+        <button
+          type="button"
+          onClick={cargar}
+          className="rounded-md border border-[#14477E] p-2 text-[#14477E] hover:bg-[#E4E8EE]"
+          aria-label="Nueva operación"
+          title="Nueva operación"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );
