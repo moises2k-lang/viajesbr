@@ -3,6 +3,7 @@ import { z } from "zod";
 import { crearOrden, esAmbientePrueba, obtenerOferta } from "@/lib/duffel";
 import { calcularPrecio, reglasActivas } from "@/lib/markup";
 import { query } from "@/lib/db";
+import { verificarCaptcha } from "@/lib/captcha";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -20,6 +21,8 @@ const esquema = z.object({
   email: z.string().email(),
   telefono: z.string().trim().min(8),
   pasajeros: z.array(pasajero).min(1).max(9),
+  captchaId: z.string().trim().min(1),
+  captchaRespuesta: z.string().trim().min(1),
 });
 
 export async function POST(request: Request) {
@@ -38,6 +41,14 @@ export async function POST(request: Request) {
     );
   }
   const datos = validado.data;
+
+  const captchaOk = await verificarCaptcha(datos.captchaId, datos.captchaRespuesta);
+  if (!captchaOk) {
+    return NextResponse.json(
+      { error: "Respuesta de verificación anti-bots incorrecta" },
+      { status: 403 },
+    );
+  }
 
   let oferta;
   try {

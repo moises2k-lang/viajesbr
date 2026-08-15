@@ -21,7 +21,7 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   iniciarSesion: (email: string, password: string) => Promise<void>;
-  registrar: (email: string, password: string, nombre?: string) => Promise<void>;
+  registrar: (email: string, password: string, nombre?: string, captchaId?: string, captchaRespuesta?: string) => Promise<void>;
   cerrarSesion: () => Promise<void>;
   refrescar: () => Promise<void>;
 }
@@ -62,11 +62,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsuario(data as Usuario);
   }
 
-  async function registrar(email: string, password: string, nombre?: string) {
+  async function registrar(email: string, password: string, nombre?: string, captchaId?: string, captchaRespuesta?: string) {
     const res = await fetch("/api/auth/registro", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, nombre }),
+      body: JSON.stringify({ email, password, nombre, captchaId, captchaRespuesta }),
     });
     const data = await parseRespuesta(res);
     if (!res.ok) throw new Error(data.error ?? "No se pudo crear la cuenta");

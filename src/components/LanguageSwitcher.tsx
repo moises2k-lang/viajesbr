@@ -9,9 +9,6 @@ export default function LanguageSwitcher() {
   return (
     <div className="relative inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 text-white">
       <Globe className="h-4 w-4" />
-      <span className="text-sm leading-none" aria-hidden="true">
-        {localeFlag(locale)}
-      </span>
       <label className="sr-only" htmlFor="lang">{t("common.language")}</label>
       <select
         className="appearance-none bg-transparent pr-5 pl-1 text-sm font-medium text-white outline-none"

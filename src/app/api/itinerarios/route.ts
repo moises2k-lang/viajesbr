@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { pool } from "@/lib/db";
 import { usuarioDeSesion } from "@/lib/auth";
+import { verificarCaptcha } from "@/lib/captcha";
 
 interface BloqueCuerpo {
   posicion?: unknown;
@@ -24,6 +25,8 @@ interface Cuerpo {
   moneda?: unknown;
   estado?: unknown;
   bloques?: unknown;
+  captchaId?: unknown;
+  captchaRespuesta?: unknown;
 }
 
 const ESTADOS = ["borrador", "cotizacion", "confirmado", "cancelado"];
@@ -51,6 +54,16 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const cuerpo = (await request.json()) as Cuerpo;
+  const captchaId = typeof cuerpo.captchaId === "string" ? cuerpo.captchaId : "";
+  const captchaRespuesta = typeof cuerpo.captchaRespuesta === "string" ? cuerpo.captchaRespuesta : "";
+  const captchaOk = await verificarCaptcha(captchaId, captchaRespuesta);
+  if (!captchaOk) {
+    return NextResponse.json(
+      { error: "Respuesta de verificación anti-bots incorrecta" },
+      { status: 403 },
+    );
+  }
+
   const titulo = typeof cuerpo.titulo === "string" ? cuerpo.titulo.trim() : "";
   const cliente = typeof cuerpo.cliente === "string" ? cuerpo.cliente.trim() : "";
   const moneda = typeof cuerpo.moneda === "string" ? cuerpo.moneda.trim().toUpperCase() : "";

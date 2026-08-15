@@ -330,6 +330,8 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
     pasajeros: { titulo: string; nombre: string; apellido: string; fechaNacimiento: string; genero: string }[];
     email: string;
     telefono: string;
+    captchaId: string;
+    captchaRespuesta: string;
   }) {
     if (paquete.paso !== 3) throw new Error("No hay paquete seleccionado");
     const { vuelo, hotel, habitacion } = paquete;
@@ -381,6 +383,8 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
         moneda: vuelo.moneda,
         estado: "borrador",
         bloques,
+        captchaId: datos.captchaId,
+        captchaRespuesta: datos.captchaRespuesta,
       }),
     });
     const cuerpo = (await respuesta.json()) as { id?: string; error?: string };
@@ -395,6 +399,8 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
     apellido: string;
     correo: string;
     telefono: string;
+    captchaId: string;
+    captchaRespuesta: string;
   }) {
     if (estadoHoteles.fase !== "reservando") throw new Error("No hay hotel seleccionado");
     const { hotel, habitacion } = estadoHoteles;
@@ -423,6 +429,8 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
             datos: { hotel, habitacion, contacto: datos },
           },
         ],
+        captchaId: datos.captchaId,
+        captchaRespuesta: datos.captchaRespuesta,
       }),
     });
     const cuerpo = (await respuesta.json()) as { id?: string; error?: string };
@@ -436,6 +444,8 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
     pasajeros: { titulo: string; nombre: string; apellido: string; fechaNacimiento: string; genero: string }[];
     email: string;
     telefono: string;
+    captchaId: string;
+    captchaRespuesta: string;
   }) {
     if (estado.fase !== "reservando") throw new Error("No hay vuelo seleccionado");
     const { oferta } = estado;
@@ -470,6 +480,8 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
             datos: { oferta, pasajeros: datos.pasajeros },
           },
         ],
+        captchaId: datos.captchaId,
+        captchaRespuesta: datos.captchaRespuesta,
       }),
     });
     const cuerpo = (await respuesta.json()) as { id?: string; error?: string };

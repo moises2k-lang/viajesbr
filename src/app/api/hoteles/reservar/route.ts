@@ -3,6 +3,7 @@ import { z } from "zod";
 import { query } from "@/lib/db";
 import { randomUUID } from "node:crypto";
 import { esAmbientePruebaHoteles, preReservarHotel, reservarHotel } from "@/lib/liteapi";
+import { verificarCaptcha } from "@/lib/captcha";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -14,6 +15,8 @@ const esquema = z.object({
   correo: z.string().trim().email(),
   telefono: z.string().trim().optional(),
   metodoPago: z.enum(["ACC_CREDIT_CARD", "WALLET"]).default("ACC_CREDIT_CARD"),
+  captchaId: z.string().trim().min(1),
+  captchaRespuesta: z.string().trim().min(1),
 });
 
 interface Cotizacion {
@@ -40,6 +43,14 @@ export async function POST(request: Request) {
     );
   }
   const p = validado.data;
+
+  const captchaOk = await verificarCaptcha(p.captchaId, p.captchaRespuesta);
+  if (!captchaOk) {
+    return NextResponse.json(
+      { error: "Respuesta de verificación anti-bots incorrecta" },
+      { status: 403 },
+    );
+  }
 
   const [cotizacion] = await query<Cotizacion & Record<string, unknown>>(
     `SELECT id::text, costo_neto::text, markup::text, precio_venta::text, moneda

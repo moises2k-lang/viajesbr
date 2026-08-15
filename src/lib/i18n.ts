@@ -103,7 +103,7 @@ export function getLocaleName(locale: Locale): string {
 
 const LOCALE_COUNTRY: Record<Locale, string> = {
   en: "US",
-  es: "ES",
+  es: "MX",
   fr: "FR",
   zh: "CN",
   hi: "IN",
@@ -259,6 +259,9 @@ const common = {
   bookingConfirmed: "Reserva confirmada",
   reservationKey: "Clave de reserva",
   hotelConfirmation: "Confirmación del hotel",
+  captchaTitle: "Verificación anti-bots",
+  captchaPlaceholder: "Respuesta",
+  captchaError: "Respuesta incorrecta. Inténtalo de nuevo.",
 };
 
 const home = {
@@ -593,6 +596,9 @@ const en: LocaleDict = {
     age: "Age",
     years: "years",
     inArms: "in arms",
+    captchaTitle: "Anti-bot verification",
+    captchaPlaceholder: "Answer",
+    captchaError: "Incorrect answer. Please try again.",
   },
   home: {
     title: "Book flights and hotels at the best price",
@@ -905,6 +911,9 @@ const fr: LocaleDict = {
     age: "Âge",
     years: "ans",
     inArms: "sur les bras",
+    captchaTitle: "Vérification anti-robots",
+    captchaPlaceholder: "Réponse",
+    captchaError: "Réponse incorrecte. Réessayez.",
   },
   home: {
     title: "Réservez des vols et hôtels au meilleur prix",

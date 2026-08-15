@@ -11,6 +11,7 @@ import ResumenVuelo from "@/components/ResumenVuelo";
 import SelectorTelefono from "@/components/SelectorTelefono";
 import FechaNacimiento from "@/components/FechaNacimiento";
 import Precio from "@/components/Precio";
+import Captcha from "@/components/Captcha";
 import { useI18n } from "@/lib/i18n";
 
 export interface ResultadoReserva {
@@ -59,6 +60,8 @@ interface Props {
     }[];
     email: string;
     telefono: string;
+    captchaId: string;
+    captchaRespuesta: string;
   }) => Promise<string>;
 }
 
@@ -83,6 +86,8 @@ export default function FormularioReserva({
   );
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("+52");
+  const [captchaId, setCaptchaId] = useState<string | null>(null);
+  const [captchaRespuesta, setCaptchaRespuesta] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +119,8 @@ export default function FormularioReserva({
           ofertaId: oferta.ofertaId,
           email,
           telefono,
+          captchaId,
+          captchaRespuesta,
           pasajeros: pasajeros.map((p) => ({
             titulo: p.titulo,
             nombre: p.nombre.trim(),
@@ -153,6 +160,8 @@ export default function FormularioReserva({
         pasajeros: pasajerosLimpios,
         email,
         telefono,
+        captchaId: captchaId ?? "",
+        captchaRespuesta,
       });
       window.open(`/api/itinerarios/${id}/pdf`, "_blank");
     } catch (e) {
@@ -345,6 +354,13 @@ export default function FormularioReserva({
             />
           </fieldset>
 
+          <Captcha
+            onChange={(id, respuesta) => {
+              setCaptchaId(id);
+              setCaptchaRespuesta(respuesta);
+            }}
+          />
+
           {error && (
             <p className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700">
               {error}
@@ -354,7 +370,7 @@ export default function FormularioReserva({
           <div className="flex flex-wrap gap-3">
             <button
               className="self-start rounded-lg bg-[#C9A227] px-5 py-2.5 text-sm font-semibold text-[#0B2545] disabled:opacity-50"
-              disabled={enviando || guardando}
+              disabled={enviando || guardando || !captchaId || !captchaRespuesta}
               type="submit"
             >
               {enviando ? t("common.loading") : t("form.finalizeReservation")}
@@ -362,7 +378,7 @@ export default function FormularioReserva({
             {onGuardar && (
               <button
                 className="inline-flex items-center gap-1.5 self-start rounded-lg border border-[#14477E] bg-white px-5 py-2.5 text-sm font-semibold text-[#14477E] disabled:opacity-50"
-                disabled={enviando || guardando}
+                disabled={enviando || guardando || !captchaId || !captchaRespuesta}
                 onClick={guardar}
                 type="button"
               >

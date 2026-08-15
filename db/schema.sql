@@ -205,3 +205,13 @@ SELECT 'Markup general', 1000, 8.000, 0, 25
 WHERE NOT EXISTS (SELECT 1 FROM reglas_markup);
 
 ALTER TABLE sesiones ALTER COLUMN id TYPE TEXT USING id::TEXT;
+
+CREATE TABLE IF NOT EXISTS captcha_challenges (
+  id TEXT PRIMARY KEY,
+  respuesta TEXT NOT NULL,
+  usado BOOLEAN NOT NULL DEFAULT false,
+  expira_en TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '10 minutes'),
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS captcha_challenges_expira_idx ON captcha_challenges (expira_en);

@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { query } from "@/lib/db";
 import { hashPassword, crearSesion } from "@/lib/auth";
+import { verificarCaptcha } from "@/lib/captcha";
 
 const esquema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(6),
   nombre: z.string().trim().optional(),
+  captchaId: z.string().trim().min(1),
+  captchaRespuesta: z.string().trim().min(1),
 });
 
 export const runtime = "nodejs";
@@ -25,7 +28,15 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const { email, password, nombre } = validado.data;
+  const { email, password, nombre, captchaId, captchaRespuesta } = validado.data;
+
+  const captchaOk = await verificarCaptcha(captchaId, captchaRespuesta);
+  if (!captchaOk) {
+    return NextResponse.json(
+      { error: "Respuesta de verificación anti-bots incorrecta" },
+      { status: 403 },
+    );
+  }
 
   try {
     const [existente] = await query<{ id: string }>(

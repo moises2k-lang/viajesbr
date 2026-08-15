@@ -8,6 +8,7 @@ import CampoAeropuerto from "@/components/CampoAeropuerto";
 import FechaNacimiento from "@/components/FechaNacimiento";
 import RangoFechas from "@/components/RangoFechas";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import Captcha from "@/components/Captcha";
 import { useI18n } from "@/lib/i18n";
 import {
   Building2,
@@ -136,6 +137,8 @@ export default function CorporativoWizard() {
   const { t } = useI18n();
   const [paso, setPaso] = useState(1);
   const [f, setF] = useState<Formulario>(VACIO);
+  const [captchaId, setCaptchaId] = useState<string | null>(null);
+  const [captchaRespuesta, setCaptchaRespuesta] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [itinerarioId, setItinerarioId] = useState<string | null>(null);
@@ -332,6 +335,8 @@ export default function CorporativoWizard() {
           moneda: "USD",
           estado: "borrador",
           bloques,
+          captchaId,
+          captchaRespuesta,
         }),
       });
       const cuerpo = (await respuesta.json()) as { id?: string; error?: string };
@@ -722,6 +727,13 @@ export default function CorporativoWizard() {
                       value={f.notas}
                     />
                   </div>
+
+                  <Captcha
+                    onChange={(id, respuesta) => {
+                      setCaptchaId(id);
+                      setCaptchaRespuesta(respuesta);
+                    }}
+                  />
                 </div>
               )}
 
@@ -749,7 +761,7 @@ export default function CorporativoWizard() {
                 ) : (
                   <button
                     className="inline-flex items-center gap-1.5 rounded-lg bg-[#0B2545] px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-                    disabled={guardando}
+                    disabled={guardando || !captchaId || !captchaRespuesta}
                     onClick={guardar}
                     type="button"
                   >

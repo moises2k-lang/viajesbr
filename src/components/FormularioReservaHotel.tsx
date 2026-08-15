@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { HotelConPrecio, HabitacionConPrecio } from "@/app/api/hoteles/route";
 import Precio from "@/components/Precio";
 import SelectorTelefono from "@/components/SelectorTelefono";
+import Captcha from "@/components/Captcha";
 import { useI18n } from "@/lib/i18n";
 import { Bookmark, Building2 } from "lucide-react";
 
@@ -28,6 +29,8 @@ interface Props {
     apellido: string;
     correo: string;
     telefono: string;
+    captchaId: string;
+    captchaRespuesta: string;
   }) => Promise<string>;
   onCancelar: () => void;
 }
@@ -44,6 +47,8 @@ export default function FormularioReservaHotel({
   const [apellido, setApellido] = useState("");
   const [correo, setCorreo] = useState("");
   const [telefono, setTelefono] = useState("+52");
+  const [captchaId, setCaptchaId] = useState<string | null>(null);
+  const [captchaRespuesta, setCaptchaRespuesta] = useState("");
   const [metodoPago, setMetodoPago] = useState("ACC_CREDIT_CARD");
   const [enviando, setEnviando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -65,6 +70,8 @@ export default function FormularioReservaHotel({
         apellido: apellido.trim(),
         correo: correo.trim(),
         telefono: telefono.trim(),
+        captchaId: captchaId ?? "",
+        captchaRespuesta,
       });
       window.open(`/api/itinerarios/${id}/pdf`, "_blank");
     } catch (e) {
@@ -89,6 +96,8 @@ export default function FormularioReservaHotel({
           correo: correo.trim(),
           telefono: telefono.trim(),
           metodoPago,
+          captchaId,
+          captchaRespuesta,
         }),
       });
       const cuerpo = await respuesta.json();
@@ -191,6 +200,15 @@ export default function FormularioReservaHotel({
             </select>
           </label>
 
+          <div className="sm:col-span-2">
+            <Captcha
+              onChange={(id, respuesta) => {
+                setCaptchaId(id);
+                setCaptchaRespuesta(respuesta);
+              }}
+            />
+          </div>
+
           {error && (
             <p className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700 sm:col-span-2">
               {error}
@@ -200,7 +218,7 @@ export default function FormularioReservaHotel({
           <div className="flex flex-wrap gap-3 sm:col-span-2">
             <button
               className="rounded-lg bg-[#C9A227] px-5 py-2.5 text-sm font-semibold text-[#0B2545] disabled:opacity-50"
-              disabled={enviando || guardando}
+              disabled={enviando || guardando || !captchaId || !captchaRespuesta}
               type="submit"
             >
               {enviando ? t("common.loading") : t("form.finalizeReservation")}
@@ -208,7 +226,7 @@ export default function FormularioReservaHotel({
             {onGuardar && (
               <button
                 className="inline-flex items-center gap-1.5 rounded-lg border border-[#14477E] bg-white px-5 py-2.5 text-sm font-semibold text-[#14477E] disabled:opacity-50"
-                disabled={enviando || guardando}
+                disabled={enviando || guardando || !captchaId || !captchaRespuesta}
                 onClick={guardar}
                 type="button"
               >

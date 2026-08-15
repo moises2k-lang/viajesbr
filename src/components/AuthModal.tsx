@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
+import Captcha from "@/components/Captcha";
+import { useI18n } from "@/lib/i18n";
 
 interface Props {
   abierto: boolean;
@@ -11,11 +13,14 @@ interface Props {
 
 export default function AuthModal({ abierto, onCerrar }: Props) {
   const { iniciarSesion, registrar } = useAuth();
+  const { t } = useI18n();
   const [modo, setModo] = useState<"login" | "registro">("login");
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmar, setConfirmar] = useState("");
+  const [captchaId, setCaptchaId] = useState<string | null>(null);
+  const [captchaRespuesta, setCaptchaRespuesta] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,12 +38,14 @@ export default function AuthModal({ abierto, onCerrar }: Props) {
       if (modo === "login") {
         await iniciarSesion(email, password);
       } else {
-        await registrar(email, password, nombre || undefined);
+        await registrar(email, password, nombre || undefined, captchaId ?? undefined, captchaRespuesta || undefined);
       }
       setNombre("");
       setEmail("");
       setPassword("");
       setConfirmar("");
+      setCaptchaId(null);
+      setCaptchaRespuesta("");
       onCerrar();
     } catch (err) {
       setError((err as Error).message);
@@ -110,6 +117,15 @@ export default function AuthModal({ abierto, onCerrar }: Props) {
             </label>
           )}
 
+          {modo === "registro" && (
+            <Captcha
+              onChange={(id, respuesta) => {
+                setCaptchaId(id);
+                setCaptchaRespuesta(respuesta);
+              }}
+            />
+          )}
+
           {error && (
             <p className="rounded-md border border-red-300 bg-red-50 p-2 text-sm text-red-700">
               {error}
@@ -118,7 +134,7 @@ export default function AuthModal({ abierto, onCerrar }: Props) {
 
           <button
             className="w-full rounded-lg bg-[#0B2545] py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-            disabled={cargando}
+            disabled={cargando || (modo === "registro" && (!captchaId || !captchaRespuesta))}
             type="submit"
           >
             {cargando
