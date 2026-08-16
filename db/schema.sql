@@ -215,3 +215,49 @@ CREATE TABLE IF NOT EXISTS captcha_challenges (
 );
 
 CREATE INDEX IF NOT EXISTS captcha_challenges_expira_idx ON captcha_challenges (expira_en);
+
+-- Monitoreo de precios para recomendar el mejor momento de compra
+CREATE TABLE IF NOT EXISTS monitoreo_precios (
+  id BIGSERIAL PRIMARY KEY,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  activo BOOLEAN NOT NULL DEFAULT true,
+  usuario_id BIGINT REFERENCES usuarios(id) ON DELETE SET NULL,
+  origen TEXT NOT NULL,
+  destino TEXT NOT NULL,
+  fecha_salida DATE NOT NULL,
+  fecha_regreso DATE,
+  adultos SMALLINT NOT NULL DEFAULT 1,
+  menores SMALLINT NOT NULL DEFAULT 0,
+  bebes SMALLINT NOT NULL DEFAULT 0,
+  cabina TEXT,
+  respetar_shabbat BOOLEAN NOT NULL DEFAULT true,
+  email TEXT NOT NULL,
+  frecuencia_horas INTEGER NOT NULL DEFAULT 6,
+  proxima_ejecucion TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ultimo_precio NUMERIC(12,2),
+  ultima_recomendacion TEXT,
+  ultima_busqueda_id BIGINT REFERENCES busquedas(id) ON DELETE SET NULL,
+  datos JSONB
+);
+
+CREATE INDEX IF NOT EXISTS monitoreo_precios_proxima_idx
+  ON monitoreo_precios (proxima_ejecucion) WHERE activo;
+
+CREATE TABLE IF NOT EXISTS historial_precios (
+  id BIGSERIAL PRIMARY KEY,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  monitoreo_id BIGINT NOT NULL REFERENCES monitoreo_precios(id) ON DELETE CASCADE,
+  busqueda_id BIGINT REFERENCES busquedas(id) ON DELETE SET NULL,
+  oferta_id TEXT,
+  aerolinea TEXT,
+  aerolinea_iata TEXT,
+  moneda TEXT NOT NULL,
+  precio_neto NUMERIC(12,2) NOT NULL,
+  precio_venta NUMERIC(12,2) NOT NULL,
+  equipaje_incluido JSONB,
+  recomendacion TEXT,
+  datos JSONB
+);
+
+CREATE INDEX IF NOT EXISTS historial_precios_monitoreo_idx
+  ON historial_precios (monitoreo_id, creado_en DESC);
