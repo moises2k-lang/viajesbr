@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Building2,
@@ -136,7 +135,8 @@ function ActividadesPaquete({ paquete }: { paquete: PaqueteTematico }) {
 }
 
 function GaleriaPaquete({ paquete }: { paquete: PaqueteTematico }) {
-  const imagenes = [paquete.imagen, ...galeriaDePaquete(paquete)].filter(Boolean);
+  const galeria = galeriaDePaquete(paquete);
+  const imagenes = galeria.length ? galeria : [paquete.imagen].filter(Boolean);
   if (!imagenes.length) return null;
   return (
     <div>
@@ -146,13 +146,12 @@ function GaleriaPaquete({ paquete }: { paquete: PaqueteTematico }) {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {imagenes.map((src, i) => (
           <div key={i} className="relative aspect-video overflow-hidden rounded-2xl bg-[#E4E8EE]">
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               alt={`${paquete.destinoCiudad} ${i + 1}`}
-              className="object-cover"
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="absolute inset-0 h-full w-full object-cover"
+              loading="lazy"
               src={src!}
-              unoptimized
             />
           </div>
         ))}
