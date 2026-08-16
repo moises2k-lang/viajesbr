@@ -166,6 +166,10 @@ const TIPOS: Record<string, string> = {
   nota: "Nota",
 };
 
+function sinFlecha(s: string | null | undefined): string {
+  return (s ?? "").replace(/→/g, "->");
+}
+
 function duracionMinutos(min: number | null): string {
   if (min === null || min === undefined || min < 0) return "";
   const h = Math.floor(min / 60);
@@ -176,10 +180,15 @@ function duracionMinutos(min: number | null): string {
 }
 
 function fechaDeIso(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso || iso === "undefined") return "—";
   const fecha = iso.slice(0, 10);
-  if (!fecha) return "—";
+  if (!fecha || fecha === "undefined") return "—";
   return formatoFecha(fecha);
+}
+
+function horaDeIso(iso: string | null | undefined): string {
+  if (!iso || iso === "undefined") return "";
+  return formatoHora(iso);
 }
 
 function equipajeTexto(equipaje: { tipo: string; cantidad: number }[] | undefined): string {
@@ -193,7 +202,15 @@ function resumenServicio(b: Bloque): string {
     const datos = b.datos as Record<string, unknown> | null;
     const oferta = datos?.oferta as Partial<OfertaConPrecio> | undefined;
     const tramos = oferta?.tramos ?? [];
-    return tramos.map((t) => `${t.origen} → ${t.destino}`).join(" · ");
+    return tramos
+      .map((t) => {
+        const tr = t as Partial<TramoNormalizado>;
+        const segs = tr.segmentos ?? [];
+        const origen = tr.origen ?? segs[0]?.origen ?? "—";
+        const destino = tr.destino ?? segs[segs.length - 1]?.destino ?? "—";
+        return `${origen} -> ${destino}`;
+      })
+      .join(" · ");
   }
   return b.detalle ?? "—";
 }
@@ -343,11 +360,11 @@ export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {
   const conMapa = Object.values(aeropuertos).some(Boolean) && segmentosRuta.length > 0;
 
   return (
-    <Document title={`${itinerario.titulo} · IA Travel Planning`} author="IA Travel Planning" subject="Esquema de viaje">
+    <Document title={`${sinFlecha(itinerario.titulo)} · IA Travel Planning`} author="IA Travel Planning" subject="Esquema de viaje">
       <Page size="A4" style={estilos.pagina}>
         <Encabezado documento="Esquema de viaje" />
         <View style={{ marginTop: 10 }}>
-          <Text style={estilos.titulo}>{itinerario.titulo}</Text>
+          <Text style={estilos.titulo}>{sinFlecha(itinerario.titulo)}</Text>
           <Text style={estilos.subtitulo}>
             {`Preparado para ${itinerario.cliente} · ${formatoFecha(itinerario.creado_en)} · ${folio}`}
           </Text>
@@ -386,8 +403,8 @@ export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {
               </Text>
               <Text style={[estilos.celda, { width: "13%" }]}>{TIPOS[b.tipo] ?? b.tipo}</Text>
               <Text style={[estilos.celda, { width: "41%" }]}>
-                {b.titulo}
-                {b.detalle ? `\n${b.detalle}` : ""}
+                {sinFlecha(b.titulo)}
+                {b.detalle ? `\n${sinFlecha(b.detalle)}` : ""}
                 {b.tipo === "vuelo" ? `\n${resumenServicio(b)}` : ""}
               </Text>
               <Text style={[estilos.celda, { width: "15%" }]}>{b.proveedor ?? "—"}</Text>
@@ -418,7 +435,7 @@ export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {
         <Encabezado documento="Calendario de viaje" />
         <Text style={estilos.titulo}>Calendario día por día</Text>
         <Text style={estilos.subtitulo}>
-          {`${itinerario.titulo} · ${bloques.length} servicio${bloques.length === 1 ? "" : "s"}`}
+          {`${sinFlecha(itinerario.titulo)} · ${bloques.length} servicio${bloques.length === 1 ? "" : "s"}`}
         </Text>
 
         <View style={estilos.tabla}>
@@ -438,8 +455,8 @@ export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {
               </Text>
               <Text style={[estilos.celda, { width: "14%" }]}>{TIPOS[b.tipo] ?? b.tipo}</Text>
               <Text style={[estilos.celda, { width: "38%" }]}>
-                {b.titulo}
-                {b.detalle ? `\n${b.detalle}` : ""}
+                {sinFlecha(b.titulo)}
+                {b.detalle ? `\n${sinFlecha(b.detalle)}` : ""}
                 {b.tipo === "vuelo" ? `\n${resumenServicio(b)}` : ""}
               </Text>
               <Text style={[estilos.celda, { width: "15%" }]}>{b.proveedor ?? "—"}</Text>
@@ -464,7 +481,7 @@ export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {
         <Page size="A4" style={estilos.pagina} key={`vuelo-${v.bloque.id}`}>
           <Encabezado documento="Plan de vuelo" />
           <Text style={estilos.titulo}>
-            {`${v.oferta.aerolinea} · ${v.bloque.titulo}`}
+            {`${v.oferta.aerolinea ?? "Vuelo"} · ${sinFlecha(v.bloque.titulo)}`}
           </Text>
           <Text style={estilos.subtitulo}>
             {`Vuelo ${vueloIdx + 1} de ${v.oferta.tramos.length} tramo${v.oferta.tramos.length === 1 ? "" : "s"}`}
@@ -472,35 +489,35 @@ export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {
 
           {v.oferta.tramos.map((tramo: TramoNormalizado, tramoIdx: number) => (
             <View key={`tramo-${tramoIdx}`} wrap={false}>
-              <Text style={estilos.seccion}>{`Tramo ${tramoIdx + 1}: ${tramo.origen} → ${tramo.destino}`}</Text>
+              <Text style={estilos.seccion}>{`Tramo ${tramoIdx + 1}: ${tramo.origen ?? tramo.segmentos?.[0]?.origen ?? "—"} -> ${tramo.destino ?? tramo.segmentos?.[tramo.segmentos.length - 1]?.destino ?? "—"}`}</Text>
               {tramo.segmentos.map((s: SegmentoNormalizado, idx: number) => (
                 <Fragment key={`seg-${idx}`}>
                   <View style={propios.flightCard}>
                     <View style={propios.flightHeader}>
-                      <Text style={propios.flightHeaderText}>{`Vuelo ${s.vuelo} · ${s.aerolinea}`}</Text>
+                      <Text style={propios.flightHeaderText}>{`Vuelo ${s.vuelo ?? "—"} · ${s.aerolinea ?? "—"}`}</Text>
                       <Text style={propios.flightHeaderText}>{`${s.cabina ?? "—"} · ${s.avion ?? "—"}`}</Text>
                     </View>
                     <View style={propios.routeRow}>
                       <View style={propios.routeCol}>
-                        <Text style={propios.routeCode}>{s.origen}</Text>
-                        <Text style={propios.routeName}>{`${s.origenNombre}${s.origenCiudad ? `, ${s.origenCiudad}` : ""}${s.origenPais ? `, ${s.origenPais}` : ""}`}</Text>
-                        <Text style={propios.routeTime}>{`${fechaDeIso(s.sale)} · ${formatoHora(s.sale)}`}</Text>
+                        <Text style={propios.routeCode}>{s.origen ?? "—"}</Text>
+                        <Text style={propios.routeName}>{`${s.origenNombre ?? "—"}${s.origenCiudad ? `, ${s.origenCiudad}` : ""}${s.origenPais ? `, ${s.origenPais}` : ""}`}</Text>
+                        <Text style={propios.routeTime}>{`${fechaDeIso(s.sale)}${horaDeIso(s.sale) ? ` · ${horaDeIso(s.sale)}` : ""}`}</Text>
                       </View>
                       <View style={propios.routeLine}>
                         <Text style={propios.routeLineText}>{duracionMinutos(s.minutos)}</Text>
-                        <Text style={propios.routeLineText}>──✈──</Text>
+                        <Text style={propios.routeLineText}>----</Text>
                       </View>
                       <View style={propios.routeCol}>
-                        <Text style={propios.routeCode}>{s.destino}</Text>
-                        <Text style={propios.routeName}>{`${s.destinoNombre}${s.destinoCiudad ? `, ${s.destinoCiudad}` : ""}${s.destinoPais ? `, ${s.destinoPais}` : ""}`}</Text>
-                        <Text style={propios.routeTime}>{`${fechaDeIso(s.llega)} · ${formatoHora(s.llega)}`}</Text>
+                        <Text style={propios.routeCode}>{s.destino ?? "—"}</Text>
+                        <Text style={propios.routeName}>{`${s.destinoNombre ?? "—"}${s.destinoCiudad ? `, ${s.destinoCiudad}` : ""}${s.destinoPais ? `, ${s.destinoPais}` : ""}`}</Text>
+                        <Text style={propios.routeTime}>{`${fechaDeIso(s.llega)}${horaDeIso(s.llega) ? ` · ${horaDeIso(s.llega)}` : ""}`}</Text>
                       </View>
                     </View>
                   </View>
                   {s.esperaMinutos ? (
                     <View style={propios.layoverBox}>
                       <Text style={{ fontSize: 8.5, color: MARCA.azul }}>
-                        {`Escala en ${s.destino}: ${duracionMinutos(s.esperaMinutos)}`}
+                        {`Escala en ${s.destino ?? "—"}: ${duracionMinutos(s.esperaMinutos)}`}
                       </Text>
                     </View>
                   ) : null}
@@ -535,7 +552,7 @@ export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {
             <MapaRuta aeropuertos={aeropuertos} segmentos={segmentosRuta} />
           </View>
           <Text style={propios.legend}>
-            Línea azul: ruta de vuelo · Círculo dorado: aeropuerto · Origen → Destino
+            Linea azul: ruta de vuelo{` · `}Circulo dorado: aeropuerto{` · `}Origen -&gt; Destino
           </Text>
           <Pie folio={folio} />
         </Page>

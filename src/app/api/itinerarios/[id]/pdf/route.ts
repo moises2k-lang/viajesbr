@@ -68,14 +68,25 @@ async function coordenadasAeropuerto(iata: string): Promise<AeropuertoCoord | nu
     });
     clearTimeout(timeout);
     if (!res.ok) return null;
-    const data = (await res.json()) as Record<string, unknown>;
-    const lat = typeof data.latitude === "number" ? data.latitude : parseFloat(data.latitude as string);
-    const lon = typeof data.longitude === "number" ? data.longitude : parseFloat(data.longitude as string);
+    const json = (await res.json()) as Record<string, unknown>;
+    const payload =
+      typeof json.data === "object" && json.data !== null
+        ? (json.data as Record<string, unknown>)
+        : json;
+    const attrs =
+      typeof payload.attributes === "object" && payload.attributes !== null
+        ? (payload.attributes as Record<string, unknown>)
+        : payload;
+    const latRaw = attrs.latitude ?? payload.latitude ?? json.latitude;
+    const lonRaw = attrs.longitude ?? payload.longitude ?? json.longitude;
+    const lat = typeof latRaw === "number" ? latRaw : parseFloat(latRaw as string);
+    const lon = typeof lonRaw === "number" ? lonRaw : parseFloat(lonRaw as string);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    const nameRaw = attrs.name ?? payload.name ?? json.name;
     return {
       lat,
       lon,
-      nombre: typeof data.name === "string" ? data.name : undefined,
+      nombre: typeof nameRaw === "string" ? nameRaw : undefined,
     };
   } catch (error) {
     console.error(`Error obteniendo coordenadas de ${iata}:`, error);
