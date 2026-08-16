@@ -16,7 +16,7 @@ import {
   ClipPath,
 } from "@react-pdf/renderer";
 import { Encabezado, Pie, estilos } from "@/documentos/Membrete";
-import { formatoFecha, formatoHora, formatoMoneda, MARCA } from "@/lib/marca";
+import { formatoFecha, formatoHora, formatoMoneda, duracionLegible, MARCA } from "@/lib/marca";
 import type { OfertaConPrecio, SegmentoNormalizado, TramoNormalizado } from "@/lib/ofertas";
 
 const propios = StyleSheet.create({
@@ -114,12 +114,22 @@ interface MapaImagen {
   height: number;
 }
 
+interface AlternativaPDF {
+  ofertaId: string;
+  aerolinea: string;
+  precioVenta: number;
+  moneda: string;
+  duracion: string | null;
+  tramosResumen: string;
+}
+
 interface Props {
   itinerario: Itinerario;
   bloques: Bloque[];
   aeropuertos?: Record<string, AeropuertoCoord | null>;
   mapa?: MapaImagen;
   banderas?: Record<string, Buffer>;
+  alternativas?: AlternativaPDF[];
 }
 
 const TIPOS: Record<string, string> = {
@@ -180,6 +190,20 @@ function resumenServicio(b: Bloque): string {
   return b.detalle ?? "—";
 }
 
+interface SegmentoRuta {
+  origen: string;
+  destino: string;
+  vuelo?: string;
+  sale?: string;
+}
+
+function fechaCorta(iso: string | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  return `${d.getUTCDate()} ${meses[d.getUTCMonth()]}`;
+}
+
 function MapaRuta({
   aeropuertos,
   segmentos,
@@ -187,7 +211,7 @@ function MapaRuta({
   banderas,
 }: {
   aeropuertos: Record<string, AeropuertoCoord | null>;
-  segmentos: { origen: string; destino: string }[];
+  segmentos: SegmentoRuta[];
   mapa?: MapaImagen;
   banderas?: Record<string, Buffer>;
 }) {
@@ -265,6 +289,7 @@ function MapaRuta({
   }
 
   const routes: ReactNode[] = [];
+  const etiquetas: ReactNode[] = [];
   segmentos.forEach((seg, idx) => {
     const o = puntos[seg.origen];
     const d = puntos[seg.destino];
@@ -288,6 +313,25 @@ function MapaRuta({
         fill="none"
       />,
     );
+    const label = [seg.vuelo, fechaCorta(seg.sale)].filter(Boolean).join(" · ");
+    if (label) {
+      const lx = mx - 30;
+      const ly = cy - 8;
+      etiquetas.push(
+        <View
+          key={`e-${idx}`}
+          style={{
+            position: "absolute",
+            left: lx,
+            top: ly,
+            width: 60,
+            alignItems: "center",
+          } as any}
+        >
+          <Text style={{ fontSize: 6.5, color: MARCA.azul, fontWeight: 700, textAlign: "center" }}>{label}</Text>
+        </View>,
+      );
+    }
   });
 
   const dots: ReactNode[] = [];
@@ -351,6 +395,7 @@ function MapaRuta({
           </G>
         </Svg>
       </View>
+      {etiquetas}
       {banderas &&
         iatas.map((iata) => {
           const b = banderas[iata];
@@ -375,7 +420,7 @@ function MapaRuta({
   );
 }
 
-export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {}, mapa, banderas }: Props) {
+export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {}, mapa, banderas, alternativas = [] }: Props) {
   const folio = `IATP-${itinerario.id.padStart(5, "0")}`;
   const total = bloques.reduce((sum, b) => sum + (typeof b.precio_venta === "number" ? b.precio_venta : 0), 0);
 
@@ -387,11 +432,11 @@ export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {
     })
     .filter((v): v is { bloque: Bloque; oferta: OfertaConPrecio } => !!v.oferta?.tramos && v.oferta.tramos.length > 0);
 
-  const segmentosRuta: { origen: string; destino: string }[] = [];
+  const segmentosRuta: SegmentoRuta[] = [];
   for (const v of vuelos) {
     for (const tramo of v.oferta.tramos) {
       for (const s of tramo.segmentos) {
-        segmentosRuta.push({ origen: s.origen, destino: s.destino });
+        segmentosRuta.push({ origen: s.origen, destino: s.destino, vuelo: s.vuelo, sale: s.sale });
       }
     }
   }
@@ -463,6 +508,7 @@ export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {
         <View style={propios.noteBox}>
           <Text style={propios.noteText}>
             Nota: Precios sujetos a disponibilidad y cambio sin previo aviso. Tarifa sujeta a condiciones de la aerolínea y del hotel.
+            {alternativas.length > 0 ? " Las opciones que aparecen en este PDF respetan el horario Shabbat (no viajes de viernes atardecer a sábado noche)." : ""}
           </Text>
         </View>
 
@@ -541,6 +587,34 @@ export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {
             </View>
           ))}
 
+          <Pie folio={folio} />
+        </Page>
+      )}
+
+      {alternativas.length > 0 && (
+        <Page size="A4" style={estilos.pagina}>
+          <Encabezado documento="Opciones consideradas" />
+          <Text style={[estilos.titulo, propios.compactTitle]}>Opciones que respetan Shabbat</Text>
+          <Text style={[estilos.subtitulo, propios.compactSubtitle]}>
+            Opciones encontradas para la misma búsqueda, ordenadas por precio.
+          </Text>
+          <View style={estilos.tabla}>
+            <View style={estilos.filaEncabezado}>
+              <Text style={[estilos.celdaEncabezado, { width: "40%" }]}>RUTA / AEROLÍNEA</Text>
+              <Text style={[estilos.celdaEncabezado, { width: "25%" }]}>DURACIÓN</Text>
+              <Text style={[estilos.celdaEncabezado, { width: "30%", textAlign: "right" }]}>PRECIO</Text>
+            </View>
+            {alternativas.map((alt, i) => (
+              <View key={`alt-${i}`} style={estilos.fila} wrap={false}>
+                <Text style={[estilos.celda, { width: "40%" }]}>
+                  {sinFlecha(alt.tramosResumen)}
+                  {alt.aerolinea ? `\n${sinFlecha(alt.aerolinea)}` : ""}
+                </Text>
+                <Text style={[estilos.celda, { width: "25%" }]}>{alt.duracion ?? "—"}</Text>
+                <Text style={[estilos.celda, { width: "30%", textAlign: "right" }]}>{formatoMoneda(alt.precioVenta, alt.moneda)}</Text>
+              </View>
+            ))}
+          </View>
           <Pie folio={folio} />
         </Page>
       )}

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { buscarOfertas } from "@/lib/duffel";
 import { calcularPrecio, reglasActivas } from "@/lib/markup";
-import { armarOpcionesPorTramo, normalizarOferta } from "@/lib/ofertas";
+import { armarOpcionesPorTramo, normalizarOferta, ofertaRespetaShabbat } from "@/lib/ofertas";
 import { query } from "@/lib/db";
 
 export type {
@@ -97,6 +97,7 @@ export async function POST(request: Request) {
 
   const reglas = await reglasActivas();
   const ofertas = solicitud.offers
+    .filter(ofertaRespetaShabbat)
     .map((oferta) => {
       const precio = calcularPrecio(
         Number(oferta.total_amount),

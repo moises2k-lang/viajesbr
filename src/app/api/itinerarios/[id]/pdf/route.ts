@@ -4,6 +4,8 @@ import { join } from "path";
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import EsquemaReservaPDF from "@/components/EsquemaReservaPDF";
+import { ofertaRespetaShabbat } from "@/lib/ofertas";
+import { duracionLegible } from "@/lib/marca";
 import { renderToBuffer } from "@react-pdf/renderer";
 
 export const runtime = "nodejs";
@@ -36,6 +38,7 @@ interface Bloque {
   proveedor: string | null;
   costo_neto: number | null;
   precio_venta: number | null;
+  cotizacion_id: number | null;
   datos: unknown;
 }
 
@@ -140,6 +143,56 @@ async function banderaPais(codigo: string | undefined): Promise<Buffer | null> {
   }
 }
 
+interface SliceRaw {
+  origin?: { iata_code?: string };
+  destination?: { iata_code?: string };
+  duration?: string | null;
+  segments?: Array<Record<string, unknown>>;
+}
+
+function resumenTramos(slices: SliceRaw[]): string {
+  return slices.map((s) => `${s.origin?.iata_code ?? ""}-${s.destination?.iata_code ?? ""}`).join(" / ");
+}
+
+function duracionTotal(slices: SliceRaw[]): string {
+  const partes = slices.map((s) => duracionLegible(s.duration ?? "")).filter(Boolean);
+  return partes.length ? partes.join(" / ") : "—";
+}
+
+async function cargarAlternativas(bloques: Bloque[]): Promise<any[]> {
+  const vuelo = bloques.find((b) => b.tipo === "vuelo" && b.cotizacion_id);
+  if (!vuelo?.cotizacion_id) return [];
+  try {
+    const filas = await query<Record<string, unknown>>(
+      `SELECT c.id::text, c.duffel_offer_id, c.aerolinea, c.moneda, c.precio_venta::float, c.itinerario
+         FROM cotizaciones c
+         JOIN (SELECT busqueda_id FROM cotizaciones WHERE id = $1) b ON b.busqueda_id = c.busqueda_id
+        WHERE c.id <> $1
+        ORDER BY c.precio_venta
+        LIMIT 8`,
+      [vuelo.cotizacion_id],
+    );
+    const alternativas: any[] = [];
+    for (const f of filas) {
+      const raw = typeof f.itinerario === "string" ? JSON.parse(f.itinerario) : f.itinerario;
+      const slices: SliceRaw[] = Array.isArray(raw) ? raw : [];
+      if (!ofertaRespetaShabbat({ slices } as any)) continue;
+      alternativas.push({
+        ofertaId: String(f.duffel_offer_id ?? ""),
+        aerolinea: String(f.aerolinea ?? ""),
+        precioVenta: Number(f.precio_venta ?? 0),
+        moneda: String(f.moneda ?? "USD"),
+        duracion: duracionTotal(slices),
+        tramosResumen: resumenTramos(slices),
+      });
+    }
+    return alternativas;
+  } catch (e) {
+    console.error("Error cargando alternativas:", e);
+    return [];
+  }
+}
+
 function cargarMapaMundo() {
   try {
     const ruta = join(process.cwd(), "public", "worldmap.png");
@@ -172,7 +225,7 @@ export async function GET(
 
   const bloques = await query<Bloque & Record<string, unknown>>(
     `SELECT id::text, posicion, tipo, titulo, fecha::text, fecha_fin::text,
-            detalle, proveedor, costo_neto::float, precio_venta::float, datos
+            detalle, proveedor, costo_neto::float, precio_venta::float, cotizacion_id, datos
        FROM itinerario_bloques
       WHERE itinerario_id = $1
       ORDER BY posicion`,
@@ -194,6 +247,7 @@ export async function GET(
   );
 
   const mapa = cargarMapaMundo();
+  const alternativas = await cargarAlternativas(bloques as Bloque[]);
 
   try {
     const buffer = await renderToBuffer(
@@ -203,6 +257,7 @@ export async function GET(
         aeropuertos,
         mapa,
         banderas,
+        alternativas,
       }) as any,
     );
     const pdf = new Uint8Array(buffer);

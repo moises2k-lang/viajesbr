@@ -1,6 +1,17 @@
 import type { Oferta, RebanadaOferta } from "@/lib/duffel";
 import { bandera, nombrePais } from "@/lib/paises";
 
+/** Desviaciones aproximadas respecto a UTC para el cálculo de Shabbat.
+ *  Se usa como protección; no sustituye a un calendario haláquico exacto. */
+const OFFSET_HORARIO: Record<string, number> = {
+  MEX: -6, CUN: -5, MTY: -6, GDL: -6, TIJ: -8,
+  BOG: -5, MDE: -5, CLO: -5, CTG: -5, BAQ: -5,
+  EZE: -3, AEP: -3, COR: -3, MDZ: -3, SLA: -3,
+  SCL: -3, LIM: -5, PTY: -5, CCS: -4, UIO: -5,
+  MAD: 1, BCN: 1, LHR: 0, CDG: 1, AMS: 1, FRA: 1, MUC: 1,
+  JFK: -5, MIA: -5, LAX: -8, ORD: -6, DFW: -6, ATL: -5,
+};
+
 /** Duffel rellena el número con ceros ("0073"): la aerolínea lo publica como AV73. */
 function numeroDeVuelo(iata: string, numero: string): string {
   return `${iata}${numero.replace(/^0+/, "")}`;
@@ -10,6 +21,37 @@ export function minutosEntre(desde: string, hasta: string): number {
   return Math.round(
     (new Date(hasta).getTime() - new Date(desde).getTime()) / 60000,
   );
+}
+
+function localDesdeIso(iso: string, iata: string): Date {
+  const offset = OFFSET_HORARIO[iata] ?? 0;
+  const utc = new Date(iso + "Z").getTime();
+  return new Date(utc + offset * 3600000);
+}
+
+/** Devuelve true si el vuelo toca Shabbat (viernes 18:00 a sábado 20:00 hora local).
+ *  Es una aproximación conservadora. */
+export function tocaShabbat(iso: string, iata: string): boolean {
+  const d = localDesdeIso(iso, iata);
+  const dia = d.getUTCDay();
+  const hora = d.getUTCHours();
+  if (dia === 6 && hora < 20) return true;
+  if (dia === 5 && hora >= 18) return true;
+  return false;
+}
+
+export function ofertaRespetaShabbat(oferta: Oferta): boolean {
+  for (const tramo of oferta.slices) {
+    for (const segmento of tramo.segments) {
+      if (
+        tocaShabbat(segmento.departing_at, segmento.origin.iata_code) ||
+        tocaShabbat(segmento.arriving_at, segmento.destination.iata_code)
+      ) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 export interface SegmentoNormalizado {
