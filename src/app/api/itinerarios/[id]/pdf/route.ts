@@ -6,6 +6,12 @@ import { renderToBuffer } from "@react-pdf/renderer";
 
 export const runtime = "nodejs";
 
+interface AeropuertoCoord {
+  lat: number;
+  lon: number;
+  nombre?: string;
+}
+
 interface Itinerario {
   id: string;
   titulo: string;
@@ -28,6 +34,63 @@ interface Bloque {
   costo_neto: number | null;
   precio_venta: number | null;
   datos: unknown;
+}
+
+function extraerIatas(bloques: Bloque[]): string[] {
+  const iatas = new Set<string>();
+  for (const bloque of bloques) {
+    if (bloque.tipo !== "vuelo") continue;
+    const datos =
+      typeof bloque.datos === "object" && bloque.datos !== null
+        ? (bloque.datos as Record<string, unknown>)
+        : null;
+    const oferta = datos?.oferta as Record<string, unknown> | undefined;
+    const tramos = Array.isArray(oferta?.tramos) ? oferta.tramos : [];
+    for (const tramo of tramos) {
+      const t = tramo as Record<string, unknown>;
+      const segmentos = Array.isArray(t.segmentos) ? t.segmentos : [];
+      for (const segmento of segmentos) {
+        const s = segmento as Record<string, unknown>;
+        if (typeof s.origen === "string") iatas.add(s.origen);
+        if (typeof s.destino === "string") iatas.add(s.destino);
+      }
+    }
+  }
+  return [...iatas];
+}
+
+async function coordenadasAeropuerto(iata: string): Promise<AeropuertoCoord | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(`https://airportsapi.com/api/airports/${encodeURIComponent(iata)}`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const data = (await res.json()) as Record<string, unknown>;
+    const lat = typeof data.latitude === "number" ? data.latitude : parseFloat(data.latitude as string);
+    const lon = typeof data.longitude === "number" ? data.longitude : parseFloat(data.longitude as string);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return {
+      lat,
+      lon,
+      nombre: typeof data.name === "string" ? data.name : undefined,
+    };
+  } catch (error) {
+    console.error(`Error obteniendo coordenadas de ${iata}:`, error);
+    return null;
+  }
+}
+
+async function coordenadasAeropuertos(iatas: string[]): Promise<Record<string, AeropuertoCoord | null>> {
+  const resultado: Record<string, AeropuertoCoord | null> = {};
+  await Promise.all(
+    iatas.map(async (iata) => {
+      resultado[iata] = await coordenadasAeropuerto(iata);
+    }),
+  );
+  return resultado;
 }
 
 export async function GET(
@@ -57,11 +120,15 @@ export async function GET(
     [id],
   );
 
+  const iatas = extraerIatas(bloques as Bloque[]);
+  const aeropuertos = iatas.length > 0 ? await coordenadasAeropuertos(iatas) : {};
+
   try {
     const buffer = await renderToBuffer(
       createElement(EsquemaReservaPDF, {
         itinerario: itinerario as Itinerario,
         bloques: bloques as Bloque[],
+        aeropuertos,
       }) as any,
     );
     const pdf = new Uint8Array(buffer);

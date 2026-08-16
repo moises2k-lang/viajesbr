@@ -14,6 +14,7 @@ interface BloqueCuerpo {
   proveedor?: unknown;
   costo_neto?: unknown;
   precio_venta?: unknown;
+  moneda?: unknown;
   cotizacion_id?: unknown;
   datos?: unknown;
 }
@@ -54,9 +55,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const cuerpo = (await request.json()) as Cuerpo;
+  const usuario = await usuarioDeSesion();
+
   const captchaId = typeof cuerpo.captchaId === "string" ? cuerpo.captchaId : "";
   const captchaRespuesta = typeof cuerpo.captchaRespuesta === "string" ? cuerpo.captchaRespuesta : "";
-  const captchaOk = await verificarCaptcha(captchaId, captchaRespuesta);
+  const captchaOk = usuario || (await verificarCaptcha(captchaId, captchaRespuesta));
   if (!captchaOk) {
     return NextResponse.json(
       { error: "Respuesta de verificación anti-bots incorrecta" },
@@ -64,24 +67,41 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const titulo = typeof cuerpo.titulo === "string" ? cuerpo.titulo.trim() : "";
-  const cliente = typeof cuerpo.cliente === "string" ? cuerpo.cliente.trim() : "";
-  const moneda = typeof cuerpo.moneda === "string" ? cuerpo.moneda.trim().toUpperCase() : "";
+  const bloquesRaw = Array.isArray(cuerpo.bloques) ? cuerpo.bloques : [];
+  const bloques: BloqueCuerpo[] = bloquesRaw.map((b) => (typeof b === "object" && b !== null ? (b as BloqueCuerpo) : {}));
 
-  if (!titulo || !cliente || !/^[A-Z]{3}$/.test(moneda)) {
-    return NextResponse.json(
-      { error: "Se requieren título, cliente y moneda de tres letras" },
-      { status: 400 },
-    );
+  const primerTituloBloque =
+    typeof bloques[0]?.titulo === "string" && bloques[0].titulo.trim()
+      ? bloques[0].titulo.trim()
+      : undefined;
+
+  function monedaDesdeBloque(b: BloqueCuerpo | undefined): string | undefined {
+    if (typeof b?.moneda === "string" && /^[A-Z]{3}$/i.test(b.moneda)) {
+      return b.moneda.trim().toUpperCase();
+    }
+    const datos = typeof b?.datos === "object" && b.datos !== null ? (b.datos as Record<string, unknown>) : null;
+    if (datos) {
+      const candidatos = [datos.moneda, datos.currency, datos.totalCurrency, datos.total_currency, datos.baseCurrency, datos.base_currency];
+      for (const c of candidatos) {
+        if (typeof c === "string" && /^[A-Z]{3}$/i.test(c)) return c.trim().toUpperCase();
+      }
+    }
+    return undefined;
   }
+
+  const monedaBloque = monedaDesdeBloque(bloques[0]);
+
+  const tituloInput = typeof cuerpo.titulo === "string" ? cuerpo.titulo.trim() : "";
+  const clienteInput = typeof cuerpo.cliente === "string" ? cuerpo.cliente.trim() : "";
+  const monedaInput = typeof cuerpo.moneda === "string" ? cuerpo.moneda.trim().toUpperCase() : "";
+
+  const titulo = tituloInput || primerTituloBloque || "Cotización";
+  const cliente = clienteInput || "Sin contacto";
+  const moneda = /^[A-Z]{3}$/.test(monedaInput) ? monedaInput : (monedaBloque || "USD");
 
   const estado = typeof cuerpo.estado === "string" && ESTADOS.includes(cuerpo.estado)
     ? cuerpo.estado
     : "borrador";
-
-  const usuario = await usuarioDeSesion();
-  const bloquesRaw = Array.isArray(cuerpo.bloques) ? cuerpo.bloques : [];
-  const bloques: BloqueCuerpo[] = bloquesRaw.map((b) => (typeof b === "object" && b !== null ? (b as BloqueCuerpo) : {}));
 
   const client = await pool().connect();
   try {

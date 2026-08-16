@@ -1,33 +1,22 @@
 "use server";
 
-import { randomUUID } from "crypto";
+import { randomUUID, randomBytes } from "crypto";
 import { query } from "@/lib/db";
 
-export interface Captcha {
+export interface CaptchaToken {
   id: string;
-  pregunta: string;
+  token: string;
 }
 
-function operacion(): { a: number; b: number; respuesta: string; pregunta: string } {
-  const a = Math.floor(Math.random() * 9) + 1;
-  const b = Math.floor(Math.random() * 9) + 1;
-  return {
-    a,
-    b,
-    respuesta: String(a + b),
-    pregunta: `${a} + ${b}`,
-  };
-}
-
-export async function crearCaptcha(): Promise<Captcha> {
-  const { respuesta, pregunta } = operacion();
+export async function crearCaptcha(): Promise<CaptchaToken> {
   const id = randomUUID();
+  const token = randomBytes(32).toString("base64url");
   const [fila] = await query<{ id: string }>(
     `INSERT INTO captcha_challenges (id, respuesta) VALUES ($1, $2) RETURNING id`,
-    [id, respuesta],
+    [id, token],
   );
-  if (!fila) throw new Error("No se pudo crear el captcha");
-  return { id: fila.id, pregunta };
+  if (!fila) throw new Error("No se pudo crear el token de verificación");
+  return { id: fila.id, token };
 }
 
 export async function verificarCaptcha(
