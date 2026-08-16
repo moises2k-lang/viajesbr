@@ -80,5 +80,10 @@ export function categoriasPaquete(): { id: string; nombre: string }[] {
     { id: "romantico", nombre: "Romántico" },
     { id: "aventura", nombre: "Aventura" },
     { id: "gastronomia", nombre: "Gastronomía" },
+    { id: "playa", nombre: "Playa" },
+    { id: "naturaleza", nombre: "Naturaleza" },
+    { id: "luna_de_miel", nombre: "Luna de miel" },
+    { id: "cultural", nombre: "Cultural" },
+    { id: "lujo", nombre: "Lujo" },
   ];
 }

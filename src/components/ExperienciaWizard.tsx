@@ -300,6 +300,15 @@ export default function ExperienciaWizard({ paquete }: Props) {
         <ChevronLeft className="h-4 w-4" /> {t("common.back")}
       </Link>
 
+      {paquete.imagen && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          alt={paquete.destinoCiudad}
+          className="mb-6 h-64 w-full rounded-2xl object-cover shadow-sm"
+          src={paquete.imagen}
+        />
+      )}
+
       <div className="overflow-hidden rounded-2xl border border-[#E4E8EE] bg-white shadow-sm">
         <div className="bg-gradient-to-r from-[#0B2545] to-[#14477E] p-6 text-white sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
