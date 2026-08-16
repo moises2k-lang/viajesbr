@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import BanderaIso from "@/components/BanderaIso";
 import SelectorConBandera from "@/components/SelectorConBandera";
 import { MONEDAS } from "@/lib/monedas";
 
@@ -38,6 +39,11 @@ export default function SelectorMoneda({
     return monedas;
   }, [permitirVacio, vacioEtiqueta]);
 
+  const porCodigo = useMemo(
+    () => new Map(MONEDAS.map((m) => [m.codigo, m])),
+    [],
+  );
+
   return (
     <SelectorConBandera
       buscable
@@ -46,6 +52,24 @@ export default function SelectorMoneda({
       items={items}
       placeholder={placeholder}
       placeholderBusqueda="Buscar moneda…"
+      renderEtiqueta={(item) => {
+        const m = porCodigo.get(item.valor);
+        return (
+          <span className="flex items-center gap-2">
+            {m && <BanderaIso iso={m.paisIso} />}
+            <span>{item.valor}</span>
+          </span>
+        );
+      }}
+      renderOpcion={(item) => {
+        const m = porCodigo.get(item.valor);
+        return (
+          <span className="flex items-center gap-2">
+            {m && <BanderaIso iso={m.paisIso} />}
+            <span>{item.etiqueta}</span>
+          </span>
+        );
+      }}
       valor={valor ?? ""}
       onCambio={(nuevo) => onCambio(nuevo === "" ? null : nuevo)}
     />

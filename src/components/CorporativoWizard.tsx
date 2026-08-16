@@ -4,11 +4,13 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthContext";
 import SelectorTelefono from "@/components/SelectorTelefono";
+import SelectorMoneda from "@/components/SelectorMoneda";
 import CampoAeropuerto from "@/components/CampoAeropuerto";
 import FechaNacimiento from "@/components/FechaNacimiento";
 import RangoFechas from "@/components/RangoFechas";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import Captcha from "@/components/Captcha";
+import { useMoneda } from "@/components/MonedaContext";
 import { useI18n } from "@/lib/i18n";
 import {
   Building2,
@@ -135,6 +137,7 @@ function viajeroBloque(v: Viajero, num: number): string {
 export default function CorporativoWizard() {
   const { usuario } = useAuth();
   const { t } = useI18n();
+  const { moneda, setMoneda } = useMoneda();
   const [paso, setPaso] = useState(1);
   const [f, setF] = useState<Formulario>(VACIO);
   const [captchaId, setCaptchaId] = useState<string | null>(null);
@@ -369,6 +372,13 @@ export default function CorporativoWizard() {
             <Link className="hover:text-white" href="/" prefetch={false}>{t("common.flights")} / {t("common.hotels")}</Link>
             <Link className="hover:text-white" href="/admin/itinerarios" prefetch={false}>{t("common.itineraries")}</Link>
             {usuario && <span className="hidden sm:inline">{usuario.nombre ?? usuario.email}</span>}
+            <SelectorMoneda
+              className="w-28"
+              etiqueta=""
+              placeholder=""
+              valor={moneda}
+              onCambio={(nuevo) => setMoneda(nuevo ?? "USD")}
+            />
             <LanguageSwitcher />
           </nav>
         </div>

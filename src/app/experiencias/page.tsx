@@ -5,6 +5,9 @@ import Link from "next/link";
 import { Map, MapPin, Tag, Clock, Plane } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import type { PaqueteTematico } from "@/lib/experiencias";
+import SelectorMoneda from "@/components/SelectorMoneda";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useMoneda } from "@/components/MonedaContext";
 
 interface Categoria {
   id: string;
@@ -19,6 +22,7 @@ export const dynamic = "force-dynamic";
 
 export default function ExperienciasPage() {
   const { t } = useI18n();
+  const { moneda, setMoneda } = useMoneda();
   const [categoria, setCategoria] = useState<string>("");
   const [paquetes, setPaquetes] = useState<PaqueteTematico[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -58,6 +62,14 @@ export default function ExperienciasPage() {
             <Link className="hover:text-white" href="/corporativo">
               {t("common.corporate")}
             </Link>
+            <SelectorMoneda
+              className="w-28"
+              etiqueta=""
+              placeholder=""
+              valor={moneda}
+              onCambio={(nuevo) => setMoneda(nuevo ?? "USD")}
+            />
+            <LanguageSwitcher />
           </nav>
         </div>
       </header>

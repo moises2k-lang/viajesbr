@@ -499,7 +499,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
           <img alt="IA Travel Planning" className="h-9" src="/logo.svg" />
           <div className="flex items-center gap-4">
             <SelectorMoneda
-              className="w-40"
+              className="w-28"
               etiqueta=""
               placeholder=""
               valor={moneda}
