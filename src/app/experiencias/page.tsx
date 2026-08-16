@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Map, MapPin, Tag, Clock, Plane } from "lucide-react";
+import { Map, MapPin, Tag, Clock, Plane, Sun } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
-import type { PaqueteTematico } from "@/lib/experiencias";
+import { actividadesDetalle, fechasRecomendadas, type PaqueteTematico } from "@/lib/experiencias-helpers";
 import SelectorMoneda from "@/components/SelectorMoneda";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useMoneda } from "@/components/MonedaContext";
@@ -169,6 +169,32 @@ export default function ExperienciasPage() {
                     <p className="mt-2 line-clamp-2 text-sm text-[#5A6B80]">
                       {p.descripcion}
                     </p>
+                    {(() => {
+                      const recomendadas = fechasRecomendadas(p);
+                      const actividades = actividadesDetalle(p).slice(0, 3);
+                      return (
+                        <>
+                          {recomendadas && (
+                            <p className="mt-2 flex items-start gap-1 text-xs text-[#C9A227]">
+                              <Sun className="mt-0.5 h-3 w-3 shrink-0" />
+                              <span className="line-clamp-1">{recomendadas}</span>
+                            </p>
+                          )}
+                          {actividades.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {actividades.map((a, i) => (
+                                <span
+                                  key={i}
+                                  className="rounded-full bg-[#F5F7FA] px-2 py-0.5 text-xs text-[#5A6B80]"
+                                >
+                                  {a.titulo}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                     <div className="mt-4 flex flex-wrap gap-2 text-xs text-[#5A6B80]">
                       {p.duracionNoches && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#F5F7FA] px-2 py-1">

@@ -1,27 +1,21 @@
 import { query } from "@/lib/db";
+import {
+  type DatosPaquete,
+  type DiaItinerario,
+  type PaqueteTematico,
+  normalizarDatos,
+} from "@/lib/experiencias-helpers";
 
-export interface PaqueteTematico {
-  id: number;
-  slug: string;
-  categoria: string;
-  titulo: string;
-  subtitulo: string | null;
-  descripcion: string | null;
-  imagen: string | null;
-  origenIata: string | null;
-  destinoIata: string;
-  destinoCiudad: string;
-  destinoPaisCode: string | null;
-  duracionNoches: number | null;
-  adultos: number;
-  menores: number[];
-  bebes: number;
-  cabina: string | null;
-  aerolineasPreferidas: string[];
-  hotelEstrellasMin: number | null;
-  tags: string[];
-  datos: Record<string, unknown> | null;
-}
+export type { DatosPaquete, DiaItinerario, PaqueteTematico };
+export {
+  actividadesDetalle,
+  fechaSugerida,
+  fechasRecomendadas,
+  galeriaDePaquete,
+  incluyePaquete,
+  itinerarioDePaquete,
+  noIncluyePaquete,
+} from "@/lib/experiencias-helpers";
 
 function normalizarFila(fila: Record<string, unknown>): PaqueteTematico {
   return {
@@ -46,7 +40,7 @@ function normalizarFila(fila: Record<string, unknown>): PaqueteTematico {
       : [],
     hotelEstrellasMin: fila.hotel_estrellas_min ? Number(fila.hotel_estrellas_min) : null,
     tags: Array.isArray(fila.tags) ? fila.tags.map((s) => String(s)) : [],
-    datos: typeof fila.datos === "object" && fila.datos !== null ? (fila.datos as Record<string, unknown>) : null,
+    datos: normalizarDatos(fila.datos),
   };
 }
 

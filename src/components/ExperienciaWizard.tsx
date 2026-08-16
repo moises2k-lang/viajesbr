@@ -1,16 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Building2,
   Calendar,
+  CalendarDays,
+  Camera,
+  Check,
   ChevronLeft,
+  Clock,
+  Info,
   MapPin,
   Plane,
   Search,
+  Sparkles,
+  Sun,
   Tag,
   Users,
+  X,
 } from "lucide-react";
 import CampoAeropuerto from "@/components/CampoAeropuerto";
 import TarjetaOferta from "@/components/TarjetaOferta";
@@ -23,7 +32,16 @@ import { useMoneda } from "@/components/MonedaContext";
 import { useI18n } from "@/lib/i18n";
 import type { OfertaConPrecio } from "@/app/api/buscar/route";
 import type { HotelConPrecio, HabitacionConPrecio } from "@/app/api/hoteles/route";
-import type { PaqueteTematico } from "@/lib/experiencias";
+import {
+  actividadesDetalle,
+  fechaSugerida,
+  fechasRecomendadas,
+  galeriaDePaquete,
+  incluyePaquete,
+  itinerarioDePaquete,
+  noIncluyePaquete,
+  type PaqueteTematico,
+} from "@/lib/experiencias-helpers";
 
 interface Props {
   paquete: PaqueteTematico;
@@ -48,9 +66,162 @@ function hoyIso(dias = 0): string {
   return d.toISOString().slice(0, 10);
 }
 
+function addDias(fecha: string, dias: number): string {
+  const d = new Date(fecha);
+  d.setDate(d.getDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
 function totalNoches(entrada: string, salida: string): number {
   const ms = new Date(salida).getTime() - new Date(entrada).getTime();
   return Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24)));
+}
+
+function FechasSugeridas({ paquete }: { paquete: PaqueteTematico }) {
+  const recomendadas = fechasRecomendadas(paquete);
+  const sugerida = fechaSugerida(paquete);
+  if (!recomendadas && !sugerida) return null;
+  const formatear = (fecha?: string | null) => {
+    if (!fecha) return "";
+    try {
+      return new Date(fecha).toLocaleDateString("es-MX", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch {
+      return fecha;
+    }
+  };
+  return (
+    <div className="rounded-2xl border border-[#E4E8EE] bg-[#F5F7FA] p-5">
+      <h3 className="mb-3 flex items-center gap-2 text-base font-semibold text-[#0B2545]">
+        <Sparkles className="h-4 w-4 text-[#C9A227]" /> Fechas recomendadas
+      </h3>
+      {recomendadas && (
+        <p className="mb-2 flex items-start gap-2 text-sm text-[#5A6B80]">
+          <Sun className="mt-0.5 h-4 w-4 shrink-0 text-[#C9A227]" />
+          <span>{recomendadas}</span>
+        </p>
+      )}
+      {sugerida && (
+        <p className="flex items-center gap-2 text-sm font-medium text-[#0B2545]">
+          <CalendarDays className="h-4 w-4 text-[#14477E]" />
+          Fecha sugerida: {formatear(sugerida)}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ActividadesPaquete({ paquete }: { paquete: PaqueteTematico }) {
+  const actividades = actividadesDetalle(paquete);
+  if (!actividades.length) return null;
+  return (
+    <div>
+      <h3 className="mb-3 flex items-center gap-2 text-base font-semibold text-[#0B2545]">
+        <Camera className="h-4 w-4 text-[#C9A227]" /> Actividades incluidas
+      </h3>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {actividades.map((a, i) => (
+          <div key={i} className="rounded-2xl border border-[#E4E8EE] bg-white p-4">
+            <p className="font-medium text-[#0B2545]">{a.titulo}</p>
+            <p className="mt-1 text-sm text-[#5A6B80]">{a.descripcion}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GaleriaPaquete({ paquete }: { paquete: PaqueteTematico }) {
+  const imagenes = [paquete.imagen, ...galeriaDePaquete(paquete)].filter(Boolean);
+  if (!imagenes.length) return null;
+  return (
+    <div>
+      <h3 className="mb-3 flex items-center gap-2 text-base font-semibold text-[#0B2545]">
+        <Camera className="h-4 w-4 text-[#C9A227]" /> Galería
+      </h3>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {imagenes.map((src, i) => (
+          <div key={i} className="relative aspect-video overflow-hidden rounded-2xl bg-[#E4E8EE]">
+            <Image
+              alt={`${paquete.destinoCiudad} ${i + 1}`}
+              className="object-cover"
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              src={src!}
+              unoptimized
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ItinerarioPaquete({ paquete }: { paquete: PaqueteTematico }) {
+  const dias = itinerarioDePaquete(paquete);
+  if (!dias.length) return null;
+  return (
+    <div>
+      <h3 className="mb-3 flex items-center gap-2 text-base font-semibold text-[#0B2545]">
+        <Clock className="h-4 w-4 text-[#C9A227]" /> Itinerario día a día
+      </h3>
+      <div className="space-y-4">
+        {dias.map((dia) => (
+          <div key={dia.dia} className="flex gap-4">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#14477E] text-sm font-semibold text-white">
+              {dia.dia}
+            </div>
+            <div className="flex-1 rounded-2xl border border-[#E4E8EE] bg-white p-4">
+              <p className="font-medium text-[#0B2545]">{dia.titulo}</p>
+              <p className="mt-1 text-sm text-[#5A6B80]">{dia.descripcion}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function IncluyePaquete({ paquete }: { paquete: PaqueteTematico }) {
+  const incluye = incluyePaquete(paquete);
+  const noIncluye = noIncluyePaquete(paquete);
+  if (!incluye.length && !noIncluye.length) return null;
+  return (
+    <div className="grid gap-6 sm:grid-cols-2">
+      {incluye.length > 0 && (
+        <div className="rounded-2xl border border-[#E4E8EE] bg-white p-5">
+          <h3 className="mb-3 flex items-center gap-2 text-base font-semibold text-[#0B2545]">
+            <Check className="h-4 w-4 text-green-600" /> Incluye
+          </h3>
+          <ul className="space-y-2">
+            {incluye.map((item, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-[#5A6B80]">
+                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-600" /> {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {noIncluye.length > 0 && (
+        <div className="rounded-2xl border border-[#E4E8EE] bg-white p-5">
+          <h3 className="mb-3 flex items-center gap-2 text-base font-semibold text-[#0B2545]">
+            <X className="h-4 w-4 text-red-600" /> No incluye
+          </h3>
+          <ul className="space-y-2">
+            {noIncluye.map((item, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-[#5A6B80]">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5A6B80]" /> {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ExperienciaWizard({ paquete }: Props) {
@@ -60,13 +231,15 @@ export default function ExperienciaWizard({ paquete }: Props) {
   const [buscando, setBuscando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const hoy = useMemo(() => hoyIso(), []);
-  const defRegreso = hoyIso((paquete.duracionNoches ?? 4) + 30);
+  const duracion = paquete.duracionNoches ?? 4;
+  const fechaSug = fechaSugerida(paquete);
+  const defSalida = fechaSug ?? hoyIso(60);
+  const defRegreso = fechaSug ? addDias(fechaSug, duracion + 1) : hoyIso(duracion + 61);
 
   const [filtro, setFiltro] = useState<FiltroBusqueda>({
     origenCodigo: paquete.origenIata ?? "MEX",
     origenDescripcion: null,
-    fechaSalida: hoy,
+    fechaSalida: defSalida,
     fechaRegreso: defRegreso,
     adultos: Math.max(1, paquete.adultos),
     bebes: paquete.bebes,
@@ -356,6 +529,16 @@ export default function ExperienciaWizard({ paquete }: Props) {
               ))}
             </div>
           )}
+        </div>
+
+        <div className="border-b border-[#E4E8EE] bg-white p-6 sm:p-8">
+          <div className="grid gap-8">
+            <FechasSugeridas paquete={paquete} />
+            <ActividadesPaquete paquete={paquete} />
+            <GaleriaPaquete paquete={paquete} />
+            <ItinerarioPaquete paquete={paquete} />
+            <IncluyePaquete paquete={paquete} />
+          </div>
         </div>
 
         <div className="p-6 sm:p-8">
