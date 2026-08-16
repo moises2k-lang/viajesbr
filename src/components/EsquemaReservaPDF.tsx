@@ -433,9 +433,13 @@ export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {
     .filter((v): v is { bloque: Bloque; oferta: OfertaConPrecio } => !!v.oferta?.tramos && v.oferta.tramos.length > 0);
 
   const segmentosRuta: SegmentoRuta[] = [];
+  const rutasVistas = new Set<string>();
   for (const v of vuelos) {
     for (const tramo of v.oferta.tramos) {
       for (const s of tramo.segmentos) {
+        const clave = `${s.origen}-${s.destino}`;
+        if (rutasVistas.has(clave)) continue;
+        rutasVistas.add(clave);
         segmentosRuta.push({ origen: s.origen, destino: s.destino, vuelo: s.vuelo, sale: s.sale });
       }
     }
