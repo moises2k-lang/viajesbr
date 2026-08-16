@@ -476,7 +476,26 @@ const packages = {
   searchingHotels: "Buscando hoteles disponibles en",
 };
 
-const dicts = { common, home, auth, search, flights, hotels, corporate, form, errors, packages };
+const experiences = {
+  title: "Viajes temáticos",
+  subtitle: "Elige una experiencia y las fechas; nosotros armamos vuelo + hotel",
+  categories: "Categorías",
+  allCategories: "Todas",
+  buildPackage: "Armar mi paquete",
+  configureTrip: "Configura tu viaje",
+  chooseDates: "Elige fechas y pasajeros",
+  searchFlightsAndHotels: "Buscar vuelos y hoteles",
+  recommendedFor: "Ideal para",
+  nights: "noches",
+  flightResults: "Vuelos disponibles",
+  hotelResults: "Hoteles disponibles",
+  packageSummary: "Resumen del paquete",
+  savePackage: "Guardar paquete",
+  noFlights: "No encontramos vuelos para esas fechas",
+  noHotels: "No encontramos hoteles para esas fechas",
+};
+
+const dicts = { common, home, auth, search, flights, hotels, corporate, form, errors, packages, experiences };
 
 type LocaleDict = typeof dicts;
 
@@ -788,6 +807,24 @@ const en: LocaleDict = {
     paymentWallet: "Wallet / credit",
   },
   packages: { ...packages },
+  experiences: {
+    title: "Themed trips",
+    subtitle: "Choose an experience and dates; we build flight + hotel",
+    categories: "Categories",
+    allCategories: "All",
+    buildPackage: "Build my package",
+    configureTrip: "Configure your trip",
+    chooseDates: "Choose dates and travelers",
+    searchFlightsAndHotels: "Search flights & hotels",
+    recommendedFor: "Perfect for",
+    nights: "nights",
+    flightResults: "Available flights",
+    hotelResults: "Available hotels",
+    packageSummary: "Package summary",
+    savePackage: "Save package",
+    noFlights: "No flights found for those dates",
+    noHotels: "No hotels found for those dates",
+  },
   errors: {
     completeCompany: "Complete the company and contact details.",
     completeTrip: "Complete origin, destination and departure date.",
@@ -1103,6 +1140,24 @@ const fr: LocaleDict = {
     paymentWallet: "Wallet / crédit",
   },
   packages: { ...packages },
+  experiences: {
+    title: "Voyages thématiques",
+    subtitle: "Choisissez une expérience et des dates; nous assemblons vol + hôtel",
+    categories: "Catégories",
+    allCategories: "Toutes",
+    buildPackage: "Composer mon forfait",
+    configureTrip: "Configurez votre voyage",
+    chooseDates: "Choisissez dates et voyageurs",
+    searchFlightsAndHotels: "Rechercher vols et hôtels",
+    recommendedFor: "Idéal pour",
+    nights: "nuits",
+    flightResults: "Vols disponibles",
+    hotelResults: "Hôtels disponibles",
+    packageSummary: "Résumé du forfait",
+    savePackage: "Enregistrer le forfait",
+    noFlights: "Aucun vol trouvé pour ces dates",
+    noHotels: "Aucun hôtel trouvé pour ces dates",
+  },
   errors: {
     completeCompany: "Remplissez les coordonnées de l'entreprise et du contact.",
     completeTrip: "Remplissez l'origine, la destination et la date de départ.",

@@ -261,3 +261,54 @@ CREATE TABLE IF NOT EXISTS historial_precios (
 
 CREATE INDEX IF NOT EXISTS historial_precios_monitoreo_idx
   ON historial_precios (monitoreo_id, creado_en DESC);
+
+-- Viajes temáticos / experiencias curadas
+CREATE TABLE IF NOT EXISTS paquetes_tematicos (
+  id BIGSERIAL PRIMARY KEY,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  activo BOOLEAN NOT NULL DEFAULT true,
+  slug TEXT NOT NULL UNIQUE,
+  categoria TEXT NOT NULL,
+  titulo TEXT NOT NULL,
+  subtitulo TEXT,
+  descripcion TEXT,
+  imagen TEXT,
+  origen_iata TEXT,
+  destino_iata TEXT NOT NULL,
+  destino_ciudad TEXT NOT NULL,
+  destino_pais_code CHAR(2),
+  duracion_noches INTEGER,
+  adultos SMALLINT NOT NULL DEFAULT 1,
+  menores SMALLINT[] DEFAULT '{}',
+  bebes SMALLINT NOT NULL DEFAULT 0,
+  cabina TEXT,
+  aerolineas_preferidas TEXT[] DEFAULT '{}',
+  hotel_estrellas_min INTEGER,
+  tags TEXT[] DEFAULT '{}',
+  datos JSONB
+);
+
+CREATE INDEX IF NOT EXISTS paquetes_tematicos_categoria_idx
+  ON paquetes_tematicos (categoria, activo);
+
+INSERT INTO paquetes_tematicos (
+  slug, categoria, titulo, subtitulo, descripcion, imagen,
+  origen_iata, destino_iata, destino_ciudad, destino_pais_code,
+  duracion_noches, adultos, menores, bebes, cabina,
+  aerolineas_preferidas, hotel_estrellas_min, tags, datos
+)
+SELECT v.slug, v.categoria, v.titulo, v.subtitulo, v.descripcion, v.imagen,
+       v.origen_iata, v.destino_iata, v.destino_ciudad, v.destino_pais_code,
+       v.duracion_noches, v.adultos, v.menores, v.bebes, v.cabina,
+       v.aerolineas_preferidas, v.hotel_estrellas_min, v.tags, v.datos::jsonb
+FROM (VALUES
+  ('escapada-ejecutiva-buenos-aires', 'negocios', 'Escapada ejecutiva a Buenos Aires', 'Negocios en 3 días', 'Vuelo + hotel céntrico para reuniones y eventos corporativos.', NULL, 'MEX', 'EZE', 'Buenos Aires', 'AR', 3, 1, ARRAY[]::SMALLINT[], 0, 'economy', ARRAY[]::TEXT[], 4, ARRAY['negocios','corporativo'], '{"tipo":"negocios","actividades":["tango","reuniones"]}'),
+  ('familia-cancun-all-inclusive', 'familia', 'Familia en Cancún', 'Todo incluido + playa', 'Paquete familiar con vuelo directo y hotel en zona hotelera.', NULL, 'MEX', 'CUN', 'Cancún', 'MX', 5, 2, ARRAY[]::SMALLINT[], 0, 'economy', ARRAY[]::TEXT[], 4, ARRAY['familia','playa'], '{"tipo":"familia","actividades":["playa","parques"]}'),
+  ('aventura-machu-picchu', 'aventura', 'Aventura en Machu Picchu', 'Cusco y Valle Sagrado', 'Vuelo a Cusco, hotel boutique y experiencias de aventura.', NULL, 'MEX', 'CUZ', 'Cusco', 'PE', 4, 2, ARRAY[]::SMALLINT[], 0, 'economy', ARRAY[]::TEXT[], 3, ARRAY['aventura','naturaleza'], '{"tipo":"aventura","actividades":["trekking","ruinas"]}'),
+  ('romance-paris', 'romantico', 'Romance en París', 'Tour de luz y gastronomía', 'Vuelo y hotel boutique cerca del Sena, con cena incluida.', NULL, 'MEX', 'CDG', 'Paris', 'FR', 4, 2, ARRAY[]::SMALLINT[], 0, 'economy', ARRAY[]::TEXT[], 4, ARRAY['romantico','gastronomia'], '{"tipo":"romantico","actividades":["cena","museos"]}'),
+  ('gastronomia-oaxaca', 'gastronomia', 'Gastronomía en Oaxaca', 'Sabores y tradición', 'Vuelo y hotel en el centro histórico, experiencias culinarias.', NULL, 'MEX', 'OAX', 'Oaxaca', 'MX', 3, 2, ARRAY[]::SMALLINT[], 0, 'economy', ARRAY[]::TEXT[], 4, ARRAY['gastronomia','cultura'], '{"tipo":"gastronomia","actividades":["mezcal","mercados"]}'),
+  ('incentivo-miami', 'ocio', 'Incentivo en Miami', 'Playas, compras y nightlife', 'Paquete ideal para grupos de incentivo o viajes de amigos.', NULL, 'MEX', 'MIA', 'Miami', 'US', 4, 4, ARRAY[]::SMALLINT[], 0, 'economy', ARRAY[]::TEXT[], 4, ARRAY['ocio','incentivo','compras'], '{"tipo":"ocio","actividades":["playa","compras"]}'),
+  ('playa-tulum', 'ocio', 'Descanso en Tulum', 'Boho-chic y cenotes', 'Vuelo a Cancún con traslado a Tulum y hotel boutique.', NULL, 'MEX', 'CUN', 'Tulum', 'MX', 5, 2, ARRAY[]::SMALLINT[], 0, 'economy', ARRAY[]::TEXT[], 4, ARRAY['playa','wellness'], '{"tipo":"ocio","actividades":["cenotes","playa"]}')
+) AS v(slug, categoria, titulo, subtitulo, descripcion, imagen, origen_iata, destino_iata, destino_ciudad, destino_pais_code, duracion_noches, adultos, menores, bebes, cabina, aerolineas_preferidas, hotel_estrellas_min, tags, datos)
+WHERE NOT EXISTS (SELECT 1 FROM paquetes_tematicos);

@@ -42,7 +42,7 @@ import AuthModal from "@/components/AuthModal";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useI18n } from "@/lib/i18n";
 import { separarBandera } from "@/lib/paises";
-import { TicketsPlane, Building2, Briefcase, User, LogOut, Users } from "lucide-react";
+import { TicketsPlane, Building2, Briefcase, User, LogOut, Users, Map } from "lucide-react";
 import {
   borrarHistorial,
   guardarBusqueda,
@@ -507,6 +507,13 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
             />
             <LanguageSwitcher />
             <nav className="flex items-center gap-4 text-sm text-white/80">
+              <Link
+                className="inline-flex items-center gap-1 hover:text-white"
+                href="/experiencias"
+                prefetch={false}
+              >
+                <Map className="h-4 w-4" /> {t("experiences.title")}
+              </Link>
               <Link
                 className="hover:text-white"
                 href="/corporativo"
