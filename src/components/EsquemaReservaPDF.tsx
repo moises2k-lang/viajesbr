@@ -4,6 +4,7 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
   Svg,
   G,
@@ -11,42 +12,44 @@ import {
   Circle,
   Line,
   Rect,
+  Defs,
+  ClipPath,
 } from "@react-pdf/renderer";
 import { Encabezado, Pie, estilos } from "@/documentos/Membrete";
 import { formatoFecha, formatoHora, formatoMoneda, MARCA } from "@/lib/marca";
 import type { OfertaConPrecio, SegmentoNormalizado, TramoNormalizado } from "@/lib/ofertas";
 
 const propios = StyleSheet.create({
-  compactTitle: { marginBottom: 3, marginTop: 2 },
-  compactSubtitle: { marginBottom: 8 },
+  compactTitle: { marginBottom: 2, marginTop: 2 },
+  compactSubtitle: { marginBottom: 5 },
   badge: {
     alignSelf: "flex-start",
     backgroundColor: MARCA.oro,
     color: MARCA.azul,
     fontSize: 8,
     fontWeight: 700,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     borderRadius: 3,
-    marginTop: 4,
+    marginTop: 2,
   },
   infoRow: {
-    marginTop: 8,
+    marginTop: 5,
     flexDirection: "row",
-    gap: 8,
+    gap: 6,
     flexWrap: "wrap",
   },
   infoCol: {
     flex: 1,
     minWidth: 130,
     backgroundColor: "#F5F7FA",
-    padding: 8,
+    padding: 6,
     borderRadius: 3,
   },
-  noteBox: { marginTop: 8, backgroundColor: "#FFF8E1", padding: 8, borderRadius: 3 },
-  noteText: { color: "#8A6A00", fontSize: 8, lineHeight: 1.35 },
-  totalCompact: { marginTop: 8, padding: 10 },
-  mapSection: { marginTop: 10 },
+  noteBox: { marginTop: 4, backgroundColor: "#FFF8E1", padding: 5, borderRadius: 3 },
+  noteText: { color: "#8A6A00", fontSize: 7.5, lineHeight: 1.35 },
+  totalCompact: { marginTop: 4, padding: 6 },
+  mapSection: { marginTop: 4 },
 
   flightBlock: { marginTop: 8 },
   flightTitle: { fontSize: 11, fontWeight: 700, color: MARCA.azul, marginBottom: 6 },
@@ -102,12 +105,21 @@ interface AeropuertoCoord {
   lat: number;
   lon: number;
   nombre?: string;
+  pais?: string;
+}
+
+interface MapaImagen {
+  src: Buffer;
+  width: number;
+  height: number;
 }
 
 interface Props {
   itinerario: Itinerario;
   bloques: Bloque[];
   aeropuertos?: Record<string, AeropuertoCoord | null>;
+  mapa?: MapaImagen;
+  banderas?: Record<string, Buffer>;
 }
 
 const TIPOS: Record<string, string> = {
@@ -171,9 +183,13 @@ function resumenServicio(b: Bloque): string {
 function MapaRuta({
   aeropuertos,
   segmentos,
+  mapa,
+  banderas,
 }: {
   aeropuertos: Record<string, AeropuertoCoord | null>;
   segmentos: { origen: string; destino: string }[];
+  mapa?: MapaImagen;
+  banderas?: Record<string, Buffer>;
 }) {
   const iatas: string[] = [];
   const agregar = (iata: string) => {
@@ -186,76 +202,66 @@ function MapaRuta({
   if (iatas.length < 2) return null;
 
   const w = 515;
-  const h = 240;
-  const pad = 24;
+  const h = 200;
+  const pad = 18;
+  const areaW = w - 2 * pad;
+  const areaH = h - 2 * pad;
+
+  let imgX = pad;
+  let imgY = pad;
+  let imgW = areaW;
+  let imgH = areaH;
+
+  if (mapa) {
+    const aspect = mapa.width / mapa.height;
+    imgW = areaW;
+    imgH = imgW / aspect;
+    if (imgH > areaH) {
+      imgH = areaH;
+      imgW = imgH * aspect;
+    }
+    imgX = pad + (areaW - imgW) / 2;
+    imgY = pad + (areaH - imgH) / 2;
+  }
+
+  function proyectar(lat: number, lon: number) {
+    return {
+      x: imgX + ((lon + 180) / 360) * imgW,
+      y: imgY + ((90 - lat) / 180) * imgH,
+    };
+  }
+
   const puntos: Record<string, { x: number; y: number; nombre?: string }> = {};
   const coordsDisponibles = iatas.filter((i) => !!aeropuertos[i]).length;
 
   if (coordsDisponibles >= 2) {
-    let minLat = Infinity;
-    let maxLat = -Infinity;
-    let minLon = Infinity;
-    let maxLon = -Infinity;
     for (const iata of iatas) {
       const c = aeropuertos[iata];
       if (!c) continue;
-      if (c.lat < minLat) minLat = c.lat;
-      if (c.lat > maxLat) maxLat = c.lat;
-      if (c.lon < minLon) minLon = c.lon;
-      if (c.lon > maxLon) maxLon = c.lon;
-    }
-    if (maxLon - minLon > 180) {
-      for (const iata of iatas) {
-        const p = aeropuertos[iata];
-        if (p && p.lon > 0) p.lon -= 360;
-      }
-      minLon = Infinity;
-      maxLon = -Infinity;
-      for (const iata of iatas) {
-        const p = aeropuertos[iata];
-        if (!p) continue;
-        if (p.lon < minLon) minLon = p.lon;
-        if (p.lon > maxLon) maxLon = p.lon;
-      }
-    }
-    const rangeLat = Math.max(0.0001, maxLat - minLat);
-    const rangeLon = Math.max(0.0001, maxLon - minLon);
-    const scaleX = (w - 2 * pad) / rangeLon;
-    const scaleY = (h - 2 * pad) / rangeLat;
-    const scale = Math.min(scaleX, scaleY) * 0.92;
-    const offsetX = (w - rangeLon * scale) / 2;
-    const offsetY = (h - rangeLat * scale) / 2;
-    for (const iata of iatas) {
-      const p = aeropuertos[iata];
-      if (!p) continue;
-      puntos[iata] = {
-        x: offsetX + (p.lon - minLon) * scale,
-        y: h - offsetY - (p.lat - minLat) * scale,
-        nombre: p.nombre,
-      };
+      puntos[iata] = { ...proyectar(c.lat, c.lon), nombre: c.nombre };
     }
     for (const iata of iatas) {
-      if (!puntos[iata]) puntos[iata] = { x: w / 2, y: h / 2, nombre: undefined };
+      if (!puntos[iata]) {
+        const idx = iatas.indexOf(iata);
+        const step = iatas.length > 1 ? areaW / (iatas.length - 1) : 0;
+        puntos[iata] = { x: pad + idx * step, y: h / 2, nombre: aeropuertos[iata]?.nombre };
+      }
     }
   } else {
     const n = iatas.length;
-    const step = n > 1 ? (w - 2 * pad) / (n - 1) : 0;
+    const step = n > 1 ? areaW / (n - 1) : 0;
     iatas.forEach((iata, i) => {
-      puntos[iata] = {
-        x: pad + i * step,
-        y: h / 2,
-        nombre: aeropuertos[iata]?.nombre,
-      };
+      puntos[iata] = { x: pad + i * step, y: h / 2, nombre: aeropuertos[iata]?.nombre };
     });
   }
 
   const gridLines: ReactNode[] = [];
   const ticks = 4;
   for (let i = 0; i <= ticks; i++) {
-    const y = pad + ((h - 2 * pad) * i) / ticks;
-    gridLines.push(<Line key={`h-${i}`} x1={pad} y1={y} x2={w - pad} y2={y} stroke="#DAE3EC" strokeWidth={0.5} />);
-    const x = pad + ((w - 2 * pad) * i) / ticks;
-    gridLines.push(<Line key={`v-${i}`} x1={x} y1={pad} x2={x} y2={h - pad} stroke="#DAE3EC" strokeWidth={0.5} />);
+    const y = imgY + (imgH * i) / ticks;
+    gridLines.push(<Line key={`h-${i}`} x1={imgX} y1={y} x2={imgX + imgW} y2={y} stroke="#E4EAEF" strokeWidth={0.5} />);
+    const x = imgX + (imgW * i) / ticks;
+    gridLines.push(<Line key={`v-${i}`} x1={x} y1={imgY} x2={x} y2={imgY + imgH} stroke="#E4EAEF" strokeWidth={0.5} />);
   }
 
   const routes: ReactNode[] = [];
@@ -263,22 +269,20 @@ function MapaRuta({
     const o = puntos[seg.origen];
     const d = puntos[seg.destino];
     if (!o || !d) return;
-    const p1 = o;
-    const p2 = d;
-    const mx = (p1.x + p2.x) / 2;
-    const my = (p1.y + p2.y) / 2;
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
+    const mx = (o.x + d.x) / 2;
+    const my = (o.y + d.y) / 2;
+    const dx = d.x - o.x;
+    const dy = d.y - o.y;
     const len = Math.sqrt(dx * dx + dy * dy) || 1;
     const udx = dx / len;
     const udy = dy / len;
-    const curve = Math.min(36, len * 0.28) * (idx % 2 === 0 ? -1 : 1);
+    const curve = Math.min(40, len * 0.28) * (idx % 2 === 0 ? -1 : 1);
     const cx = mx - udy * curve;
     const cy = my + udx * curve;
     routes.push(
       <Path
         key={`r-${idx}`}
-        d={`M ${p1.x} ${p1.y} Q ${cx} ${cy} ${p2.x} ${p2.y}`}
+        d={`M ${o.x} ${o.y} Q ${cx} ${cy} ${d.x} ${d.y}`}
         stroke={MARCA.azul}
         strokeWidth={2.5}
         fill="none"
@@ -290,11 +294,10 @@ function MapaRuta({
   const labels: ReactNode[] = [];
   iatas.forEach((iata) => {
     const p = puntos[iata];
-    const label = iata;
-    const dx = p.x > w - 60 ? -8 : 8;
-    const anchor = p.x > w - 60 ? "end" : "start";
+    const dx = p.x > w - 70 ? -10 : 10;
+    const anchor = p.x > w - 70 ? "end" : "start";
     const x = p.x + dx;
-    const y = p.y - 8;
+    const y = p.y - 10;
     dots.push(
       <Fragment key={`d-${iata}`}>
         <Circle cx={p.x} cy={p.y} r={6} fill={MARCA.oro} stroke={MARCA.azul} strokeWidth={1.5} />
@@ -303,24 +306,76 @@ function MapaRuta({
     );
     labels.push(
       <Text key={`l-${iata}`} x={x} y={y} textAnchor={anchor} style={{ fontSize: 9, fill: MARCA.azul, fontWeight: 700 } as any}>
-        {label}
+        {iata}
       </Text>,
     );
   });
 
   return (
-    <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-      <Rect x={0} y={0} width={w} height={h} fill="#EDF4FA" />
-      <Rect x={pad} y={pad} width={w - 2 * pad} height={h - 2 * pad} rx={4} fill="#FFFFFF" stroke={MARCA.azulClaro} strokeWidth={0.5} />
-      <G>{gridLines}</G>
-      <G>{routes}</G>
-      <G>{dots}</G>
-      <G>{labels}</G>
-    </Svg>
+    <View style={{ width: w, height: h, position: "relative" }}>
+      {mapa ? (
+        <Image
+          src={{ data: mapa.src, format: "png" }}
+          style={{
+            position: "absolute",
+            left: imgX,
+            top: imgY,
+            width: imgW,
+            height: imgH,
+          } as any}
+        />
+      ) : (
+        <View
+          style={{
+            position: "absolute",
+            left: imgX,
+            top: imgY,
+            width: imgW,
+            height: imgH,
+            backgroundColor: "#EDF4FA",
+          }}
+        />
+      )}
+      <View style={{ position: "absolute", top: 0, left: 0, width: w, height: h } as any}>
+        <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+          <Defs>
+            <ClipPath id="mapClip">
+              <Rect x={imgX} y={imgY} width={imgW} height={imgH} />
+            </ClipPath>
+          </Defs>
+          <G clipPath="url(#mapClip)">
+            {gridLines.length > 0 && <G>{gridLines}</G>}
+            <G>{routes}</G>
+            <G>{dots}</G>
+            <G>{labels}</G>
+          </G>
+        </Svg>
+      </View>
+      {banderas &&
+        iatas.map((iata) => {
+          const b = banderas[iata];
+          const p = puntos[iata];
+          if (!b || !p) return null;
+          return (
+            <View
+              key={`f-${iata}`}
+              style={{
+                position: "absolute",
+                left: p.x - 7,
+                top: p.y - 18,
+                width: 14,
+                height: 10,
+              } as any}
+            >
+              <Image src={{ data: b, format: "png" }} style={{ width: 14, height: 10 }} />
+            </View>
+          );
+        })}
+    </View>
   );
 }
 
-export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {} }: Props) {
+export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {}, mapa, banderas }: Props) {
   const folio = `IATP-${itinerario.id.padStart(5, "0")}`;
   const total = bloques.reduce((sum, b) => sum + (typeof b.precio_venta === "number" ? b.precio_venta : 0), 0);
 
@@ -414,7 +469,7 @@ export default function EsquemaReservaPDF({ itinerario, bloques, aeropuertos = {
         {conMapa && (
           <View style={propios.mapSection}>
             <Text style={estilos.seccion}>Mapa del viaje</Text>
-            <MapaRuta aeropuertos={aeropuertos} segmentos={segmentosRuta} />
+            <MapaRuta aeropuertos={aeropuertos} segmentos={segmentosRuta} mapa={mapa} banderas={banderas} />
           </View>
         )}
 
