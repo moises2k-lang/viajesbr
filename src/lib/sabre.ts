@@ -242,6 +242,8 @@ export async function buscarOfertas(
   });
 
   console.error("[Sabre flightShop] body:", JSON.stringify(body));
+  console.error("[Sabre flightShop] raw keys:", Object.keys(data).join(","));
+  console.error("[Sabre flightShop] raw:", JSON.stringify(data).slice(0, 3000));
   console.error("[Sabre flightShop] flights:", data.flights?.length ?? 0, "journeys:", data.journeys?.length ?? 0, "offers:", data.offers?.length ?? 0);
   if (data.offers && data.offers.length > 0) {
     console.error("[Sabre flightShop] first offer:", JSON.stringify(data.offers[0], null, 2).slice(0, 2000));
