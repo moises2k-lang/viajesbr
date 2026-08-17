@@ -57,7 +57,7 @@ async function sabreToken(): Promise<string> {
   return data.access_token;
 }
 
-async function sabreFetch<T>(ruta: string, init: RequestInit): Promise<T> {
+export async function sabreFetch<T>(ruta: string, init: RequestInit): Promise<T> {
   const token = await sabreToken();
   const resp = await fetch(`${SABRE_URL}${ruta}`, {
     ...init,
