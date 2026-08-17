@@ -60,7 +60,7 @@ export async function sugerirLugaresSabre(
   if (texto.length < 3) return [];
 
   const data = await sabreFetch<SabreGeoAutocompleteResponse>(
-    `/v2/geo/autocomplete?query=${encodeURIComponent(texto)}&category=AIR&limit=12`,
+    `/v2/geo/autocomplete?query=${encodeURIComponent(texto)}&limit=12`,
     { method: "GET" },
   );
   // eslint-disable-next-line no-console
