@@ -20,8 +20,15 @@ for (const a of rawAirlines as unknown as AirlineData[]) {
   }
 }
 
+const NOMBRES_PREFERIDOS: Record<string, string> = {
+  LA: "LATAM Airlines",
+  AM: "Aeroméxico",
+  CM: "Copa Airlines",
+};
+
 export function nombreAerolinea(iata: string): string {
-  return NOMBRE_POR_IATA.get(iata?.toUpperCase()) ?? iata?.toUpperCase() ?? "";
+  const code = iata?.toUpperCase();
+  return NOMBRES_PREFERIDOS[code] ?? NOMBRE_POR_IATA.get(code) ?? code ?? "";
 }
 
 export function logoAerolinea(iata: string): string | null {
