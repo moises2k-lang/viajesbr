@@ -63,6 +63,8 @@ export async function sugerirLugaresSabre(
     `/v2/geo/autocomplete?query=${encodeURIComponent(texto)}&limit=12`,
     { method: "GET" },
   );
+  // eslint-disable-next-line no-console
+  console.error("[Sabre Geo] query:", texto, "raw:", JSON.stringify(data));
 
   const groups = data.grouped ?? {};
   const getGroup = (key: string) => groups[key]?.doclist?.docs ?? [];
