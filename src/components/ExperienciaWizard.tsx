@@ -25,9 +25,8 @@ import TarjetaOferta from "@/components/TarjetaOferta";
 import ListaHoteles from "@/components/ListaHoteles";
 import FormularioReserva from "@/components/FormularioReserva";
 import ResumenVuelo from "@/components/ResumenVuelo";
-import SelectorMoneda from "@/components/SelectorMoneda";
+import SiteHeader from "@/components/SiteHeader";
 import Precio from "@/components/Precio";
-import { useMoneda } from "@/components/MonedaContext";
 import { useI18n } from "@/lib/i18n";
 import type { OfertaConPrecio } from "@/app/api/buscar/route";
 import type { HotelConPrecio, HabitacionConPrecio } from "@/app/api/hoteles/route";
@@ -225,7 +224,6 @@ function IncluyePaquete({ paquete }: { paquete: PaqueteTematico }) {
 
 export default function ExperienciaWizard({ paquete }: Props) {
   const { t } = useI18n();
-  const { moneda, setMoneda } = useMoneda();
   const [paso, setPaso] = useState<Paso>("configurar");
   const [buscando, setBuscando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -467,22 +465,17 @@ export default function ExperienciaWizard({ paquete }: Props) {
   }, [filtro.cabina, t]);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-        <Link
-          className="inline-flex items-center gap-1 text-sm text-[#14477E] hover:underline"
-          href="/experiencias"
-        >
-          <ChevronLeft className="h-4 w-4" /> {t("common.back")}
-        </Link>
-        <SelectorMoneda
-          className="w-28"
-          etiqueta=""
-          placeholder=""
-          valor={moneda}
-          onCambio={(nuevo) => setMoneda(nuevo ?? "USD")}
-        />
-      </div>
+    <div className="min-h-screen bg-[#F5F7FA]">
+      <SiteHeader />
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        <div className="mb-4">
+          <Link
+            className="inline-flex items-center gap-1 text-sm text-[#14477E] hover:underline"
+            href="/experiencias"
+          >
+            <ChevronLeft className="h-4 w-4" /> {t("common.back")}
+          </Link>
+        </div>
 
       {paquete.imagen && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -850,6 +843,7 @@ export default function ExperienciaWizard({ paquete }: Props) {
           )}
         </div>
       </div>
+      </main>
     </div>
   );
 }
