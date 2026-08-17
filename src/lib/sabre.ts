@@ -189,18 +189,33 @@ export async function buscarOfertas(
   const fechaSalida = p.fechaSalida;
   const fechaRegreso = p.fechaRegreso;
 
+  function addDaysISO(date: string, days: number): string {
+    const d = new Date(date + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function daysBetween(a: string, b: string): number {
+    const inicio = new Date(a + "T00:00:00Z").getTime();
+    const fin = new Date(b + "T00:00:00Z").getTime();
+    return Math.max(1, Math.round((fin - inicio) / 86_400_000));
+  }
+
+  const rangoSalidaInicio = addDaysISO(fechaSalida, -3);
+  const rangoSalidaFin = addDaysISO(fechaSalida, 3);
+
   const body: Record<string, unknown> = {
     departureLocation: {
       locationType: "Airport",
       locationCode: p.origen,
     },
     departureDateRange: {
-      fromDate: fechaSalida,
-      toDate: fechaSalida,
+      fromDate: rangoSalidaInicio,
+      toDate: fechaRegreso ? rangoSalidaFin : fechaSalida,
     },
     processingOptions: {
       publicContentPointOfSaleCountry: "US",
-      returnLowestNonStopFare: true,
+      returnLowestNonStopFare: false,
       returnFullOffers: true,
       returnMode: "Per Day",
     },
@@ -211,10 +226,13 @@ export async function buscarOfertas(
   };
 
   if (fechaRegreso) {
-    const inicio = new Date(fechaSalida);
-    const fin = new Date(fechaRegreso);
-    const diff = Math.max(1, Math.round((fin.getTime() - inicio.getTime()) / 86400000));
-    body.lengthsOfStay = [diff];
+    const diff = daysBetween(fechaSalida, fechaRegreso);
+    const los: number[] = [];
+    for (let i = -2; i <= 2; i += 1) {
+      const v = diff + i;
+      if (v > 0) los.push(v);
+    }
+    body.lengthsOfStay = los;
   }
 
   const data = await sabreFetch<SabreFlightSearchResponse>("/v1/offers/flightSearch", {
@@ -278,7 +296,13 @@ export async function buscarOfertas(
     if (p.destino) {
       const dest = slices[0]?.destination.iata_code;
       if (dest && dest !== p.destino) continue;
-      if (slices.length > 1 && slices[1]?.destination.iata_code !== p.origen) continue;
+      const salida = slices[0]?.segments[0]?.departing_at?.slice(0, 10);
+      if (salida && salida !== fechaSalida) continue;
+      if (slices.length > 1) {
+        if (slices[1]?.destination.iata_code !== p.origen) continue;
+        const regreso = slices[1]?.segments[0]?.departing_at?.slice(0, 10);
+        if (regreso && regreso !== fechaRegreso) continue;
+      }
     }
 
     const pricePerAdult = Number(offer.totalPrice.amount);
