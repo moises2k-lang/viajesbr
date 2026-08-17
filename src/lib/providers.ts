@@ -16,6 +16,10 @@ import {
   buscarOfertas as buscarOfertasSabre,
   esSabreActivo,
 } from "@/lib/sabre";
+import {
+  sugerirLugaresSabre,
+  aeropuertosDelPaisSabre,
+} from "@/lib/sabre-lugares";
 
 export type {
   ParametrosBusqueda,
@@ -67,11 +71,17 @@ export async function crearOrden(args: {
 }
 
 export async function sugerirLugares(consulta: string): Promise<LugarSugerido[]> {
+  if (proveedorActivo() === "sabre") {
+    return sugerirLugaresSabre(consulta);
+  }
   return sugerirLugaresDuffel(consulta);
 }
 
 export async function aeropuertosDelPais(
   codigoPais: string,
 ): Promise<AeropuertoSugerido[]> {
+  if (proveedorActivo() === "sabre") {
+    return aeropuertosDelPaisSabre(codigoPais);
+  }
   return aeropuertosDelPaisDuffel(codigoPais);
 }

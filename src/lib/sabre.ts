@@ -56,12 +56,17 @@ async function sabreToken(): Promise<string> {
 
 export async function sabreFetch<T>(ruta: string, init: RequestInit): Promise<T> {
   const token = await sabreToken();
+  const baseHeaders: Record<string, string> = {
+    Accept: "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+  if (init.method && init.method !== "GET" && init.method !== "HEAD") {
+    baseHeaders["Content-Type"] = "application/json";
+  }
   const resp = await fetch(`${SABRE_URL}${ruta}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
+      ...baseHeaders,
       ...(init.headers || {}),
     },
     cache: "no-store",
