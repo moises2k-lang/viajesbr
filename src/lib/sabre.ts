@@ -241,6 +241,12 @@ export async function buscarOfertas(
     body: JSON.stringify(body),
   });
 
+  console.error("[Sabre flightShop] body:", JSON.stringify(body));
+  console.error("[Sabre flightShop] flights:", data.flights?.length ?? 0, "journeys:", data.journeys?.length ?? 0, "offers:", data.offers?.length ?? 0);
+  if (data.offers && data.offers.length > 0) {
+    console.error("[Sabre flightShop] first offer:", JSON.stringify(data.offers[0], null, 2).slice(0, 2000));
+  }
+
   const flights = new Map(data.flights?.map((f) => [f.id, f]) ?? []);
   const journeyMap = new Map(data.journeys?.map((j) => [j.id, j]) ?? []);
 
