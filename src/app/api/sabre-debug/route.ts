@@ -5,11 +5,12 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
-  const { mode = "flightShop", body } = (await request.json()) as {
+  const { mode = "flightShop", ruta: rutaParam, body } = (await request.json()) as {
     mode?: string;
+    ruta?: string;
     body?: unknown;
   };
-  const ruta = `/v1/offers/${mode}`;
+  const ruta = rutaParam ?? `/v1/offers/${mode}`;
   try {
     const data = await sabreFetch<unknown>(ruta, {
       method: "POST",
