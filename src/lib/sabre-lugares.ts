@@ -1,5 +1,6 @@
 import { sabreFetch } from "@/lib/sabre";
 import type { AeropuertoSugerido, LugarSugerido } from "@/lib/duffel";
+import { nombrePais } from "@/lib/paises";
 import rawAirports from "@/data/airports.json";
 
 interface SabreGeoDoc {
@@ -75,6 +76,15 @@ function aeropuertoEstaticoToSugerido(a: AeropuertoEstatico): LugarSugerido {
   };
 }
 
+const nombrePaisCache = new Map<string, string | null>();
+
+function paisNormalizado(codigo: string): string {
+  if (!nombrePaisCache.has(codigo)) {
+    nombrePaisCache.set(codigo, normalizar(nombrePais(codigo) ?? ""));
+  }
+  return nombrePaisCache.get(codigo)!;
+}
+
 function scoreCoincidencia(
   consulta: string,
   aeropuerto: AeropuertoEstatico,
@@ -83,13 +93,19 @@ function scoreCoincidencia(
   const iata = aeropuerto.iata.toLowerCase();
   const nombre = normalizar(aeropuerto.name);
   const ciudad = normalizar(aeropuerto.city);
+  const pais = paisNormalizado(aeropuerto.country);
+  const paisCodigo = aeropuerto.country.toLowerCase();
 
   if (iata === q) return 100;
+  if (iata.startsWith(q)) return 90;
   if (nombre.startsWith(q)) return 80;
   if (ciudad.startsWith(q)) return 70;
+  if (pais.startsWith(q)) return 65;
   if (nombre.includes(` ${q}`)) return 60;
+  if (paisCodigo === q) return 55;
   if (nombre.includes(q)) return 50;
-  if (ciudad.includes(q)) return 40;
+  if (ciudad.includes(q)) return 45;
+  if (pais.includes(q)) return 40;
   return 0;
 }
 
