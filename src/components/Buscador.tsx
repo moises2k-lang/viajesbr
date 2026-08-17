@@ -465,7 +465,7 @@ export default function Buscador({
           </div>
         </div>
       ) : (
-        <div className="grid gap-3 lg:grid-cols-12">
+        <div className="grid items-end gap-2 lg:grid-cols-12">
           <div className="relative lg:col-span-3">
             <CampoAeropuerto
               descripcion={datos.origenNombre ?? null}
@@ -506,7 +506,7 @@ export default function Buscador({
             />
           </div>
 
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <RangoFechas
               conRegreso={redondo}
               desde={datos.fechaSalida}
@@ -517,23 +517,26 @@ export default function Buscador({
             />
           </div>
 
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <SelectorPasajeros
               onCambio={(p) => setDatos({ ...datos, ...p })}
               valor={pasajeros}
             />
           </div>
+
+          <div className="flex items-end lg:col-span-2">
+            <button
+              className="h-10 w-full rounded-lg bg-[#0B2545] px-4 text-sm font-semibold text-white transition hover:bg-[#14477E] disabled:opacity-60"
+              disabled={cargando || !completo}
+              type="submit"
+            >
+              {cargando ? t("search.searching") : t("search.searchFlights")}
+            </button>
+          </div>
         </div>
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button
-          className="w-full rounded-lg bg-[#0B2545] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#14477E] disabled:opacity-60 sm:w-auto"
-          disabled={cargando || !completo}
-          type="submit"
-        >
-          {cargando ? t("search.searching") : t("search.searchFlights")}
-        </button>
         <p className="text-xs text-[#5A6B80]">
           {falta ??
             `${datos.adultos + datos.menores.length + datos.bebes} ${

@@ -71,7 +71,7 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
 
   return (
     <form className="rounded-2xl bg-white p-4 shadow-lg shadow-[#0B2545]/10 sm:p-6" onSubmit={enviar}>
-      <div className="grid gap-3 lg:grid-cols-12">
+      <div className="grid items-end gap-2 lg:grid-cols-12">
         <div className="lg:col-span-4">
           <CampoCiudad
             descripcion={datos.destino || null}
@@ -87,7 +87,7 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
           />
         </div>
 
-        <div className="lg:col-span-4">
+        <div className="lg:col-span-3">
           <RangoFechas
             conRegreso
             desde={datos.entrada}
@@ -98,7 +98,7 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
           />
         </div>
 
-        <div className="lg:col-span-4">
+        <div className="lg:col-span-3">
           <SelectorPasajeros
             etiqueta={t("common.guests")}
             onCambio={(p) => setDatos({ ...datos, adultos: p.adultos, menores: p.menores })}
@@ -107,16 +107,18 @@ export default function BuscadorHoteles({ cargando, valoresIniciales, onBuscar }
           />
         </div>
 
+        <div className="flex items-end lg:col-span-2">
+          <button
+            className="h-10 w-full rounded-lg bg-[#0B2545] px-4 text-sm font-semibold text-white transition hover:bg-[#14477E] disabled:opacity-60"
+            disabled={cargando || falta !== null}
+            type="submit"
+          >
+            {cargando ? t("search.searchingHotels") : t("search.searchHotels")}
+          </button>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button
-          className="w-full rounded-lg bg-[#0B2545] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#14477E] disabled:opacity-60 sm:w-auto"
-          disabled={cargando || falta !== null}
-          type="submit"
-        >
-          {cargando ? t("search.searchingHotels") : t("search.searchHotels")}
-        </button>
         <p className="text-xs text-[#5A6B80]">
           {falta ??
             `${totalNoches} ${totalNoches === 1 ? t("common.night") : t("common.nights")} · ${datos.adultos} ${datos.adultos === 1 ? t("common.adult") : t("common.adults")}${datos.menores.length > 0 ? ` · ${datos.menores.length} ${datos.menores.length === 1 ? t("common.child") : t("common.children")}` : ""} · ${t("search.pricesInCurrency", { currency: datos.moneda })}`}
