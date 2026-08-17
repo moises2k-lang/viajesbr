@@ -6,6 +6,7 @@ import {
   esAmbientePruebaHoteles,
   type HotelLiteApi,
   type TarifaLiteApi,
+  type RespuestaTarifas,
 } from "@/lib/liteapi";
 import { calcularPrecio, reglasActivas } from "@/lib/markup";
 import { bandera, nombrePais } from "@/lib/paises";
@@ -98,18 +99,26 @@ export async function POST(request: Request) {
     );
   }
 
-  let respuesta;
+  const reglas = await reglasActivas();
+  let respuesta: RespuestaTarifas;
+  let ambiente: string;
   try {
-    respuesta = await buscarHoteles({
-      placeId: p.placeId,
-      entrada: p.entrada,
-      salida: p.salida,
-      adultos: p.adultos,
-      menores: p.menores,
-      moneda: p.moneda.toUpperCase(),
-      nacionalidad: p.nacionalidad.toUpperCase(),
-      limite: MAXIMO_HOTELES,
-    });
+    if (p.placeId.startsWith("static|") || !process.env.LITEAPI_API_KEY) {
+      respuesta = { data: [], hotels: [] };
+      ambiente = "sandbox";
+    } else {
+      respuesta = await buscarHoteles({
+        placeId: p.placeId,
+        entrada: p.entrada,
+        salida: p.salida,
+        adultos: p.adultos,
+        menores: p.menores,
+        moneda: p.moneda.toUpperCase(),
+        nacionalidad: p.nacionalidad.toUpperCase(),
+        limite: MAXIMO_HOTELES,
+      });
+      ambiente = esAmbientePruebaHoteles() ? "sandbox" : "live";
+    }
   } catch (error) {
     const mensaje = (error as Error).message;
     if (/no availability found/i.test(mensaje) || /código 2001/i.test(mensaje)) {
@@ -126,7 +135,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: mensaje }, { status: 502 });
   }
 
-  const reglas = await reglasActivas();
   const porId = new Map<string, HotelLiteApi>();
   for (const hotel of respuesta.hotels ?? []) porId.set(hotel.id, hotel);
 
@@ -203,7 +211,6 @@ export async function POST(request: Request) {
   }
 
   hoteles.sort((a, b) => a.desde - b.desde);
-  const ambiente = esAmbientePruebaHoteles() ? "sandbox" : "live";
 
   if (hoteles.length === 0 && ambiente === "sandbox") {
     const paisHotel = p.pais?.toUpperCase() ?? "MX";

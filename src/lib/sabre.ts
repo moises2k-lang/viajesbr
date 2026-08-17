@@ -6,6 +6,7 @@ import type {
   SegmentoOferta,
   SolicitudOfertas,
 } from "@/lib/duffel";
+import { nombreAerolinea, logoAerolinea } from "@/lib/aerolineas";
 
 const SABRE_URL = "https://api.cert.platform.sabre.com";
 
@@ -297,7 +298,8 @@ function duracionIso(min: number): string {
 }
 
 function carrier(code: string) {
-  return { iata_code: code, name: code };
+  const iata = code?.toUpperCase();
+  return { iata_code: iata, name: nombreAerolinea(iata) };
 }
 
 function lugar(code: string, city?: string, country?: string) {
@@ -635,7 +637,7 @@ function buildOffer(
     base_amount: base,
     tax_amount: monedaDos(totalFare.totalTaxAmount),
     expires_at: new Date(Date.now() + (offerMeta.timeToLive ?? 1200) * 1000).toISOString(),
-    owner: { iata_code: ownerCode, name: ownerCode },
+    owner: { iata_code: ownerCode, name: nombreAerolinea(ownerCode), logo_symbol_url: logoAerolinea(ownerCode) },
     slices: slices as RebanadaOferta[],
     passengers: passengerList,
   };

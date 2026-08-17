@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { sugerirCiudades } from "@/lib/liteapi";
+import { sugerirCiudades, type LugarLiteApi } from "@/lib/liteapi";
+import { sugerirCiudadesEstaticas } from "@/lib/ciudades";
 import { bandera, codigoPais } from "@/lib/paises";
 
 export const runtime = "nodejs";
@@ -30,11 +31,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ opciones: [] });
   }
 
-  let lugares;
+  let lugares: LugarLiteApi[];
   try {
     lugares = await sugerirCiudades(consulta);
-  } catch (error) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 502 });
+  } catch {
+    lugares = [];
   }
 
   const opciones: OpcionCiudad[] = [];
@@ -54,5 +55,9 @@ export async function GET(request: Request) {
     });
   }
 
-  return NextResponse.json({ opciones: opciones.slice(0, 8) });
+  if (opciones.length === 0) {
+    opciones.push(...sugerirCiudadesEstaticas(consulta));
+  }
+
+  return NextResponse.json({ opciones: opciones.slice(0, 12) });
 }
