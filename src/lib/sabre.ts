@@ -228,11 +228,7 @@ export async function buscarOfertas(
     journeys,
     travelers,
     processingOptions: {
-      limitNumberOfOffers: 50,
-    },
-    sources: {
-      providers: ["Sabre"],
-      distributionModels: ["ATPCO"],
+      limitNumberOfOffers: 5,
     },
   };
 
