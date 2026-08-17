@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import SelectorTelefono from "@/components/SelectorTelefono";
 import SiteHeader from "@/components/SiteHeader";
+import HeroTabs from "@/components/HeroTabs";
 import CampoAeropuerto from "@/components/CampoAeropuerto";
 import FechaNacimiento from "@/components/FechaNacimiento";
 import RangoFechas from "@/components/RangoFechas";
@@ -360,17 +361,16 @@ export default function CorporativoWizard() {
     <div className="flex min-h-screen flex-col bg-[#F5F7FA]">
       <SiteHeader />
 
-      <section className="bg-[#0B2545] pb-16 pt-6 text-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="max-w-3xl">
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium uppercase tracking-wide">
-              <Building2 className="h-3.5 w-3.5" /> {t("corporate.badge")}
-            </div>
-            <h1 className="text-2xl font-semibold sm:text-3xl">{t("corporate.title")}</h1>
-            <p className="mt-2 text-sm text-white/70">{t("corporate.subtitle")}</p>
-          </div>
+      <HeroTabs
+        active="corporativo"
+        className="pb-16 pt-6"
+        subtitle={t("corporate.subtitle")}
+        title={t("corporate.title")}
+      >
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium uppercase tracking-wide">
+          <Building2 className="h-3.5 w-3.5" /> {t("corporate.badge")}
         </div>
-      </section>
+      </HeroTabs>
 
       <main className="mx-auto -mt-10 w-full max-w-7xl flex-1 px-4 pb-16 sm:px-6">
         <div className="rounded-2xl bg-white p-4 shadow-lg shadow-[#0B2545]/10 sm:p-6">

@@ -39,7 +39,11 @@ import { useMoneda } from "@/components/MonedaContext";
 import SiteHeader from "@/components/SiteHeader";
 import { useI18n } from "@/lib/i18n";
 import { separarBandera } from "@/lib/paises";
-import { TicketsPlane, Building2, Briefcase, Users, Map } from "lucide-react";
+import {
+  TicketsPlane,
+  Building2,
+} from "lucide-react";
+import HeroTabs, { type HeroTab } from "@/components/HeroTabs";
 import {
   borrarHistorial,
   guardarBusqueda,
@@ -90,10 +94,38 @@ type Paquete =
   | { paso: 2; vuelo: OfertaConPrecio }
   | { paso: 3; vuelo: OfertaConPrecio; hotel: HotelConPrecio; habitacion: HabitacionConPrecio };
 
-export default function Portada({ modoInterno }: { modoInterno: boolean }) {
+export default function Portada({
+  modoInterno,
+  pestanaInicial,
+}: {
+  modoInterno: boolean;
+  pestanaInicial?: string;
+}) {
   const { t } = useI18n();
   const { moneda, setMoneda } = useMoneda();
-  const [pestana, setPestana] = useState<"vuelos" | "hoteles" | "paquetes">("vuelos");
+  const [pestana, setPestana] = useState<HeroTab>("vuelos");
+
+  useEffect(() => {
+    if (
+      pestanaInicial === "vuelos" ||
+      pestanaInicial === "hoteles" ||
+      pestanaInicial === "paquetes" ||
+      pestanaInicial === "corporativo"
+    ) {
+      setPestana(pestanaInicial);
+    }
+  }, [pestanaInicial]);
+
+  const handleTab = (tab: HeroTab) => {
+    setError(null);
+    if (tab === "corporativo") {
+      window.location.href = "/corporativo";
+      return;
+    }
+    setPestana(tab);
+    window.history.replaceState({}, "", `/?tab=${tab}`);
+  };
+
   const [estado, setEstado] = useState<Estado>({ fase: "inicio" });
   const [estadoHoteles, setEstadoHoteles] = useState<EstadoHoteles>({
     fase: "inicio",
@@ -490,71 +522,19 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
     <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#F5F7FA]">
       <SiteHeader />
 
-      <section className="bg-[#0B2545] pb-16 pt-2 text-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div>
-            <h1 className="text-2xl font-semibold sm:text-3xl">
-              {t("home.title")}
-            </h1>
-            <p className="mt-1 text-sm text-white/70">
-              {pestana === "vuelos"
-                ? t("home.subtitleFlights")
-                : pestana === "hoteles"
-                  ? t("home.subtitleHotels")
-                  : t("home.subtitlePackages")}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {(["vuelos", "hoteles", "paquetes"] as const).map((opcion) => (
-                <button
-                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium ${
-                    pestana === opcion
-                      ? "bg-white text-[#0B2545]"
-                      : "bg-white/15 text-white"
-                  }`}
-                  key={opcion}
-                  onClick={() => {
-                    setError(null);
-                    setPestana(opcion);
-                  }}
-                  type="button"
-                >
-                  {opcion === "vuelos" ? (
-                    <>
-                      <TicketsPlane className="h-4 w-4" /> {t("common.flights")}
-                    </>
-                  ) : opcion === "hoteles" ? (
-                    <>
-                      <Building2 className="h-4 w-4" /> {t("common.hotels")}
-                    </>
-                  ) : (
-                    <>
-                      <Briefcase className="h-4 w-4" /> {t("common.packages")}
-                    </>
-                  )}
-                </button>
-              ))}
-              <Link
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/25"
-                href="/corporativo"
-                prefetch={false}
-              >
-                <Users className="h-4 w-4" /> {t("common.corporate")}
-              </Link>
-            </div>
-            {pestana === "paquetes" && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Link
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/20"
-                  href="/experiencias"
-                  prefetch={false}
-                >
-                  <Map className="h-4 w-4" /> {t("experiences.title")}
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+      <HeroTabs
+        active={pestana}
+        className="pb-16 pt-2"
+        onTab={handleTab}
+        subtitle={
+          pestana === "vuelos"
+            ? t("home.subtitleFlights")
+            : pestana === "hoteles"
+              ? t("home.subtitleHotels")
+              : t("home.subtitlePackages")
+        }
+        title={t("home.title")}
+      />
 
       <main className="mx-auto -mt-10 w-full max-w-7xl flex-1 px-4 pb-16 sm:px-6">
         {pestana === "hoteles" && (

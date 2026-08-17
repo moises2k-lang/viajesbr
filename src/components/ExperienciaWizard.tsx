@@ -26,6 +26,7 @@ import ListaHoteles from "@/components/ListaHoteles";
 import FormularioReserva from "@/components/FormularioReserva";
 import ResumenVuelo from "@/components/ResumenVuelo";
 import SiteHeader from "@/components/SiteHeader";
+import HeroTabs from "@/components/HeroTabs";
 import Precio from "@/components/Precio";
 import { useI18n } from "@/lib/i18n";
 import type { OfertaConPrecio } from "@/app/api/buscar/route";
@@ -467,6 +468,7 @@ export default function ExperienciaWizard({ paquete }: Props) {
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
       <SiteHeader />
+      <HeroTabs active="paquetes" className="pb-4 pt-2" paquetesSublink />
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="mb-4">
           <Link

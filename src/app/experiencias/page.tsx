@@ -23,6 +23,7 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { actividadesDetalle, fechasRecomendadas, type PaqueteTematico } from "@/lib/experiencias-helpers";
 import SiteHeader from "@/components/SiteHeader";
+import HeroTabs from "@/components/HeroTabs";
 
 interface Categoria {
   id: string;
@@ -94,13 +95,15 @@ export default function ExperienciasPage() {
     <div className="min-h-screen bg-[#F5F7FA]">
       <SiteHeader />
 
+      <HeroTabs
+        active="paquetes"
+        className="pb-6 pt-4"
+        paquetesSublink
+        subtitle={t("experiences.subtitle")}
+        title={t("experiences.title")}
+      />
+
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-[#0B2545]">
-            {t("experiences.title")}
-          </h1>
-          <p className="mt-2 text-[#5A6B80]">{t("experiences.subtitle")}</p>
-        </div>
 
         <div className="mb-6 flex flex-wrap items-center gap-2">
           <button
