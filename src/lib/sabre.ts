@@ -46,10 +46,7 @@ async function sabreToken(): Promise<string> {
   if (!resp.ok) {
     throw new Error(`Sabre auth ${resp.status}: ${text.slice(0, 500)}`);
   }
-  const data = JSON.parse(text) as {
-    access_token: string;
-    expires_in: number;
-  };
+  const data = JSON.parse(text) as { access_token: string; expires_in: number };
   tokenCache = {
     token: data.access_token,
     expires: Date.now() + data.expires_in * 1000,
@@ -81,294 +78,637 @@ export async function sabreFetch<T>(ruta: string, init: RequestInit): Promise<T>
   }
 }
 
-interface SabreFlight {
-  id: string;
-  departureAirportCode: string;
-  departureDate: string;
-  departureTime: string;
-  arrivalAirportCode: string;
-  arrivalDate: string;
-  arrivalTime: string;
-  operatingAirlineCode: string;
-  operatingFlightNumber: number | string;
-  marketingAirlineCode: string;
-  marketingFlightNumber: number | string;
-  disclosureAirlineCode?: string;
-  aircraftTypeCode: string;
-  durationInMinutes: number;
-}
+// ---------------------------------------------------------------------------
+// BFM v5 types
+// ---------------------------------------------------------------------------
 
-interface SabreJourney {
-  id: string;
-  requestedJourneyIndex: number;
-  flightRefs: string[];
-}
-
-interface SabreFareComponent {
-  amount: string;
-  currencyCode: string;
-  publishedAmount: string;
-  publishedCurrencyCode: string;
-  fareBasisCode: string;
-  segmentDetails: {
-    flightRef: string;
-    bookingClassCode: string;
-    cabinName: string;
-  }[];
-}
-
-interface SabreFare {
-  travelers: { passengerTypeCode: string }[];
-  fareTotal: {
-    equivalentFare: string;
-    taxAmount: string;
-    amount: string;
-    currencyCode: string;
+interface BFMRequest {
+  OTA_AirLowFareSearchRQ: {
+    Version: string;
+    ResponseVersion?: string;
+    Target?: string;
+    TruncateMessages?: boolean;
+    POS: {
+      Source: Array<{
+        PseudoCityCode: string;
+        RequestorID: {
+          Type: string;
+          ID: string;
+          CompanyName: { Code: string };
+        };
+      }>;
+    };
+    OriginDestinationInformation: Array<{
+      RPH: string;
+      DepartureDateTime: string;
+      OriginLocation: { LocationCode: string };
+      DestinationLocation: { LocationCode: string };
+      TPA_Extensions?: { SegmentType: { Code: string } };
+    }>;
+    TravelPreferences?: {
+      CabinPref?: { Cabin: string; PreferLevel: string }[];
+      TPA_Extensions?: {
+        DataSources?: { NDC: string; ATPCO: string; LCC: string };
+      };
+    };
+    TravelerInfoSummary: {
+      SeatsRequested?: number[];
+      AirTravelerAvail: Array<{
+        PassengerTypeQuantity: Array<{ Code: string; Quantity: number }>;
+      }>;
+      PriceRequestInformation?: {
+        TPA_Extensions?: {
+          BrandedFareIndicators?: { MultipleBrandedFares: boolean };
+        };
+      };
+    };
+    TPA_Extensions?: {
+      IntelliSellTransaction: {
+        RequestType: { Name: string };
+      };
+    };
   };
-  validatingAirlineCode: string;
-  fareComponents: SabreFareComponent[];
 }
 
-interface SabreOffer {
-  type: "FlightOffer";
-  id: string;
-  createdAt: string;
-  validUntil: string;
-  source: { provider: string; distributionModel: string };
-  totalPrice: { amount: string; currencyCode: string };
-  items: {
-    type: "FlightOfferItem";
-    fares: SabreFare[];
-    isPartial: boolean;
-    id: string;
-    isMandatory: boolean;
-  }[];
-  paymentTimeLimit?: string;
-  journeyRefs: string[];
+interface ScheduleDesc {
+  id: number;
+  departure: {
+    airport: string;
+    city: string;
+    country: string;
+    time: string;
+    terminal?: string;
+    dateAdjustment?: number;
+  };
+  arrival: {
+    airport: string;
+    city: string;
+    country: string;
+    time: string;
+    terminal?: string;
+    dateAdjustment?: number;
+  };
+  carrier: {
+    marketing: string;
+    marketingFlightNumber: number | string;
+    operating: string;
+    operatingFlightNumber: number | string;
+    equipment?: { code?: string };
+  };
+  elapsedTime: number;
 }
 
-interface SabreFlightShopResponse {
-  timestamp: string;
-  flights?: SabreFlight[];
-  journeys?: SabreJourney[];
-  offers?: SabreOffer[];
+interface LegDesc {
+  id: number;
+  elapsedTime: number;
+  schedules: Array<{ ref: number }>;
 }
 
-function isoDateTime(date: string, time: string): string {
-  return `${date}T${time}:00`;
+interface PricingInfo {
+  pricingSubsource: string;
+  distributionModel: string;
+  offer?: { offerId: string; timeToLive: number; source: string };
+  fare?: Fare;
+  soldOut?: unknown;
 }
 
-function carrier(code: string) {
-  return { iata_code: code, name: code };
+interface Fare {
+  offerItemId: string;
+  serviceId: string;
+  validatingCarrierCode: string;
+  governingCarriers?: string;
+  passengerInfoList: Array<{ passengerInfo: PassengerInfo }>;
+  totalFare: {
+    totalPrice: number;
+    totalTaxAmount: number;
+    currency: string;
+    baseFareAmount: number;
+    baseFareCurrency: string;
+  };
 }
 
-function lugar(code: string): {
-  iata_code: string;
-  name: string;
-  city_name?: string;
-  iata_country_code?: string;
-} {
-  return { iata_code: code, name: code };
+interface PassengerInfo {
+  passengerType: string;
+  passengerNumber: number;
+  nonRefundable: boolean;
+  fareComponents: Array<{
+    ref: number;
+    beginAirport: string;
+    endAirport: string;
+    brand?: { brandName?: string; code?: string };
+    segments: Array<{ segment: { bookingCode?: string; cabinCode?: string; mealCode?: string; seatsAvailable?: number; availabilityBreak?: boolean; fareBreakPoint?: boolean } }>;
+  }>;
+  baggageInformation?: Array<{
+    provisionType: string;
+    airlineCode: string;
+    segments: Array<{ id: number }>;
+    allowance: { ref: number };
+  }>;
+  passengerTotalFare: {
+    totalFare: number;
+    totalTaxAmount: number;
+    currency: string;
+    baseFareAmount: number;
+    baseFareCurrency: string;
+  };
 }
 
-function n(s: number | string): string {
-  return String(s);
+interface Itinerary {
+  id: number;
+  pricingSource: string;
+  legs: Array<{ ref: number }>;
+  pricingInformation: PricingInfo[];
 }
 
-function duracionIso(min: number): string {
-  return `PT${min}M`;
+interface ItineraryGroup {
+  groupDescription: {
+    legDescriptions: Array<{
+      departureDate: string;
+      departureLocation: string;
+      arrivalLocation: string;
+    }>;
+  };
+  itineraries: Itinerary[];
 }
 
-function codigoPasajero(edad?: number): string {
+interface SabreBFMResponse {
+  groupedItineraryResponse: {
+    version: string;
+    messages?: Array<{ severity: string; type: string; code: string; text: string }>;
+    statistics?: { itineraryCount: number };
+    scheduleDescs: ScheduleDesc[];
+    legDescs: LegDesc[];
+    baggageAllowanceDescs?: Array<{ id: number; pieceCount?: number }>;
+    itineraryGroups: ItineraryGroup[];
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function pcc(): string {
+  const explicit = process.env.SABRE_PCC?.trim();
+  if (explicit) return explicit;
+  const epr = process.env.SABRE_EPR ?? "";
+  const parts = epr.split(":");
+  if (parts.length >= 3) return parts[2];
+  // Fallback para el entorno cert de Sabre. En producción usar SABRE_PCC.
+  return "7KFA";
+}
+
+function pasajeroSabre(edad?: number): string {
   if (edad === undefined) return "ADT";
   if (edad < 2) return "INF";
   if (edad <= 11) return `C${String(edad).padStart(2, "0")}`;
   return "ADT";
 }
 
-export async function buscarOfertas(
-  p: ParametrosBusqueda,
-): Promise<SolicitudOfertas> {
+function codigoCabina(cabina?: string | null): string | undefined {
+  const map: Record<string, string> = {
+    economy: "Y",
+    premium_economy: "S",
+    business: "C",
+    first: "F",
+  };
+  return cabina ? map[cabina] : undefined;
+}
+
+function nombreCabina(code?: string): string {
+  const map: Record<string, string> = {
+    Y: "Economy",
+    S: "Premium Economy",
+    W: "Premium Economy",
+    C: "Business",
+    J: "Premium Business",
+    F: "First",
+    P: "Premium First",
+  };
+  return (code ? map[code] : undefined) ?? "Economy";
+}
+
+function duracionIso(min: number): string {
+  return `PT${min}M`;
+}
+
+function carrier(code: string) {
+  return { iata_code: code, name: code };
+}
+
+function lugar(code: string, city?: string, country?: string) {
+  return {
+    iata_code: code,
+    name: code,
+    city_name: city ?? undefined,
+    iata_country_code: country ?? undefined,
+  };
+}
+
+function n(s: number | string | undefined): string {
+  return s === undefined ? "" : String(s);
+}
+
+const OFFSET_RE = /([+-])(\d{2}):(\d{2})$/;
+
+function parseOffsetMinutes(time: string): number | null {
+  const m = time.match(OFFSET_RE);
+  if (!m) return null;
+  const sign = m[1] === "+" ? 1 : -1;
+  const h = Number(m[2]);
+  const min = Number(m[3]);
+  return sign * (h * 60 + min);
+}
+
+function stripOffset(time: string): string {
+  return time.replace(OFFSET_RE, "");
+}
+
+function timeWithOffset(time: string, base: Date): string {
+  const offsetMin = parseOffsetMinutes(time);
+  if (offsetMin === null) return time;
+  const localMs = base.getTime() + offsetMin * 60_000;
+  const local = new Date(localMs);
+  const pad = (v: number) => String(v).padStart(2, "0");
+  const yyyy = local.getUTCFullYear();
+  const mm = pad(local.getUTCMonth() + 1);
+  const dd = pad(local.getUTCDate());
+  const hh = pad(local.getUTCHours());
+  const mi = pad(local.getUTCMinutes());
+  const ss = pad(local.getUTCSeconds());
+  const sign = offsetMin >= 0 ? "+" : "-";
+  const abs = Math.abs(offsetMin);
+  const oh = pad(Math.floor(abs / 60));
+  const om = pad(abs % 60);
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}${sign}${oh}:${om}`;
+}
+
+function toUtc(date: string, timeWithOff: string): number {
+  const t = stripOffset(timeWithOff);
+  const offset = parseOffsetMinutes(timeWithOff) ?? 0;
+  const d = new Date(`${date}T${t}Z`);
+  return d.getTime() - offset * 60_000;
+}
+
+function dateFromUtc(utc: number, timeWithOff: string): string {
+  const offset = parseOffsetMinutes(timeWithOff) ?? 0;
+  const localMs = utc + offset * 60_000;
+  const d = new Date(localMs);
+  const pad = (v: number) => String(v).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
+function monedaDos(num: number): string {
+  return Number(num).toFixed(2);
+}
+
+// ---------------------------------------------------------------------------
+// Request builder
+// ---------------------------------------------------------------------------
+
+export async function buscarOfertas(p: ParametrosBusqueda): Promise<SolicitudOfertas> {
   if (!esSabreActivo()) {
     throw new Error("Faltan SABRE_EPR y SABRE_PASSWORD");
   }
 
-  const journeys =
+  const pseudoCityCode = pcc();
+
+  const odis =
     p.tramos && p.tramos.length > 1
-      ? p.tramos.map((t) => ({
-          departureLocation: { airportCode: t.origen },
-          arrivalLocation: { airportCode: t.destino },
-          departureDate: t.fecha,
+      ? p.tramos.map((t, i) => ({
+          RPH: String(i + 1),
+          DepartureDateTime: `${t.fecha}T00:00:00`,
+          OriginLocation: { LocationCode: t.origen.toUpperCase() },
+          DestinationLocation: { LocationCode: t.destino.toUpperCase() },
+          TPA_Extensions: { SegmentType: { Code: "O" } },
         }))
       : [
           {
-            departureLocation: { airportCode: p.origen },
-            arrivalLocation: { airportCode: p.destino },
-            departureDate: p.fechaSalida,
+            RPH: "1",
+            DepartureDateTime: `${p.fechaSalida}T00:00:00`,
+            OriginLocation: { LocationCode: p.origen.toUpperCase() },
+            DestinationLocation: { LocationCode: p.destino.toUpperCase() },
+            TPA_Extensions: { SegmentType: { Code: "O" } },
           },
           ...(p.fechaRegreso
             ? [
                 {
-                  departureLocation: { airportCode: p.destino },
-                  arrivalLocation: { airportCode: p.origen },
-                  departureDate: p.fechaRegreso,
+                  RPH: "2",
+                  DepartureDateTime: `${p.fechaRegreso}T00:00:00`,
+                  OriginLocation: { LocationCode: p.destino.toUpperCase() },
+                  DestinationLocation: { LocationCode: p.origen.toUpperCase() },
+                  TPA_Extensions: { SegmentType: { Code: "O" } },
                 },
               ]
             : []),
         ];
 
-  const travelers: { passengerTypeCode: string }[] = [];
-  for (let i = 0; i < p.adultos; i++) {
-    travelers.push({ passengerTypeCode: "ADT" });
-  }
+  const ptc: Record<string, number> = { ADT: p.adultos };
   for (const edad of p.menores) {
-    travelers.push({ passengerTypeCode: codigoPasajero(edad) });
+    const code = pasajeroSabre(edad);
+    ptc[code] = (ptc[code] ?? 0) + 1;
   }
   for (let i = 0; i < p.bebes; i++) {
-    travelers.push({ passengerTypeCode: "INF" });
+    ptc["INF"] = (ptc["INF"] ?? 0) + 1;
   }
 
-  const body: Record<string, unknown> = {
-    journeys,
-    travelers,
-    processingOptions: {
-      limitNumberOfOffers: 5,
+  const passengerTypeQuantity = Object.entries(ptc).map(([Code, Quantity]) => ({
+    Code,
+    Quantity,
+  }));
+
+  const seatsRequested = [p.adultos + p.menores.length];
+
+  const body: BFMRequest = {
+    OTA_AirLowFareSearchRQ: {
+      Version: process.env.SABRE_BFM_VERSION ?? "DEV",
+      ResponseVersion: process.env.SABRE_BFM_VERSION ?? "DEV",
+      Target: "Production",
+      TruncateMessages: false,
+      POS: {
+        Source: [
+          {
+            PseudoCityCode: pseudoCityCode,
+            RequestorID: {
+              Type: "1",
+              ID: "1",
+              CompanyName: { Code: "TN" },
+            },
+          },
+        ],
+      },
+      OriginDestinationInformation: odis,
+      TravelPreferences: {
+        ...(p.cabina
+          ? {
+              CabinPref: [
+                { Cabin: codigoCabina(p.cabina)!, PreferLevel: "Only" },
+              ],
+            }
+          : {}),
+        TPA_Extensions: {
+          DataSources: { NDC: "Disable", ATPCO: "Enable", LCC: "Enable" },
+        },
+      },
+      TravelerInfoSummary: {
+        SeatsRequested: seatsRequested,
+        AirTravelerAvail: [{ PassengerTypeQuantity: passengerTypeQuantity }],
+        PriceRequestInformation: {
+          TPA_Extensions: {
+            BrandedFareIndicators: { MultipleBrandedFares: true },
+          },
+        },
+      },
+      TPA_Extensions: {
+        IntelliSellTransaction: {
+          RequestType: { Name: "50ITINS" },
+        },
+      },
     },
   };
 
-  const data = await sabreFetch<SabreFlightShopResponse>("/v1/offers/flightShop", {
+  const data = await sabreFetch<SabreBFMResponse>("/v5/offers/shop", {
     method: "POST",
     body: JSON.stringify(body),
   });
 
-  console.error("[Sabre flightShop] body:", JSON.stringify(body));
-  console.error("[Sabre flightShop] raw keys:", Object.keys(data).join(","));
-  console.error("[Sabre flightShop] raw:", JSON.stringify(data).slice(0, 3000));
-  console.error("[Sabre flightShop] flights:", data.flights?.length ?? 0, "journeys:", data.journeys?.length ?? 0, "offers:", data.offers?.length ?? 0);
-  if (data.offers && data.offers.length > 0) {
-    console.error("[Sabre flightShop] first offer:", JSON.stringify(data.offers[0], null, 2).slice(0, 2000));
-  }
+  console.error(
+    "[Sabre BFM] body:",
+    JSON.stringify(body),
+    "groups:",
+    data.groupedItineraryResponse.itineraryGroups?.length ?? 0,
+    "itineraries:",
+    data.groupedItineraryResponse.statistics?.itineraryCount ?? 0,
+  );
 
-  const flights = new Map(data.flights?.map((f) => [f.id, f]) ?? []);
-  const journeyMap = new Map(data.journeys?.map((j) => [j.id, j]) ?? []);
+  return mapBFMResponse(p, data);
+}
+
+// ---------------------------------------------------------------------------
+// Response mapper
+// ---------------------------------------------------------------------------
+
+function mapBFMResponse(p: ParametrosBusqueda, data: SabreBFMResponse): SolicitudOfertas {
+  const resp = data.groupedItineraryResponse;
+  const scheduleById = new Map(resp.scheduleDescs.map((s) => [s.id, s]));
+  const legById = new Map(resp.legDescs.map((l) => [l.id, l]));
+  const baggageById = new Map((resp.baggageAllowanceDescs ?? []).map((b) => [b.id, b]));
 
   const offers: Oferta[] = [];
 
-  for (const offer of data.offers ?? []) {
-    const slices = offer.journeyRefs.map((journeyRef) => {
-      const journey = journeyMap.get(journeyRef);
-      if (!journey) throw new Error(`Journey ${journeyRef} no encontrado`);
-
-      const segments: SegmentoOferta[] = journey.flightRefs.map((flightRef) => {
-        const flight = flights.get(flightRef);
-        if (!flight) throw new Error(`Flight ${flightRef} no encontrado`);
-
-        const cabin = cabinForFlight(offer, flightRef) ?? "Economy";
-
-        return {
-          id: flight.id,
-          origin: lugar(flight.departureAirportCode),
-          destination: lugar(flight.arrivalAirportCode),
-          departing_at: isoDateTime(flight.departureDate, flight.departureTime),
-          arriving_at: isoDateTime(flight.arrivalDate, flight.arrivalTime),
-          duration: duracionIso(flight.durationInMinutes),
-          marketing_carrier: carrier(flight.marketingAirlineCode),
-          marketing_carrier_flight_number: n(flight.marketingFlightNumber),
-          operating_carrier: carrier(flight.operatingAirlineCode),
-          aircraft: { name: flight.aircraftTypeCode },
-          passengers: [
-            {
-              passenger_id: "p1",
-              cabin_class_marketing_name: cabin,
-              baggages: [],
-            },
-          ],
-        };
-      });
-
-      const first = segments[0];
-      const last = segments[segments.length - 1];
-
-      return {
-        id: journey.id,
-        origin: first.origin,
-        destination: last.destination,
-        segments,
-        fare_brand_name: null,
-      };
-    });
-
-    if (p.destino) {
-      const dest = slices[0]?.destination.iata_code;
-      if (dest && dest !== p.destino) continue;
-      const salida = slices[0]?.segments[0]?.departing_at?.slice(0, 10);
-      if (salida && salida !== p.fechaSalida) continue;
-      if (slices.length > 1) {
-        if (slices[1]?.destination.iata_code !== p.origen) continue;
-        const regreso = slices[1]?.segments[0]?.departing_at?.slice(0, 10);
-        if (regreso && regreso !== p.fechaRegreso) continue;
+  for (const group of resp.itineraryGroups ?? []) {
+    const legDates = group.groupDescription.legDescriptions;
+    for (const itinerary of group.itineraries) {
+      for (const pricing of itinerary.pricingInformation) {
+        if (!pricing.fare || !pricing.offer) continue;
+        const offer = buildOffer(
+          p,
+          pricing,
+          itinerary,
+          legDates,
+          scheduleById,
+          legById,
+          baggageById,
+        );
+        if (offer) offers.push(offer);
       }
     }
-
-    let baseSum = 0;
-    let taxSum = 0;
-    for (const item of offer.items) {
-      for (const fare of item.fares) {
-        baseSum += Number(fare.fareTotal.equivalentFare);
-        taxSum += Number(fare.fareTotal.taxAmount);
-      }
-    }
-
-    const base = baseSum > 0 ? baseSum.toFixed(2) : null;
-    const tax = taxSum > 0 ? taxSum.toFixed(2) : null;
-
-    const passengerList: { id: string; type: "adult" | "child" | "infant_without_seat"; age?: number }[] = [];
-    let pid = 1;
-    for (let i = 0; i < p.adultos; i++) {
-      passengerList.push({ id: `p${pid++}`, type: "adult" });
-    }
-    for (const edad of p.menores) {
-      passengerList.push({ id: `p${pid++}`, type: "child", age: edad });
-    }
-    for (let i = 0; i < p.bebes; i++) {
-      passengerList.push({ id: `p${pid++}`, type: "infant_without_seat" });
-    }
-
-    const owner =
-      offer.items[0]?.fares[0]?.validatingAirlineCode ??
-      slices[0]?.segments[0]?.marketing_carrier.iata_code ??
-      "Sabre";
-
-    const oferta: Oferta = {
-      id: offer.id,
-      total_amount: offer.totalPrice.amount,
-      total_currency: offer.totalPrice.currencyCode,
-      base_amount: base,
-      tax_amount: tax,
-      expires_at: offer.validUntil ?? offer.paymentTimeLimit ?? new Date(Date.now() + 30 * 60_000).toISOString(),
-      owner: { iata_code: owner, name: owner },
-      slices: slices as RebanadaOferta[],
-      passengers: passengerList,
-    };
-
-    offers.push(oferta);
   }
 
+  return { id: randomUUID(), offers };
+}
+
+function buildOffer(
+  p: ParametrosBusqueda,
+  pricing: PricingInfo,
+  itinerary: Itinerary,
+  legDates: { departureDate: string; departureLocation: string; arrivalLocation: string }[],
+  scheduleById: Map<number, ScheduleDesc>,
+  legById: Map<number, LegDesc>,
+  baggageById: Map<number, { pieceCount?: number }>,
+): Oferta | null {
+  const fare = pricing.fare!;
+  const offerMeta = pricing.offer!;
+
+  const slices: RebanadaOferta[] = [];
+  for (let legIndex = 0; legIndex < itinerary.legs.length; legIndex++) {
+    const legRef = itinerary.legs[legIndex];
+    const legDesc = legById.get(legRef.ref);
+    if (!legDesc) return null;
+    const legDate = legDates[legIndex]?.departureDate;
+    if (!legDate) return null;
+
+    const segments: SegmentoOferta[] = [];
+    let previousArrivalUtc = -Infinity;
+
+    for (const scheduleRef of legDesc.schedules) {
+      const schedule = scheduleById.get(scheduleRef.ref);
+      if (!schedule) return null;
+
+      let departureUtc = toUtc(legDate, schedule.departure.time);
+      if (previousArrivalUtc !== -Infinity) {
+        const minConnection = 60 * 60 * 1000;
+        while (departureUtc <= previousArrivalUtc + minConnection) {
+          departureUtc += 24 * 60 * 60 * 1000;
+        }
+      }
+      const arrivalUtc = departureUtc + schedule.elapsedTime * 60_000;
+
+      const departingAt = timeWithOffset(schedule.departure.time, new Date(departureUtc));
+      const arrivingAt = timeWithOffset(schedule.arrival.time, new Date(arrivalUtc));
+
+      const cabinCode = cabinForSegment(fare, segments.length);
+      const brandName = brandForSegment(fare, segments.length);
+
+      segments.push({
+        id: `${schedule.id}-${legRef.ref}-${segments.length}`,
+        origin: lugar(
+          schedule.departure.airport,
+          schedule.departure.city,
+          schedule.departure.country,
+        ),
+        destination: lugar(
+          schedule.arrival.airport,
+          schedule.arrival.city,
+          schedule.arrival.country,
+        ),
+        departing_at: departingAt,
+        arriving_at: arrivingAt,
+        duration: duracionIso(schedule.elapsedTime),
+        marketing_carrier: carrier(schedule.carrier.marketing),
+        marketing_carrier_flight_number: n(schedule.carrier.marketingFlightNumber),
+        operating_carrier: carrier(schedule.carrier.operating),
+        aircraft: { name: schedule.carrier.equipment?.code ?? "" },
+        passengers: buildSegmentPassengers(p, fare, segments.length, baggageById),
+        // brand name as marketing name of the fare for this segment
+        ...(cabinCode ? { marketing_class: cabinCode } : {}),
+      } as SegmentoOferta);
+
+      previousArrivalUtc = arrivalUtc;
+    }
+
+    if (segments.length === 0) return null;
+
+    const first = segments[0];
+    const last = segments[segments.length - 1];
+
+    slices.push({
+      id: String(legDesc.id),
+      origin: first.origin,
+      destination: last.destination,
+      segments,
+      duration: duracionIso(legDesc.elapsedTime),
+      fare_brand_name: brandForSegment(fare, 0) ?? null,
+    });
+  }
+
+  if (p.destino) {
+    const dest = slices[0]?.destination.iata_code;
+    if (dest && dest !== p.destino.toUpperCase()) return null;
+    const salida = slices[0]?.segments[0]?.departing_at?.slice(0, 10);
+    if (salida && salida !== p.fechaSalida) return null;
+    if (slices.length > 1 && p.origen) {
+      if (slices[1]?.destination.iata_code !== p.origen.toUpperCase()) return null;
+      const regreso = slices[1]?.segments[0]?.departing_at?.slice(0, 10);
+      if (regreso && regreso !== p.fechaRegreso) return null;
+    }
+  }
+
+  const totalFare = fare.totalFare;
+  const base =
+    totalFare.baseFareCurrency === totalFare.currency
+      ? monedaDos(totalFare.baseFareAmount)
+      : monedaDos(totalFare.totalPrice - totalFare.totalTaxAmount);
+
+  const ownerCode = ownerCodeFromFare(fare, slices);
+
+  const passengerList: { id: string; type: "adult" | "child" | "infant_without_seat"; age?: number }[] = [];
+  let pid = 1;
+  for (let i = 0; i < p.adultos; i++) passengerList.push({ id: `p${pid++}`, type: "adult" });
+  for (const edad of p.menores) passengerList.push({ id: `p${pid++}`, type: "child", age: edad });
+  for (let i = 0; i < p.bebes; i++) passengerList.push({ id: `p${pid++}`, type: "infant_without_seat" });
+
   return {
-    id: randomUUID(),
-    offers,
+    id: offerMeta.offerId,
+    total_amount: monedaDos(totalFare.totalPrice),
+    total_currency: totalFare.currency,
+    base_amount: base,
+    tax_amount: monedaDos(totalFare.totalTaxAmount),
+    expires_at: new Date(Date.now() + (offerMeta.timeToLive ?? 1200) * 1000).toISOString(),
+    owner: { iata_code: ownerCode, name: ownerCode },
+    slices: slices as RebanadaOferta[],
+    passengers: passengerList,
   };
 }
 
-function cabinForFlight(offer: SabreOffer, flightRef: string): string | undefined {
-  for (const item of offer.items) {
-    for (const fare of item.fares) {
-      for (const comp of fare.fareComponents) {
-        for (const detail of comp.segmentDetails) {
-          if (detail.flightRef === flightRef) return detail.cabinName;
-        }
+function ownerCodeFromFare(fare: Fare, slices: RebanadaOferta[]): string {
+  if (fare.governingCarriers && /^[A-Z0-9]{2}([/\s]|$)/.test(fare.governingCarriers)) {
+    return fare.governingCarriers.trim().split(/[/\s]/)[0].slice(0, 2).toUpperCase();
+  }
+  return slices[0]?.segments[0]?.marketing_carrier.iata_code ?? "Sabre";
+}
+
+function flattenedSegmentCabinCodes(fare: Fare): string[] {
+  const result: string[] = [];
+  const firstPassenger = fare.passengerInfoList[0]?.passengerInfo;
+  if (!firstPassenger) return result;
+  for (const fc of firstPassenger.fareComponents ?? []) {
+    for (const seg of fc.segments ?? []) {
+      result.push(seg.segment.cabinCode ?? "Y");
+    }
+  }
+  return result;
+}
+
+function cabinForSegment(fare: Fare, segmentIndex: number): string {
+  const codes = flattenedSegmentCabinCodes(fare);
+  return nombreCabina(codes[segmentIndex] ?? codes[0]);
+}
+
+function brandForSegment(fare: Fare, segmentIndex: number): string | undefined {
+  const firstPassenger = fare.passengerInfoList[0]?.passengerInfo;
+  if (!firstPassenger) return undefined;
+  const brands: string[] = [];
+  for (const fc of firstPassenger.fareComponents ?? []) {
+    if (fc.brand?.brandName) {
+      for (let i = 0; i < (fc.segments?.length ?? 1); i++) brands.push(fc.brand.brandName);
+    } else {
+      for (let i = 0; i < (fc.segments?.length ?? 1); i++) brands.push("");
+    }
+  }
+  const name = brands[segmentIndex] ?? brands[0];
+  return name || undefined;
+}
+
+function buildSegmentPassengers(
+  p: ParametrosBusqueda,
+  fare: Fare,
+  segmentIndex: number,
+  baggageById: Map<number, { pieceCount?: number }>,
+): { passenger_id: string; cabin_class_marketing_name: string; baggages: { type: string; quantity: number }[] }[] {
+  const cabin = cabinForSegment(fare, segmentIndex);
+  const firstPassenger = fare.passengerInfoList[0]?.passengerInfo;
+  const baggages: { type: string; quantity: number }[] = [];
+
+  if (firstPassenger?.baggageInformation) {
+    const info = firstPassenger.baggageInformation.find((b) => b.segments.some((s) => s.id === segmentIndex));
+    if (info) {
+      const allowance = baggageById.get(info.allowance.ref);
+      if (allowance && typeof allowance.pieceCount === "number") {
+        baggages.push({ type: "checked", quantity: allowance.pieceCount });
       }
     }
   }
-  return undefined;
+
+  const passengers: { passenger_id: string; cabin_class_marketing_name: string; baggages: { type: string; quantity: number }[] }[] = [];
+  let pid = 1;
+  for (let i = 0; i < p.adultos; i++) {
+    passengers.push({ passenger_id: `p${pid++}`, cabin_class_marketing_name: cabin, baggages });
+  }
+  for (let i = 0; i < p.menores.length; i++) {
+    passengers.push({ passenger_id: `p${pid++}`, cabin_class_marketing_name: cabin, baggages });
+  }
+  for (let i = 0; i < p.bebes; i++) {
+    passengers.push({ passenger_id: `p${pid++}`, cabin_class_marketing_name: cabin, baggages });
+  }
+  return passengers;
 }
