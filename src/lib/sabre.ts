@@ -497,16 +497,12 @@ function mapBFMResponse(p: ParametrosBusqueda, data: SabreBFMResponse): Solicitu
   const baggageById = new Map((resp.baggageAllowanceDescs ?? []).map((b) => [b.id, b]));
 
   const offers: Oferta[] = [];
-  debugNullCount = 0;
-  for (const k of Object.keys(debugNullReasons)) delete debugNullReasons[k];
-  let considered = 0;
 
   for (const group of resp.itineraryGroups ?? []) {
     const legDates = group.groupDescription.legDescriptions;
     for (const itinerary of group.itineraries) {
       for (const pricing of itinerary.pricingInformation) {
         if (!pricing.fare || !pricing.offer) continue;
-        considered++;
         const offer = buildOffer(
           p,
           pricing,
@@ -521,18 +517,8 @@ function mapBFMResponse(p: ParametrosBusqueda, data: SabreBFMResponse): Solicitu
     }
   }
 
-  console.error(
-    "[Sabre map] considered:", considered,
-    "offers:", offers.length,
-    "nulls:", Object.values(debugNullReasons).reduce((a, b) => a + (b as number), 0),
-    "reasons:", JSON.stringify(debugNullReasons),
-  );
-
   return { id: randomUUID(), offers };
 }
-
-let debugNullCount = 0;
-const debugNullReasons: Record<string, number> = {};
 
 function buildOffer(
   p: ParametrosBusqueda,
@@ -550,16 +536,16 @@ function buildOffer(
   for (let legIndex = 0; legIndex < itinerary.legs.length; legIndex++) {
     const legRef = itinerary.legs[legIndex];
     const legDesc = legById.get(legRef.ref);
-    if (!legDesc) { debugNullReasons["no_legDesc"] = (debugNullReasons["no_legDesc"] ?? 0) + 1; return null; }
+    if (!legDesc) return null;
     const legDate = legDates[legIndex]?.departureDate;
-    if (!legDate) { debugNullReasons["no_legDate"] = (debugNullReasons["no_legDate"] ?? 0) + 1; return null; }
+    if (!legDate) return null;
 
     const segments: SegmentoOferta[] = [];
     let previousArrivalUtc = -Infinity;
 
     for (const scheduleRef of legDesc.schedules) {
       const schedule = scheduleById.get(scheduleRef.ref);
-      if (!schedule) { debugNullReasons["no_schedule"] = (debugNullReasons["no_schedule"] ?? 0) + 1; return null; }
+      if (!schedule) return null;
 
       let departureUtc = toUtc(legDate, schedule.departure.time);
       if (previousArrivalUtc !== -Infinity) {
@@ -601,7 +587,7 @@ function buildOffer(
       previousArrivalUtc = arrivalUtc;
     }
 
-    if (segments.length === 0) { debugNullReasons["empty_segments"] = (debugNullReasons["empty_segments"] ?? 0) + 1; return null; }
+    if (segments.length === 0) return null;
 
     const first = segments[0];
     const last = segments[segments.length - 1];
@@ -618,13 +604,13 @@ function buildOffer(
 
   if (p.destino) {
     const dest = slices[0]?.destination.iata_code;
-    if (dest && dest !== p.destino.toUpperCase()) { debugNullReasons["dest_mismatch"] = (debugNullReasons["dest_mismatch"] ?? 0) + 1; return null; }
+    if (dest && dest !== p.destino.toUpperCase()) return null;
     const salida = slices[0]?.segments[0]?.departing_at?.slice(0, 10);
-    if (salida && salida !== p.fechaSalida) { debugNullReasons["salida_mismatch"] = (debugNullReasons["salida_mismatch"] ?? 0) + 1; return null; }
+    if (salida && salida !== p.fechaSalida) return null;
     if (slices.length > 1 && p.origen) {
-      if (slices[1]?.destination.iata_code !== p.origen.toUpperCase()) { debugNullReasons["origen_mismatch"] = (debugNullReasons["origen_mismatch"] ?? 0) + 1; return null; }
+      if (slices[1]?.destination.iata_code !== p.origen.toUpperCase()) return null;
       const regreso = slices[1]?.segments[0]?.departing_at?.slice(0, 10);
-      if (regreso && regreso !== p.fechaRegreso) { debugNullReasons["regreso_mismatch"] = (debugNullReasons["regreso_mismatch"] ?? 0) + 1; return null; }
+      if (regreso && regreso !== p.fechaRegreso) return null;
     }
   }
 
