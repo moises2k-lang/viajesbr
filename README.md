@@ -3,9 +3,9 @@
 Buscador y emisor de vuelos con markup propio, construido sobre la API de [Duffel](https://duffel.com)
 y Postgres autohospedado.
 
-- **Front y API**: Next.js (App Router) desplegado en Vercel — `viajes.sistemas-e.com`
+- **Front y API**: Next.js (App Router) para `viajesbr.sistemas-e.com`
 - **Base de datos**: Postgres 17 propio (`agencia_viajes`), no Supabase
-- **Proveedor de vuelos**: Duffel (sandbox y producción con el mismo código; el ambiente lo define el token)
+- **Proveedores de vuelos**: Duffel y preparación para Sabre Dev Studio (sandbox)
 
 ## Variables de entorno
 
