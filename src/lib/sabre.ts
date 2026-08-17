@@ -313,25 +313,32 @@ function n(s: number | string | undefined): string {
   return s === undefined ? "" : String(s);
 }
 
-const OFFSET_RE = /([+-])(\d{2}):(\d{2})$/;
-
-function parseOffsetMinutes(time: string): number | null {
-  const m = time.match(OFFSET_RE);
-  if (!m) return null;
-  const sign = m[1] === "+" ? 1 : -1;
-  const h = Number(m[2]);
-  const min = Number(m[3]);
-  return sign * (h * 60 + min);
+interface TimeParsed {
+  h: number;
+  m: number;
+  s: number;
+  offsetMin: number;
 }
 
-function stripOffset(time: string): string {
-  return time.replace(OFFSET_RE, "");
+function parseTime(time: string): TimeParsed {
+  const m = time.match(/^(\d{2}):(\d{2}):(\d{2})(?:(Z)|([+-])(\d{2}):(\d{2}))?$/);
+  if (!m) throw new Error(`Formato de hora inválido: ${time}`);
+  let offsetMin = 0;
+  if (m[5]) {
+    const sign = m[5] === "+" ? 1 : -1;
+    offsetMin = sign * (Number(m[6]) * 60 + Number(m[7]));
+  }
+  return {
+    h: Number(m[1]),
+    m: Number(m[2]),
+    s: Number(m[3]),
+    offsetMin,
+  };
 }
 
 function timeWithOffset(time: string, base: Date): string {
-  const offsetMin = parseOffsetMinutes(time);
-  if (offsetMin === null) return time;
-  const localMs = base.getTime() + offsetMin * 60_000;
+  const parsed = parseTime(time);
+  const localMs = base.getTime() + parsed.offsetMin * 60_000;
   const local = new Date(localMs);
   const pad = (v: number) => String(v).padStart(2, "0");
   const yyyy = local.getUTCFullYear();
@@ -340,26 +347,17 @@ function timeWithOffset(time: string, base: Date): string {
   const hh = pad(local.getUTCHours());
   const mi = pad(local.getUTCMinutes());
   const ss = pad(local.getUTCSeconds());
-  const sign = offsetMin >= 0 ? "+" : "-";
-  const abs = Math.abs(offsetMin);
+  const sign = parsed.offsetMin >= 0 ? "+" : "-";
+  const abs = Math.abs(parsed.offsetMin);
   const oh = pad(Math.floor(abs / 60));
   const om = pad(abs % 60);
   return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}${sign}${oh}:${om}`;
 }
 
-function toUtc(date: string, timeWithOff: string): number {
-  const t = stripOffset(timeWithOff);
-  const offset = parseOffsetMinutes(timeWithOff) ?? 0;
-  const d = new Date(`${date}T${t}Z`);
-  return d.getTime() - offset * 60_000;
-}
-
-function dateFromUtc(utc: number, timeWithOff: string): string {
-  const offset = parseOffsetMinutes(timeWithOff) ?? 0;
-  const localMs = utc + offset * 60_000;
-  const d = new Date(localMs);
-  const pad = (v: number) => String(v).padStart(2, "0");
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+function toUtc(date: string, time: string): number {
+  const parsed = parseTime(time);
+  const tno = `${String(parsed.h).padStart(2, "0")}:${String(parsed.m).padStart(2, "0")}:${String(parsed.s).padStart(2, "0")}`;
+  return new Date(`${date}T${tno}Z`).getTime() - parsed.offsetMin * 60_000;
 }
 
 function monedaDos(num: number): string {

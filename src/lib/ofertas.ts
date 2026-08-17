@@ -25,7 +25,7 @@ export function minutosEntre(desde: string, hasta: string): number {
 
 function localDesdeIso(iso: string, iata: string): Date {
   const offset = OFFSET_HORARIO[iata] ?? 0;
-  const utc = new Date(iso + "Z").getTime();
+  const utc = new Date(iso).getTime();
   return new Date(utc + offset * 3600000);
 }
 
