@@ -175,7 +175,12 @@ export async function POST(request: Request) {
     if (habitaciones.length === 0) continue;
     habitaciones.sort((a, b) => a.precioVenta - b.precioVenta);
     habitaciones.splice(MAXIMO_TARIFAS_POR_HOTEL);
-    const paisHotel = info?.country_code?.toUpperCase() ?? p.pais?.toUpperCase() ?? null;
+    const paisHotel =
+      info?.country_code?.toUpperCase() ?? p.pais?.toUpperCase() ?? null;
+
+    if (p.pais && info?.country_code && info.country_code.toUpperCase() !== p.pais.toUpperCase()) {
+      continue;
+    }
 
     hoteles.push({
       hotelId: fila.hotelId,

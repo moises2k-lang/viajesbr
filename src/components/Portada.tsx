@@ -34,15 +34,12 @@ import FormularioReservaHotel, {
   type ResultadoReservaHotel,
 } from "@/components/FormularioReservaHotel";
 import ResumenVuelo from "@/components/ResumenVuelo";
-import SelectorMoneda from "@/components/SelectorMoneda";
 import Precio from "@/components/Precio";
 import { useMoneda } from "@/components/MonedaContext";
-import { useAuth } from "@/components/AuthContext";
-import AuthModal from "@/components/AuthModal";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
+import SiteHeader from "@/components/SiteHeader";
 import { useI18n } from "@/lib/i18n";
 import { separarBandera } from "@/lib/paises";
-import { TicketsPlane, Building2, Briefcase, User, LogOut, Users, Map } from "lucide-react";
+import { TicketsPlane, Building2, Briefcase, Users, Map } from "lucide-react";
 import {
   borrarHistorial,
   guardarBusqueda,
@@ -96,8 +93,6 @@ type Paquete =
 export default function Portada({ modoInterno }: { modoInterno: boolean }) {
   const { t } = useI18n();
   const { moneda, setMoneda } = useMoneda();
-  const { usuario, cargando: cargandoAuth, cerrarSesion } = useAuth();
-  const [modalAuth, setModalAuth] = useState(false);
   const [pestana, setPestana] = useState<"vuelos" | "hoteles" | "paquetes">("vuelos");
   const [estado, setEstado] = useState<Estado>({ fase: "inicio" });
   const [estadoHoteles, setEstadoHoteles] = useState<EstadoHoteles>({
@@ -493,76 +488,7 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#F5F7FA]">
-      <header className="bg-[#0B2545]">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img alt="IA Travel Planning" className="h-9" src="/logo.svg" />
-          <div className="flex items-center gap-4">
-            <SelectorMoneda
-              className="w-28"
-              etiqueta=""
-              placeholder=""
-              valor={moneda}
-              onCambio={(nuevo) => setMoneda(nuevo ?? "USD")}
-            />
-            <LanguageSwitcher />
-            <nav className="flex items-center gap-4 text-sm text-white/80">
-              <Link
-                className="inline-flex items-center gap-1 hover:text-white"
-                href="/experiencias"
-                prefetch={false}
-              >
-                <Map className="h-4 w-4" /> {t("experiences.title")}
-              </Link>
-              <Link
-                className="hover:text-white"
-                href="/corporativo"
-                prefetch={false}
-              >
-                {t("common.corporate")}
-              </Link>
-              <Link
-                className="hover:text-white"
-                href="/admin/itinerarios"
-                prefetch={false}
-              >
-                {t("common.itineraries")}
-              </Link>
-              <Link
-                className="hover:text-white"
-                href="/admin/markup"
-                prefetch={false}
-              >
-                {t("common.markup")}
-              </Link>
-              {!cargandoAuth &&
-                (usuario ? (
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    <span className="hidden sm:inline">
-                      {usuario.nombre ?? usuario.email}
-                    </span>
-                    <button
-                      className="inline-flex items-center gap-1 text-white/80 hover:text-white"
-                      onClick={() => void cerrarSesion()}
-                      type="button"
-                    >
-                      <LogOut className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    className="inline-flex items-center gap-1 hover:text-white"
-                    onClick={() => setModalAuth(true)}
-                    type="button"
-                  >
-                    <User className="h-4 w-4" /> {t("common.login")}
-                  </button>
-                ))}
-            </nav>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       <section className="bg-[#0B2545] pb-16 pt-2 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -615,6 +541,17 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
                 <Users className="h-4 w-4" /> {t("common.corporate")}
               </Link>
             </div>
+            {pestana === "paquetes" && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Link
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/20"
+                  href="/experiencias"
+                  prefetch={false}
+                >
+                  <Map className="h-4 w-4" /> {t("experiences.title")}
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -1058,8 +995,6 @@ export default function Portada({ modoInterno }: { modoInterno: boolean }) {
           </p>
         </div>
       </footer>
-
-      <AuthModal abierto={modalAuth} onCerrar={() => setModalAuth(false)} />
     </div>
   );
 }

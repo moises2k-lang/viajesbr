@@ -101,7 +101,7 @@ export function getLocaleName(locale: Locale): string {
   return locale;
 }
 
-const LOCALE_COUNTRY: Record<Locale, string> = {
+export const LOCALE_COUNTRY: Record<Locale, string> = {
   en: "US",
   es: "MX",
   fr: "FR",

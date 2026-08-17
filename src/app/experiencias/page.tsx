@@ -2,16 +2,60 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Map, MapPin, Tag, Clock, Plane, Sun } from "lucide-react";
+import {
+  Briefcase,
+  Compass,
+  Crown,
+  Heart,
+  Landmark,
+  Map,
+  MapPin,
+  Sparkles,
+  Sun,
+  Tag,
+  Trees,
+  Umbrella,
+  Users,
+  UtensilsCrossed,
+  Clock,
+  Plane,
+} from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { actividadesDetalle, fechasRecomendadas, type PaqueteTematico } from "@/lib/experiencias-helpers";
-import SelectorMoneda from "@/components/SelectorMoneda";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { useMoneda } from "@/components/MonedaContext";
+import SiteHeader from "@/components/SiteHeader";
 
 interface Categoria {
   id: string;
   nombre: string;
+}
+
+function iconoCategoria(id: string) {
+  switch (id) {
+    case "negocios":
+      return Briefcase;
+    case "ocio":
+      return Sparkles;
+    case "familia":
+      return Users;
+    case "romantico":
+      return Heart;
+    case "aventura":
+      return Compass;
+    case "gastronomia":
+      return UtensilsCrossed;
+    case "playa":
+      return Umbrella;
+    case "naturaleza":
+      return Trees;
+    case "luna_de_miel":
+      return Heart;
+    case "cultural":
+      return Landmark;
+    case "lujo":
+      return Crown;
+    default:
+      return Map;
+  }
 }
 
 function banderaUrl(code: string | null): string | null {
@@ -22,7 +66,6 @@ export const dynamic = "force-dynamic";
 
 export default function ExperienciasPage() {
   const { t } = useI18n();
-  const { moneda, setMoneda } = useMoneda();
   const [categoria, setCategoria] = useState<string>("");
   const [paquetes, setPaquetes] = useState<PaqueteTematico[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -49,30 +92,7 @@ export default function ExperienciasPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
-      <header className="bg-[#0B2545]">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <Link href="/">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img alt="IA Travel Planning" className="h-9" src="/logo.svg" />
-          </Link>
-          <nav className="flex items-center gap-4 text-sm text-white/80">
-            <Link className="hover:text-white" href="/">
-              {t("common.flights")}
-            </Link>
-            <Link className="hover:text-white" href="/corporativo">
-              {t("common.corporate")}
-            </Link>
-            <SelectorMoneda
-              className="w-28"
-              etiqueta=""
-              placeholder=""
-              valor={moneda}
-              onCambio={(nuevo) => setMoneda(nuevo ?? "USD")}
-            />
-            <LanguageSwitcher />
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <div className="mb-8">
@@ -94,20 +114,23 @@ export default function ExperienciasPage() {
           >
             <Map className="h-4 w-4" /> {t("experiences.allCategories")}
           </button>
-          {categorias.map((cat) => (
-            <button
-              className={`inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium transition ${
-                categoria === cat.id
-                  ? "bg-[#0B2545] text-white"
-                  : "border border-[#E4E8EE] bg-white text-[#0B2545] hover:border-[#14477E]/40"
-              }`}
-              key={cat.id}
-              onClick={() => setCategoria(cat.id)}
-              type="button"
-            >
-              {cat.nombre}
-            </button>
-          ))}
+          {categorias.map((cat) => {
+            const Icono = iconoCategoria(cat.id);
+            return (
+              <button
+                className={`inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium transition ${
+                  categoria === cat.id
+                    ? "bg-[#0B2545] text-white"
+                    : "border border-[#E4E8EE] bg-white text-[#0B2545] hover:border-[#14477E]/40"
+                }`}
+                key={cat.id}
+                onClick={() => setCategoria(cat.id)}
+                type="button"
+              >
+                <Icono className="h-4 w-4" /> {cat.nombre}
+              </button>
+            );
+          })}
         </div>
 
         {cargando && (

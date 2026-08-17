@@ -42,11 +42,13 @@ export async function GET(request: Request) {
     const tipos = lugar.types ?? [];
     if (tipos.length > 0 && !tipos.some((tipo) => TIPOS_UTILES.includes(tipo))) continue;
     const partes = lugar.formattedAddress.split(",").map((parte) => parte.trim());
-    const pais = codigoPais(partes[partes.length - 1] ?? "");
+    const pais =
+      codigoPais(partes[partes.length - 1] ?? "") ||
+      codigoPais(lugar.displayName);
     opciones.push({
       placeId: lugar.placeId,
       nombre: lugar.displayName,
-      detalle: lugar.formattedAddress,
+      detalle: lugar.formattedAddress || lugar.displayName,
       pais,
       bandera: pais ? bandera(pais) : null,
     });
