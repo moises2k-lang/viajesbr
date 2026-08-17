@@ -143,7 +143,7 @@ interface SabreOffer {
   journeyRefs: string[];
 }
 
-interface SabreFlightSearchResponse {
+interface SabreFlightShopResponse {
   timestamp: string;
   flights?: SabreFlight[];
   journeys?: SabreJourney[];
@@ -175,49 +175,60 @@ function duracionIso(min: number): string {
   return `PT${min}M`;
 }
 
+function codigoPasajero(edad?: number): string {
+  if (edad === undefined) return "ADT";
+  if (edad < 2) return "INF";
+  if (edad <= 11) return `C${String(edad).padStart(2, "0")}`;
+  return "ADT";
+}
+
 export async function buscarOfertas(
   p: ParametrosBusqueda,
 ): Promise<SolicitudOfertas> {
   if (!esSabreActivo()) {
     throw new Error("Faltan SABRE_EPR y SABRE_PASSWORD");
   }
-  if (p.tramos && p.tramos.length > 1) {
-    throw new Error("Sabre Flight Search aún no soporta multiciudad");
+
+  const journeys =
+    p.tramos && p.tramos.length > 1
+      ? p.tramos.map((t) => ({
+          departureLocation: { airportCode: t.origen },
+          arrivalLocation: { airportCode: t.destino },
+          departureDate: t.fecha,
+        }))
+      : [
+          {
+            departureLocation: { airportCode: p.origen },
+            arrivalLocation: { airportCode: p.destino },
+            departureDate: p.fechaSalida,
+          },
+          ...(p.fechaRegreso
+            ? [
+                {
+                  departureLocation: { airportCode: p.destino },
+                  arrivalLocation: { airportCode: p.origen },
+                  departureDate: p.fechaRegreso,
+                },
+              ]
+            : []),
+        ];
+
+  const travelers: { passengerTypeCode: string }[] = [];
+  for (let i = 0; i < p.adultos; i++) {
+    travelers.push({ passengerTypeCode: "ADT" });
   }
-
-  const totalPassengers = p.adultos + p.menores.length + p.bebes;
-  const fechaSalida = p.fechaSalida;
-  const fechaRegreso = p.fechaRegreso;
-
-  function addDaysISO(date: string, days: number): string {
-    const d = new Date(date + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() + days);
-    return d.toISOString().slice(0, 10);
+  for (const edad of p.menores) {
+    travelers.push({ passengerTypeCode: codigoPasajero(edad) });
   }
-
-  function daysBetween(a: string, b: string): number {
-    const inicio = new Date(a + "T00:00:00Z").getTime();
-    const fin = new Date(b + "T00:00:00Z").getTime();
-    return Math.max(1, Math.round((fin - inicio) / 86_400_000));
+  for (let i = 0; i < p.bebes; i++) {
+    travelers.push({ passengerTypeCode: "INF" });
   }
-
-  const rangoSalidaInicio = addDaysISO(fechaSalida, -3);
-  const rangoSalidaFin = addDaysISO(fechaSalida, 3);
 
   const body: Record<string, unknown> = {
-    departureLocation: {
-      locationType: "Airport",
-      locationCode: p.origen,
-    },
-    departureDateRange: {
-      fromDate: rangoSalidaInicio,
-      toDate: fechaRegreso ? rangoSalidaFin : fechaSalida,
-    },
+    journeys,
+    travelers,
     processingOptions: {
-      publicContentPointOfSaleCountry: "US",
-      returnLowestNonStopFare: false,
-      returnFullOffers: true,
-      returnMode: "Per Day",
+      limitNumberOfOffers: 50,
     },
     sources: {
       providers: ["Sabre"],
@@ -225,37 +236,23 @@ export async function buscarOfertas(
     },
   };
 
-  if (fechaRegreso) {
-    const diff = daysBetween(fechaSalida, fechaRegreso);
-    const los: number[] = [];
-    for (let i = -2; i <= 2; i += 1) {
-      const v = diff + i;
-      if (v > 0) los.push(v);
-    }
-    body.lengthsOfStay = los;
-  }
-
-  const data = await sabreFetch<SabreFlightSearchResponse>("/v1/offers/flightSearch", {
+  const data = await sabreFetch<SabreFlightShopResponse>("/v1/offers/flightShop", {
     method: "POST",
     body: JSON.stringify(body),
   });
 
   const flights = new Map(data.flights?.map((f) => [f.id, f]) ?? []);
-  const journeys = new Map(data.journeys?.map((j) => [j.id, j]) ?? []);
+  const journeyMap = new Map(data.journeys?.map((j) => [j.id, j]) ?? []);
 
-  const flightMapByRef = flights;
-  const journeyMapByRef = journeys;
-
-  const offerCandidates = data.offers ?? [];
   const offers: Oferta[] = [];
 
-  for (const offer of offerCandidates) {
+  for (const offer of data.offers ?? []) {
     const slices = offer.journeyRefs.map((journeyRef) => {
-      const journey = journeyMapByRef.get(journeyRef);
+      const journey = journeyMap.get(journeyRef);
       if (!journey) throw new Error(`Journey ${journeyRef} no encontrado`);
 
       const segments: SegmentoOferta[] = journey.flightRefs.map((flightRef) => {
-        const flight = flightMapByRef.get(flightRef);
+        const flight = flights.get(flightRef);
         if (!flight) throw new Error(`Flight ${flightRef} no encontrado`);
 
         const cabin = cabinForFlight(offer, flightRef) ?? "Economy";
@@ -297,23 +294,25 @@ export async function buscarOfertas(
       const dest = slices[0]?.destination.iata_code;
       if (dest && dest !== p.destino) continue;
       const salida = slices[0]?.segments[0]?.departing_at?.slice(0, 10);
-      if (salida && salida !== fechaSalida) continue;
+      if (salida && salida !== p.fechaSalida) continue;
       if (slices.length > 1) {
         if (slices[1]?.destination.iata_code !== p.origen) continue;
         const regreso = slices[1]?.segments[0]?.departing_at?.slice(0, 10);
-        if (regreso && regreso !== fechaRegreso) continue;
+        if (regreso && regreso !== p.fechaRegreso) continue;
       }
     }
 
-    const pricePerAdult = Number(offer.totalPrice.amount);
-    const total = (pricePerAdult * totalPassengers).toFixed(2);
-    const fare = offer.items[0]?.fares[0];
-    const base = fare
-      ? (Number(fare.fareTotal.equivalentFare) * totalPassengers).toFixed(2)
-      : null;
-    const tax = fare
-      ? (Number(fare.fareTotal.taxAmount) * totalPassengers).toFixed(2)
-      : null;
+    let baseSum = 0;
+    let taxSum = 0;
+    for (const item of offer.items) {
+      for (const fare of item.fares) {
+        baseSum += Number(fare.fareTotal.equivalentFare);
+        taxSum += Number(fare.fareTotal.taxAmount);
+      }
+    }
+
+    const base = baseSum > 0 ? baseSum.toFixed(2) : null;
+    const tax = taxSum > 0 ? taxSum.toFixed(2) : null;
 
     const passengerList: { id: string; type: "adult" | "child" | "infant_without_seat"; age?: number }[] = [];
     let pid = 1;
@@ -327,11 +326,14 @@ export async function buscarOfertas(
       passengerList.push({ id: `p${pid++}`, type: "infant_without_seat" });
     }
 
-    const owner = fare?.validatingAirlineCode ?? slices[0]?.segments[0]?.marketing_carrier.iata_code ?? "Sabre";
+    const owner =
+      offer.items[0]?.fares[0]?.validatingAirlineCode ??
+      slices[0]?.segments[0]?.marketing_carrier.iata_code ??
+      "Sabre";
 
     const oferta: Oferta = {
       id: offer.id,
-      total_amount: total,
+      total_amount: offer.totalPrice.amount,
       total_currency: offer.totalPrice.currencyCode,
       base_amount: base,
       tax_amount: tax,
