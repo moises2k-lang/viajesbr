@@ -72,9 +72,13 @@ export async function sabreFetch<T>(ruta: string, init: RequestInit): Promise<T>
   });
   const text = await resp.text();
   if (!resp.ok) {
-    throw new Error(`Sabre ${resp.status}: ${text.slice(0, 500)}`);
+    throw new Error(`Sabre ${resp.status}: ${text.slice(0, 2000)}`);
   }
-  return JSON.parse(text) as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(`Sabre returned non-JSON (status ${resp.status}): ${text.slice(0, 4000)}`);
+  }
 }
 
 interface SabreFlight {
