@@ -3,7 +3,7 @@ import {
   aeropuertosDelPais,
   sugerirLugares,
   type AeropuertoSugerido,
-} from "@/lib/duffel";
+} from "@/lib/providers";
 import { bandera, nombrePais } from "@/lib/paises";
 import type { OpcionLugar } from "@/app/api/lugares/route";
 

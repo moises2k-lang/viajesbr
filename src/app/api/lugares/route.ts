@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sugerirLugares } from "@/lib/duffel";
+import { sugerirLugares } from "@/lib/providers";
 import { bandera, nombrePais } from "@/lib/paises";
 
 export const runtime = "nodejs";

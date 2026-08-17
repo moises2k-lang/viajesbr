@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { obtenerOferta } from "@/lib/duffel";
+import { obtenerOferta } from "@/lib/providers";
 import { calcularPrecio, reglasActivas } from "@/lib/markup";
 import { normalizarOferta } from "@/lib/ofertas";
 import { query } from "@/lib/db";

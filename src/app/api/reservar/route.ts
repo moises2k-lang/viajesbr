@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { crearOrden, esAmbientePrueba, obtenerOferta } from "@/lib/duffel";
+import { esAmbientePrueba } from "@/lib/duffel";
+import { crearOrden, obtenerOferta } from "@/lib/providers";
 import { calcularPrecio, reglasActivas } from "@/lib/markup";
 import { query } from "@/lib/db";
 import { verificarCaptcha } from "@/lib/captcha";
