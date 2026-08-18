@@ -476,15 +476,6 @@ export async function buscarOfertas(p: ParametrosBusqueda): Promise<SolicitudOfe
     body: JSON.stringify(body),
   });
 
-  console.error(
-    "[Sabre BFM] body:",
-    JSON.stringify(body),
-    "groups:",
-    data.groupedItineraryResponse.itineraryGroups?.length ?? 0,
-    "itineraries:",
-    data.groupedItineraryResponse.statistics?.itineraryCount ?? 0,
-  );
-
   return mapBFMResponse(p, data);
 }
 
@@ -493,17 +484,17 @@ export async function buscarOfertas(p: ParametrosBusqueda): Promise<SolicitudOfe
 // ---------------------------------------------------------------------------
 
 function mapBFMResponse(p: ParametrosBusqueda, data: SabreBFMResponse): SolicitudOfertas {
-  const resp = data.groupedItineraryResponse;
-  const scheduleById = new Map(resp.scheduleDescs.map((s) => [s.id, s]));
-  const legById = new Map(resp.legDescs.map((l) => [l.id, l]));
+  const resp = data.groupedItineraryResponse ?? {};
+  const scheduleById = new Map((resp.scheduleDescs ?? []).map((s) => [s.id, s]));
+  const legById = new Map((resp.legDescs ?? []).map((l) => [l.id, l]));
   const baggageById = new Map((resp.baggageAllowanceDescs ?? []).map((b) => [b.id, b]));
 
   const offers: Oferta[] = [];
 
   for (const group of resp.itineraryGroups ?? []) {
-    const legDates = group.groupDescription.legDescriptions;
-    for (const itinerary of group.itineraries) {
-      for (const pricing of itinerary.pricingInformation) {
+    const legDates = group.groupDescription?.legDescriptions ?? [];
+    for (const itinerary of group.itineraries ?? []) {
+      for (const pricing of itinerary.pricingInformation ?? []) {
         if (!pricing.fare || !pricing.offer) continue;
         const offer = buildOffer(
           p,
@@ -531,12 +522,14 @@ function buildOffer(
   legById: Map<number, LegDesc>,
   baggageById: Map<number, { pieceCount?: number }>,
 ): Oferta | null {
+  if (!pricing.fare?.totalFare || !pricing.offer) return null;
   const fare = pricing.fare!;
   const offerMeta = pricing.offer!;
 
   const slices: RebanadaOferta[] = [];
-  for (let legIndex = 0; legIndex < itinerary.legs.length; legIndex++) {
-    const legRef = itinerary.legs[legIndex];
+  const legs = itinerary.legs ?? [];
+  for (let legIndex = 0; legIndex < legs.length; legIndex++) {
+    const legRef = legs[legIndex];
     const legDesc = legById.get(legRef.ref);
     if (!legDesc) return null;
     const legDate = legDates[legIndex]?.departureDate;
@@ -545,7 +538,7 @@ function buildOffer(
     const segments: SegmentoOferta[] = [];
     let previousArrivalUtc = -Infinity;
 
-    for (const scheduleRef of legDesc.schedules) {
+    for (const scheduleRef of legDesc.schedules ?? []) {
       const schedule = scheduleById.get(scheduleRef.ref);
       if (!schedule) return null;
 
@@ -578,10 +571,10 @@ function buildOffer(
         departing_at: departingAt,
         arriving_at: arrivingAt,
         duration: duracionIso(schedule.elapsedTime),
-        marketing_carrier: carrier(schedule.carrier.marketing),
-        marketing_carrier_flight_number: n(schedule.carrier.marketingFlightNumber),
-        operating_carrier: carrier(schedule.carrier.operating),
-        aircraft: { name: schedule.carrier.equipment?.code ?? "" },
+        marketing_carrier: carrier(schedule.carrier?.marketing ?? ""),
+        marketing_carrier_flight_number: n(schedule.carrier?.marketingFlightNumber),
+        operating_carrier: carrier(schedule.carrier?.operating ?? ""),
+        aircraft: { name: schedule.carrier?.equipment?.code ?? "" },
         passengers: buildSegmentPassengers(p, fare, segments.length, baggageById),
         ...(cabinCode ? { marketing_class: cabinCode } : {}),
       } as SegmentoOferta);
@@ -656,7 +649,9 @@ function flattenedSegmentCabinCodes(fare: Fare): string[] {
   if (!firstPassenger) return result;
   for (const fc of firstPassenger.fareComponents ?? []) {
     for (const seg of fc.segments ?? []) {
-      result.push(seg.segment.cabinCode ?? "Y");
+      const raw = seg as any;
+      const cabin = raw.segment?.cabinCode ?? raw.cabinCode ?? "Y";
+      result.push(cabin);
     }
   }
   return result;
@@ -693,8 +688,8 @@ function buildSegmentPassengers(
   const baggages: { type: string; quantity: number }[] = [];
 
   if (firstPassenger?.baggageInformation) {
-    const info = firstPassenger.baggageInformation.find((b) => b.segments.some((s) => s.id === segmentIndex));
-    if (info) {
+    const info = firstPassenger.baggageInformation.find((b) => b.segments?.some((s) => s.id === segmentIndex));
+    if (info?.allowance?.ref != null) {
       const allowance = baggageById.get(info.allowance.ref);
       if (allowance && typeof allowance.pieceCount === "number") {
         baggages.push({ type: "checked", quantity: allowance.pieceCount });
