@@ -356,6 +356,7 @@ const flights = {
   nonRefundable: "No reembolsable",
   noCheckedBaggage: "Sin maleta documentada",
   noBaggageIncluded: "Sin equipaje incluido",
+  baggageNotIncluded: "Sin equipaje de mano incluido",
 };
 
 const hotels = {
@@ -708,6 +709,7 @@ const en: LocaleDict = {
     nonRefundable: "Non-refundable",
     noCheckedBaggage: "No checked bag",
     noBaggageIncluded: "No baggage included",
+    baggageNotIncluded: "No carry-on included",
   },
   hotels: {
     hotel: "Hotel",
@@ -1041,6 +1043,7 @@ const fr: LocaleDict = {
     nonRefundable: "Non remboursable",
     noCheckedBaggage: "Sans bagage enregistré",
     noBaggageIncluded: "Sans bagage inclus",
+    baggageNotIncluded: "Sans bagage cabine inclus",
   },
   hotels: {
     hotel: "Hôtel",

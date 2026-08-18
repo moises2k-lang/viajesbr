@@ -9,6 +9,12 @@ import type { OpcionLugar } from "@/app/api/lugares/route";
 
 export const runtime = "nodejs";
 
+/**
+ * Aeropuertos que nunca se deben pre-seleccionar automáticamente como origen
+ * porque no tienen servicio comercial regular (p. ej. Atizapán).
+ */
+const AEROPUERTOS_GPS_EXCLUIDOS = new Set(["AZP"]);
+
 /** Distancia aproximada en kilómetros entre dos coordenadas (haversine). */
 function distanciaKm(
   latitudA: number,
@@ -109,6 +115,9 @@ export async function GET(request: Request) {
     ) {
       lista = await aeropuertosDelPais(pais);
     }
+    lista = lista.filter(
+      (a) => a.iata_code && !AEROPUERTOS_GPS_EXCLUIDOS.has(a.iata_code),
+    );
   } catch (error) {
     return NextResponse.json(
       { error: (error as Error).message },
